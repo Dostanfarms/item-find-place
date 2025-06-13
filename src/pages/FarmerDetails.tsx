@@ -9,10 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import Sidebar from '@/components/Sidebar';
 import ProductForm from '@/components/ProductForm';
-import TransactionHistory from '@/components/TransactionHistory';
-import SettlementModal from '@/components/SettlementModal';
-import { mockFarmers, getDailyEarnings, getMonthlyEarnings, getUnsettledAmount } from '@/utils/mockData';
-import { Farmer, Product, Transaction } from '@/utils/types';
+import { useFarmers, Farmer } from '@/hooks/useFarmers';
+import { useProducts, Product } from '@/hooks/useProducts';
 import { ArrowLeft, Plus, DollarSign, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -20,23 +18,23 @@ const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { farmers, loading: farmersLoading } = useFarmers();
+  const { products, addProduct, updateProduct } = useProducts();
   
   const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [farmerProducts, setFarmerProducts] = useState<Product[]>([]);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
-  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
-  const [dailyEarnings, setDailyEarnings] = useState([]);
-  const [monthlyEarnings, setMonthlyEarnings] = useState([]);
-  const [unsettledAmount, setUnsettledAmount] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
 
   useEffect(() => {
-    if (id) {
-      const foundFarmer = mockFarmers.find(farmer => farmer.id === id);
+    if (id && farmers.length > 0) {
+      const foundFarmer = farmers.find(farmer => farmer.id === id);
       if (foundFarmer) {
         setFarmer(foundFarmer);
-        setDailyEarnings(getDailyEarnings(id));
-        setMonthlyEarnings(getMonthlyEarnings(id));
-        setUnsettledAmount(getUnsettledAmount(id));
+        
+        // Filter products for this farmer
+        const filteredProducts = products.filter(product => product.farmer_id === id);
+        setFarmerProducts(filteredProducts);
       } else {
         toast({
           title: "Farmer not found",
@@ -46,65 +44,45 @@ const FarmerDetails = () => {
         navigate('/farmers');
       }
     }
-  }, [id, navigate, toast]);
+  }, [id, farmers, products, navigate, toast]);
+
+  // Update farmer products when products change
+  useEffect(() => {
+    if (id) {
+      const filteredProducts = products.filter(product => product.farmer_id === id);
+      setFarmerProducts(filteredProducts);
+    }
+  }, [products, id]);
   
-  const handleProductSubmit = (product: Product) => {
+  const handleProductSubmit = async (product: Product) => {
     if (!farmer) return;
     
     if (selectedProduct) {
       // Update existing product
-      const updatedProducts = farmer.products.map(p => 
-        p.id === product.id ? product : p
-      );
-      
-      // Update farmer state with updated products
-      const updatedFarmer = { 
-        ...farmer, 
-        products: updatedProducts
-      };
-      
-      setFarmer(updatedFarmer);
-      setSelectedProduct(undefined);
-      setIsProductDialogOpen(false);
-      
-      toast({
-        title: "Product Updated",
-        description: `Updated ${product.name} successfully`,
-      });
+      const result = await updateProduct(product.id, product);
+      if (result.success) {
+        setSelectedProduct(undefined);
+        setIsProductDialogOpen(false);
+        toast({
+          title: "Product Updated",
+          description: `Updated ${product.name} successfully`,
+        });
+      }
     } else {
       // Add new product
-      // Add product to farmer
-      const updatedFarmer = { 
-        ...farmer, 
-        products: [...farmer.products, product] 
+      const productData = {
+        ...product,
+        farmer_id: farmer.id
       };
       
-      // Create transaction for the product
-      const transaction: Transaction = {
-        id: `tr_${Date.now()}`,
-        amount: product.quantity * product.price_per_unit,
-        date: new Date(),
-        type: 'credit',
-        description: `${product.name} delivery`,
-        farmerId: farmer.id,
-        settled: false
-      };
-      
-      updatedFarmer.transactions = [...farmer.transactions, transaction];
-      
-      // Update farmer state
-      setFarmer(updatedFarmer);
-      setIsProductDialogOpen(false);
-      
-      // Update earnings and unsettled amount
-      setDailyEarnings(getDailyEarnings(farmer.id));
-      setMonthlyEarnings(getMonthlyEarnings(farmer.id));
-      setUnsettledAmount(prev => prev + (product.quantity * product.price_per_unit));
-      
-      toast({
-        title: "Product Added",
-        description: `Added ${product.quantity} ${product.unit} of ${product.name} for ₹${(product.quantity * product.price_per_unit).toFixed(2)}`,
-      });
+      const result = await addProduct(productData);
+      if (result.success) {
+        setIsProductDialogOpen(false);
+        toast({
+          title: "Product Added",
+          description: `Added ${product.quantity} ${product.unit} of ${product.name}`,
+        });
+      }
     }
   };
   
@@ -113,36 +91,7 @@ const FarmerDetails = () => {
     setIsProductDialogOpen(true);
   };
   
-  const handleSettlePayment = () => {
-    if (!farmer) return;
-    
-    // Create a settlement transaction
-    const settlementTransaction: Transaction = {
-      id: `tr_${Date.now()}`,
-      amount: unsettledAmount,
-      date: new Date(),
-      type: 'debit',
-      description: 'Payment settled',
-      farmerId: farmer.id,
-      settled: true
-    };
-    
-    // Mark all unsettled transactions as settled
-    const updatedTransactions = farmer.transactions.map(t => 
-      t.type === 'credit' && !t.settled ? { ...t, settled: true } : t
-    );
-    
-    // Update farmer with new transaction and settled status
-    const updatedFarmer = {
-      ...farmer,
-      transactions: [...updatedTransactions, settlementTransaction]
-    };
-    
-    setFarmer(updatedFarmer);
-    setUnsettledAmount(0);
-  };
-  
-  if (!farmer) {
+  if (farmersLoading || !farmer) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
@@ -154,6 +103,10 @@ const FarmerDetails = () => {
       </SidebarProvider>
     );
   }
+
+  const totalProductValue = farmerProducts.reduce((total, product) => {
+    return total + (product.quantity * product.price_per_unit);
+  }, 0);
   
   return (
     <SidebarProvider>
@@ -181,7 +134,7 @@ const FarmerDetails = () => {
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
-                      className="border-agri-primary text-agri-primary hover:bg-agri-muted"
+                      className="border-green-600 text-green-600 hover:bg-green-50"
                       onClick={() => {
                         setSelectedProduct(undefined);
                         setIsProductDialogOpen(true);
@@ -189,14 +142,6 @@ const FarmerDetails = () => {
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Product
-                    </Button>
-                    <Button 
-                      className="bg-agri-primary hover:bg-agri-secondary"
-                      onClick={() => setIsSettlementOpen(true)}
-                      disabled={unsettledAmount <= 0}
-                    >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Settle Payment
                     </Button>
                   </div>
                 </div>
@@ -211,8 +156,12 @@ const FarmerDetails = () => {
                         <span>{farmer.phone}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Email:</span>
+                        <span className="text-right">{farmer.email}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Address:</span>
-                        <span className="text-right">{farmer.address}</span>
+                        <span className="text-right">{farmer.address || 'Not provided'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Joined:</span>
@@ -225,11 +174,11 @@ const FarmerDetails = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Bank:</span>
-                        <span>{farmer.bank_name}</span>
+                        <span>{farmer.bank_name || 'Not provided'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Account:</span>
-                        <span>{farmer.account_number}</span>
+                        <span>{farmer.account_number || 'Not provided'}</span>
                       </div>
                       {farmer.ifsc_code && (
                         <div className="flex justify-between">
@@ -246,17 +195,17 @@ const FarmerDetails = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center mb-4">
-                  <p className="text-sm text-muted-foreground">Unsettled Amount</p>
-                  <p className="text-3xl font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Total Product Value</p>
+                  <p className="text-3xl font-bold text-green-600">₹{totalProductValue.toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Products</p>
-                    <p className="text-xl font-semibold">{farmer.products.length}</p>
+                    <p className="text-xl font-semibold">{farmerProducts.length}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Transactions</p>
-                    <p className="text-xl font-semibold">{farmer.transactions.length}</p>
+                    <p className="text-sm text-muted-foreground">Location</p>
+                    <p className="text-sm font-semibold">{farmer.village || farmer.district || 'Not set'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -265,9 +214,8 @@ const FarmerDetails = () => {
           
           <div className="grid grid-cols-1 gap-6 mb-6">
             <Tabs defaultValue="products">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-1">
                 <TabsTrigger value="products">Products</TabsTrigger>
-                <TabsTrigger value="transactions">Transactions</TabsTrigger>
               </TabsList>
               
               <TabsContent value="products" className="pt-4">
@@ -276,11 +224,11 @@ const FarmerDetails = () => {
                     <CardTitle>Products</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {farmer.products.length === 0 ? (
+                    {farmerProducts.length === 0 ? (
                       <div className="text-center py-6">
                         <p className="text-muted-foreground">No products added yet.</p>
                         <Button 
-                          className="mt-2 bg-agri-primary hover:bg-agri-secondary"
+                          className="mt-2 bg-green-600 hover:bg-green-700"
                           onClick={() => setIsProductDialogOpen(true)}
                         >
                           <Plus className="h-4 w-4 mr-2" />
@@ -302,7 +250,7 @@ const FarmerDetails = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {farmer.products.map((product) => (
+                            {farmerProducts.map((product) => (
                               <tr key={product.id} className="border-b">
                                 <td className="p-2">{product.name}</td>
                                 <td className="p-2">{product.category || 'N/A'}</td>
@@ -330,81 +278,8 @@ const FarmerDetails = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
-              <TabsContent value="transactions" className="pt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Transactions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {farmer.transactions.length === 0 ? (
-                      <div className="text-center py-6">
-                        <p className="text-muted-foreground">No transactions yet.</p>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left p-2">Date</th>
-                              <th className="text-left p-2">Description</th>
-                              <th className="text-center p-2">Type</th>
-                              <th className="text-center p-2">Status</th>
-                              <th className="text-right p-2">Amount (₹)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[...farmer.transactions]
-                              .sort((a, b) => b.date.getTime() - a.date.getTime())
-                              .map((transaction) => (
-                                <tr key={transaction.id} className="border-b">
-                                  <td className="p-2">{format(transaction.date, 'MMM dd, yyyy')}</td>
-                                  <td className="p-2">{transaction.description}</td>
-                                  <td className="text-center p-2">
-                                    <span className={`px-2 py-1 rounded-full text-xs ${
-                                      transaction.type === 'credit' 
-                                        ? 'bg-green-100 text-green-700' 
-                                        : 'bg-red-100 text-red-700'
-                                    }`}>
-                                      {transaction.type === 'credit' ? 'Credit' : 'Debit'}
-                                    </span>
-                                  </td>
-                                  <td className="text-center p-2">
-                                    {transaction.type === 'credit' && (
-                                      <span className={`px-2 py-1 rounded-full text-xs ${
-                                        transaction.settled 
-                                          ? 'bg-blue-100 text-blue-700' 
-                                          : 'bg-amber-100 text-amber-700'
-                                      }`}>
-                                        {transaction.settled ? 'Settled' : 'Pending'}
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className={`text-right p-2 font-medium ${
-                                    transaction.type === 'credit' 
-                                      ? 'text-green-600' 
-                                      : 'text-red-600'
-                                  }`}>
-                                    {transaction.type === 'credit' ? '+' : '-'}
-                                    ₹{transaction.amount.toFixed(2)}
-                                  </td>
-                                </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
             </Tabs>
           </div>
-          
-          <TransactionHistory 
-            transactions={farmer.transactions} 
-            dailyEarnings={dailyEarnings} 
-            monthlyEarnings={monthlyEarnings} 
-          />
           
           <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
             setIsProductDialogOpen(open);
@@ -422,14 +297,6 @@ const FarmerDetails = () => {
               />
             </DialogContent>
           </Dialog>
-          
-          <SettlementModal 
-            farmer={farmer}
-            unsettledAmount={unsettledAmount}
-            open={isSettlementOpen}
-            onClose={() => setIsSettlementOpen(false)}
-            onSettle={handleSettlePayment}
-          />
         </main>
       </div>
     </SidebarProvider>
