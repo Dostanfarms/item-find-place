@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useTransactions } from '@/hooks/useTransactions';
 import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
@@ -32,6 +32,7 @@ const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addTransaction } = useTransactions();
   
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -40,6 +41,7 @@ const PaymentPage = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [showUPIScanner, setShowUPIScanner] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Get cart data from navigation state
   const cartItems: CartItem[] = location.state?.cartItems || [];
@@ -112,7 +114,7 @@ const PaymentPage = () => {
 
   const finalTotal = originalTotal - calculateDiscount();
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!customerName.trim()) {
       toast({
         title: "Customer name required",
@@ -140,30 +142,76 @@ const PaymentPage = () => {
       return;
     }
 
-    // Create transaction data
-    const transaction = {
-      id: Date.now().toString(),
-      customerName,
-      customerMobile,
-      items: cartItems,
-      subtotal: originalTotal,
-      discount: calculateDiscount(),
-      total: finalTotal,
-      couponUsed: appliedCoupon?.code || null,
-      paymentMethod,
-      timestamp: new Date().toISOString(),
-      status: 'completed'
-    };
+    setIsProcessing(true);
 
-    // Save transaction to localStorage
-    const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-    existingTransactions.push(transaction);
-    localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+    try {
+      // Create transaction data for Supabase
+      const transactionData = {
+        customer_name: customerName,
+        customer_mobile: customerMobile,
+        items: cartItems,
+        subtotal: originalTotal,
+        discount: calculateDiscount(),
+        total: finalTotal,
+        coupon_used: appliedCoupon?.code || null,
+        payment_method: paymentMethod,
+        status: 'completed'
+      };
 
-    // Navigate to receipt page
-    navigate('/order-receipt', {
-      state: { transaction }
-    });
+      console.log('Saving transaction to Supabase:', transactionData);
+
+      // Save transaction to Supabase
+      const result = await addTransaction(transactionData);
+
+      if (result.success) {
+        console.log('Transaction saved successfully to Supabase');
+        
+        // Also save to localStorage for backward compatibility
+        const localTransaction = {
+          id: result.data.id,
+          customerName,
+          customerMobile,
+          items: cartItems,
+          subtotal: originalTotal,
+          discount: calculateDiscount(),
+          total: finalTotal,
+          couponUsed: appliedCoupon?.code || null,
+          paymentMethod,
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        };
+
+        const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+        existingTransactions.push(localTransaction);
+        localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+
+        toast({
+          title: "Payment successful",
+          description: "Transaction completed and saved successfully",
+        });
+
+        // Navigate to receipt page
+        navigate('/order-receipt', {
+          state: { transaction: localTransaction }
+        });
+      } else {
+        console.error('Failed to save transaction:', result.error);
+        toast({
+          title: "Error saving transaction",
+          description: result.error || "Failed to save transaction. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast({
+        title: "Payment error",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (cartItems.length === 0) {
@@ -193,6 +241,7 @@ const PaymentPage = () => {
             variant="outline" 
             size="icon"
             onClick={() => navigate('/sales-dashboard')}
+            disabled={isProcessing}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -214,6 +263,7 @@ const PaymentPage = () => {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Enter customer name"
+                    disabled={isProcessing}
                   />
                 </div>
                 <div>
@@ -223,6 +273,7 @@ const PaymentPage = () => {
                     value={customerMobile}
                     onChange={(e) => setCustomerMobile(e.target.value)}
                     placeholder="Enter mobile number"
+                    disabled={isProcessing}
                   />
                 </div>
               </CardContent>
@@ -233,7 +284,7 @@ const PaymentPage = () => {
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={isProcessing}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
@@ -279,7 +330,7 @@ const PaymentPage = () => {
                         {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`}
                       </Badge>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={removeCoupon}>
+                    <Button variant="ghost" size="sm" onClick={removeCoupon} disabled={isProcessing}>
                       Remove
                     </Button>
                   </div>
@@ -287,7 +338,7 @@ const PaymentPage = () => {
                   <div className="space-y-3">
                     {coupons.length > 0 ? (
                       <>
-                        <Select value={selectedCoupon} onValueChange={setSelectedCoupon}>
+                        <Select value={selectedCoupon} onValueChange={setSelectedCoupon} disabled={isProcessing}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a coupon" />
                           </SelectTrigger>
@@ -299,7 +350,7 @@ const PaymentPage = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button onClick={applyCoupon} variant="outline" className="w-full">
+                        <Button onClick={applyCoupon} variant="outline" className="w-full" disabled={isProcessing}>
                           Apply Coupon
                         </Button>
                       </>
@@ -358,9 +409,10 @@ const PaymentPage = () => {
                 <Button 
                   className="w-full bg-green-600 hover:bg-green-700"
                   onClick={handlePayment}
+                  disabled={isProcessing}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Complete Payment
+                  {isProcessing ? 'Processing...' : 'Complete Payment'}
                 </Button>
               </CardContent>
             </Card>

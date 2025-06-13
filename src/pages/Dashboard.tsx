@@ -9,6 +9,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useTickets } from '@/hooks/useTickets';
+import { useTransactions } from '@/hooks/useTransactions';
 import { 
   TrendingUp, 
   Users, 
@@ -16,7 +17,8 @@ import {
   IndianRupee,
   ShoppingCart,
   Tag,
-  Ticket
+  Ticket,
+  Receipt
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -25,6 +27,7 @@ const Dashboard = () => {
   const { customers } = useCustomers();
   const { coupons } = useCoupons();
   const { tickets } = useTickets();
+  const { transactions } = useTransactions();
 
   const handleSalesDashboardClick = () => {
     navigate('/sales-dashboard');
@@ -35,12 +38,35 @@ const Dashboard = () => {
     return total + (product.price_per_unit * product.quantity);
   }, 0);
 
+  // Calculate total sales from transactions
+  const totalSales = transactions.reduce((total, transaction) => {
+    return total + Number(transaction.total);
+  }, 0);
+
+  // Calculate today's sales
+  const today = new Date().toDateString();
+  const todaySales = transactions
+    .filter(transaction => new Date(transaction.created_at).toDateString() === today)
+    .reduce((total, transaction) => total + Number(transaction.total), 0);
+
   const stats = [
     {
       title: "Total Products",
       value: products.length.toString(),
       change: `Value: ₹${totalProductValue.toFixed(2)}`,
       icon: <Package className="h-6 w-6" />
+    },
+    {
+      title: "Total Sales",
+      value: `₹${totalSales.toFixed(2)}`,
+      change: `${transactions.length} transactions`,
+      icon: <IndianRupee className="h-6 w-6" />
+    },
+    {
+      title: "Today's Sales",
+      value: `₹${todaySales.toFixed(2)}`,
+      change: `${transactions.filter(t => new Date(t.created_at).toDateString() === today).length} transactions today`,
+      icon: <TrendingUp className="h-6 w-6" />
     },
     {
       title: "Total Customers",
@@ -72,16 +98,25 @@ const Dashboard = () => {
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
             </div>
-            <Button 
-              onClick={handleSalesDashboardClick}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Sales Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate('/transactions')}
+                variant="outline"
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                View Transactions
+              </Button>
+              <Button 
+                onClick={handleSalesDashboardClick}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Sales Dashboard
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {stats.map((stat, index) => (
               <Card key={index}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -112,22 +147,29 @@ const Dashboard = () => {
                   <div className="flex items-center space-x-4">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Products synced with Supabase</p>
-                      <p className="text-xs text-muted-foreground">Real-time updates</p>
+                      <p className="text-sm font-medium">Transactions synced with Supabase</p>
+                      <p className="text-xs text-muted-foreground">Real-time sales tracking</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Products synced with database</p>
+                      <p className="text-xs text-muted-foreground">Inventory management active</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">Customer data synchronized</p>
                       <p className="text-xs text-muted-foreground">Database connected</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Coupons and tickets ready</p>
-                      <p className="text-xs text-muted-foreground">All systems online</p>
+                      <p className="text-sm font-medium">Sales dashboard operational</p>
+                      <p className="text-xs text-muted-foreground">Ready for transactions</p>
                     </div>
                   </div>
                 </div>
@@ -167,10 +209,10 @@ const Dashboard = () => {
                   <Button 
                     variant="outline" 
                     className="h-20 flex-col"
-                    onClick={() => navigate('/coupons')}
+                    onClick={() => navigate('/transactions')}
                   >
-                    <Tag className="h-6 w-6 mb-2" />
-                    <span>Manage Coupons</span>
+                    <Receipt className="h-6 w-6 mb-2" />
+                    <span>View Transactions</span>
                   </Button>
                 </div>
               </CardContent>
