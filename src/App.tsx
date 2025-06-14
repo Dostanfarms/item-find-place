@@ -104,6 +104,7 @@ const App = () => (
               <Route element={<ProtectedRoute resource="sales" action="view" />}>
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/sales-dashboard" element={<SalesDashboard />} />
+                <Route path="/payment" element={<PaymentPage />} />
               </Route>
               
               <Route element={<ProtectedRoute resource="transactions" action="view" />}>
@@ -142,7 +143,6 @@ const App = () => (
               <Route path="/customer-orders" element={<CustomerOrderHistory />} />
               <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/payment" element={<PaymentPage />} />
               <Route path="/order-receipt" element={<OrderReceiptPage />} />
               <Route path="/order-tracking" element={<OrderTracking />} />
               <Route path="/order-history" element={<OrderHistory />} />
