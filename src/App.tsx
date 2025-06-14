@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Sidebar from "./components/Sidebar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Farmers from "./pages/Farmers";
@@ -43,6 +45,20 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Layout component for employee routes with sidebar
+const EmployeeLayout = () => {
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <Sidebar />
+        <main className="flex-1 p-6 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
+    </SidebarProvider>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -61,50 +77,52 @@ const App = () => (
             <Route path="/customer-register" element={<CustomerRegister />} />
             <Route path="/access-denied" element={<AccessDenied />} />
             
-            {/* Protected Employee Routes */}
-            <Route element={<ProtectedRoute resource="dashboard" action="view" />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="farmers" action="view" />}>
-              <Route path="/farmers" element={<Farmers />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="customers" action="view" />}>
-              <Route path="/customers" element={<Customers />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="products" action="view" />}>
-              <Route path="/products" element={<Products />} />
-            </Route>
+            {/* Protected Employee Routes with Sidebar */}
+            <Route element={<EmployeeLayout />}>
+              <Route element={<ProtectedRoute resource="dashboard" action="view" />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="farmers" action="view" />}>
+                <Route path="/farmers" element={<Farmers />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="customers" action="view" />}>
+                <Route path="/customers" element={<Customers />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="products" action="view" />}>
+                <Route path="/products" element={<Products />} />
+              </Route>
 
-            <Route element={<ProtectedRoute resource="categories" action="view" />}>
-              <Route path="/categories" element={<Categories />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="sales" action="view" />}>
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/sales-dashboard" element={<SalesDashboard />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="transactions" action="view" />}>
-              <Route path="/transactions" element={<Transactions />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="tickets" action="view" />}>
-              <Route path="/tickets" element={<Tickets />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="coupons" action="view" />}>
-              <Route path="/coupons" element={<Coupons />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="employees" action="view" />}>
-              <Route path="/employees" element={<Employees />} />
-            </Route>
-            
-            <Route element={<ProtectedRoute resource="roles" action="view" />}>
-              <Route path="/roles" element={<Roles />} />
+              <Route element={<ProtectedRoute resource="categories" action="view" />}>
+                <Route path="/categories" element={<Categories />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="sales" action="view" />}>
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/sales-dashboard" element={<SalesDashboard />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="transactions" action="view" />}>
+                <Route path="/transactions" element={<Transactions />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="tickets" action="view" />}>
+                <Route path="/tickets" element={<Tickets />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="coupons" action="view" />}>
+                <Route path="/coupons" element={<Coupons />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="employees" action="view" />}>
+                <Route path="/employees" element={<Employees />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="roles" action="view" />}>
+                <Route path="/roles" element={<Roles />} />
+              </Route>
             </Route>
             
             {/* Farmer Routes */}

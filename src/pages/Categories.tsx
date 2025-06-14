@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
-import Sidebar from '@/components/Sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import CategoryManagement from '@/components/categories/CategoryManagement';
 
-const CategoriesContent = () => {
+const Categories = () => {
   const { setOpenMobile } = useSidebar();
 
   // Close sidebar automatically when component mounts
@@ -12,22 +11,7 @@ const CategoriesContent = () => {
     setOpenMobile(false);
   }, [setOpenMobile]);
 
-  return (
-    <div className="min-h-screen flex w-full">
-      <Sidebar />
-      <main className="flex-1 p-6 overflow-y-auto">
-        <CategoryManagement />
-      </main>
-    </div>
-  );
-};
-
-const Categories = () => {
-  return (
-    <SidebarProvider>
-      <CategoriesContent />
-    </SidebarProvider>
-  );
+  return <CategoryManagement />;
 };
 
 export default Categories;
