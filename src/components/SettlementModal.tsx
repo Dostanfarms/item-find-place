@@ -8,8 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Farmer } from '@/utils/types';
 import { FarmerProduct, useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { format } from 'date-fns';
@@ -104,90 +105,94 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Settle Payment</DialogTitle>
           <DialogDescription>
             You are about to settle the payment for {farmer.name}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="flex justify-between items-center mb-4 p-3 bg-agri-muted rounded-md">
-            <span className="font-medium">Total Amount to Settle:</span>
-            <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
-          </div>
-          
-          <h4 className="text-sm font-medium mb-2">Payment will be sent to:</h4>
-          <div className="space-y-2 p-3 border rounded-md mb-4">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Account Holder:</span>
-              <span>{farmer.name}</span>
+        <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md">
+              <span className="font-medium">Total Amount to Settle:</span>
+              <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Bank:</span>
-              <span>{farmer.bank_name}</span>
+            
+            <div>
+              <h4 className="text-sm font-medium mb-2">Payment will be sent to:</h4>
+              <div className="space-y-2 p-3 border rounded-md">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Account Holder:</span>
+                  <span>{farmer.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Bank:</span>
+                  <span>{farmer.bank_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Account Number:</span>
+                  <span>{farmer.account_number}</span>
+                </div>
+                {farmer.ifsc_code && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">IFSC Code:</span>
+                    <span>{farmer.ifsc_code}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Account Number:</span>
-              <span>{farmer.account_number}</span>
-            </div>
-            {farmer.ifsc_code && (
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">IFSC Code:</span>
-                <span>{farmer.ifsc_code}</span>
+            
+            {unsettledProducts.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Unsettled Products:</h4>
+                <div className="border rounded-md max-h-32 overflow-y-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted border-b">
+                        <th className="text-left p-2 text-xs">Product</th>
+                        <th className="text-left p-2 text-xs">Date</th>
+                        <th className="text-right p-2 text-xs">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {unsettledProducts.map((product) => (
+                        <tr key={product.id} className="border-b">
+                          <td className="p-2">{product.name}</td>
+                          <td className="p-2">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
+                          <td className="text-right p-2">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
-          </div>
-          
-          {unsettledProducts.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium mb-2">Unsettled Products:</h4>
-              <div className="border rounded-md max-h-40 overflow-y-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="text-left p-2 text-xs">Product</th>
-                      <th className="text-left p-2 text-xs">Date</th>
-                      <th className="text-right p-2 text-xs">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {unsettledProducts.map((product) => (
-                      <tr key={product.id} className="border-b">
-                        <td className="p-2">{product.name}</td>
-                        <td className="p-2">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
-                        <td className="text-right p-2">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+            <div>
+              <h4 className="text-sm font-medium mb-2">Upload Transaction Image:</h4>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <PhotoUploadField
+                  value={transactionImage}
+                  onChange={setTransactionImage}
+                  name="transaction-image"
+                  className="w-32 h-32"
+                />
+                {!transactionImage && (
+                  <div className="text-center mt-2">
+                    <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload proof of transaction
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2">Upload Transaction Image:</h4>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-              <PhotoUploadField
-                value={transactionImage}
-                onChange={setTransactionImage}
-                name="transaction-image"
-                className="w-32 h-32"
-              />
-              {!transactionImage && (
-                <div className="text-center mt-2">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload proof of transaction
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
+        </ScrollArea>
 
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="flex-shrink-0 mt-4 sm:justify-between">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
