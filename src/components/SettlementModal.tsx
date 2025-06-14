@@ -8,16 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { Farmer } from '@/utils/types';
 import { FarmerProduct, useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import FarmerDetailsSection from '@/components/settlement/FarmerDetailsSection';
-import BankDetailsSection from '@/components/settlement/BankDetailsSection';
-import UnsettledProductsTable from '@/components/settlement/UnsettledProductsTable';
 import TransactionImageUpload from '@/components/settlement/TransactionImageUpload';
 
 interface SettlementModalProps {
@@ -107,7 +103,7 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Settle Payment</DialogTitle>
           <DialogDescription>
@@ -116,52 +112,48 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 flex-1 min-h-0">
-          {/* Total Amount - Fixed at top */}
-          <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md flex-shrink-0">
-            <span className="font-medium">Total Amount to Settle:</span>
+          {/* Farmer Basic Info */}
+          <div className="space-y-3 p-4 border rounded-md bg-gray-50">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground font-medium">Name:</span>
+              <span className="font-medium">{farmer.name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground font-medium">Mobile:</span>
+              <span>{farmer.phone}</span>
+            </div>
+          </div>
+
+          {/* Total Amount */}
+          <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md">
+            <span className="font-medium">Unsettled Amount:</span>
             <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
           </div>
           
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-            {/* Left Column - Farmer Info */}
-            <div className="space-y-4">
-              <FarmerDetailsSection farmer={farmer} />
-              <BankDetailsSection farmer={farmer} />
-              
-              {/* Compact Upload Section */}
-              <div className="border rounded-md p-3 bg-gray-50">
-                <h4 className="text-sm font-medium mb-2">Upload Transaction Proof:</h4>
-                <div className="flex items-center gap-3">
-                  <TransactionImageUpload 
-                    transactionImage={transactionImage}
-                    onImageChange={setTransactionImage}
-                  />
-                  <div className="flex-1">
-                    {!transactionImage ? (
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Upload transaction receipt
-                        </p>
-                        <p className="text-xs text-red-500">
-                          Required before settling
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-green-600">
-                        ✓ Transaction image uploaded
-                      </p>
-                    )}
+          {/* Upload Section */}
+          <div className="border rounded-md p-4 bg-gray-50">
+            <h4 className="text-sm font-medium mb-3">Upload Transaction Proof:</h4>
+            <div className="flex items-center gap-3">
+              <TransactionImageUpload 
+                transactionImage={transactionImage}
+                onImageChange={setTransactionImage}
+              />
+              <div className="flex-1">
+                {!transactionImage ? (
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Upload transaction receipt
+                    </p>
+                    <p className="text-xs text-red-500">
+                      Required before settling
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-green-600">
+                    ✓ Transaction image uploaded
+                  </p>
+                )}
               </div>
-            </div>
-
-            {/* Right Column - Products */}
-            <div className="flex flex-col min-h-0">
-              <ScrollArea className="flex-1">
-                <UnsettledProductsTable unsettledProducts={unsettledProducts} />
-              </ScrollArea>
             </div>
           </div>
         </div>
