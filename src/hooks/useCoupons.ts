@@ -57,32 +57,37 @@ export const useCoupons = () => {
     try {
       console.log('Verifying mobile number:', mobile, 'for target type:', targetType);
       
-      let tableName = '';
-      let mobileColumn = '';
-      
       if (targetType === 'customer') {
-        tableName = 'customers';
-        mobileColumn = 'mobile';
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id, name')
+          .eq('mobile', mobile)
+          .single();
+
+        if (error) {
+          console.error('Error verifying customer mobile number:', error);
+          return { success: false, error: 'Customer with this mobile number not found' };
+        }
+
+        console.log('Customer mobile number verified:', data);
+        return { success: true, user: data };
       } else if (targetType === 'employee') {
-        tableName = 'employees';
-        mobileColumn = 'phone';
+        const { data, error } = await supabase
+          .from('employees')
+          .select('id, name')
+          .eq('phone', mobile)
+          .single();
+
+        if (error) {
+          console.error('Error verifying employee mobile number:', error);
+          return { success: false, error: 'Employee with this mobile number not found' };
+        }
+
+        console.log('Employee mobile number verified:', data);
+        return { success: true, user: data };
       } else {
         return { success: false, error: 'Invalid target type' };
       }
-
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('id, name')
-        .eq(mobileColumn, mobile)
-        .single();
-
-      if (error) {
-        console.error('Error verifying mobile number:', error);
-        return { success: false, error: `${targetType} with this mobile number not found` };
-      }
-
-      console.log('Mobile number verified:', data);
-      return { success: true, user: data };
     } catch (error) {
       console.error('Error in verifyMobileNumber:', error);
       return { success: false, error: 'Failed to verify mobile number' };
