@@ -18,7 +18,7 @@ export interface Employee {
   account_number?: string;
   bank_name?: string;
   ifsc_code?: string;
-  is_active?: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +62,7 @@ export const useEmployees = () => {
         account_number: emp.account_number,
         bank_name: emp.bank_name,
         ifsc_code: emp.ifsc_code,
-        is_active: true, // Default to true since column doesn't exist yet
+        is_active: emp.is_active,
         created_at: emp.created_at,
         updated_at: emp.updated_at
       })) || [];
@@ -98,7 +98,7 @@ export const useEmployees = () => {
           account_number: employeeData.account_number,
           bank_name: employeeData.bank_name,
           ifsc_code: employeeData.ifsc_code,
-          is_active: employeeData.is_active !== false
+          is_active: employeeData.is_active
         }])
         .select()
         .single();

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Pencil, Trash2, User } from 'lucide-react';
 import { Employee } from '@/hooks/useEmployees';
@@ -35,55 +36,70 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b">
-            <th className="text-left p-2">Name</th>
-            <th className="text-left p-2">Email</th>
-            <th className="text-left p-2">Phone</th>
-            <th className="text-left p-2">Role</th>
-            <th className="text-left p-2">Location</th>
-            <th className="text-left p-2">Date Joined</th>
-            <th className="text-right p-2">Actions</th>
+          <tr className="border-b bg-muted/50">
+            <th className="text-left p-4 font-medium">Employee</th>
+            <th className="text-left p-4 font-medium">Contact</th>
+            <th className="text-left p-4 font-medium">Role</th>
+            <th className="text-left p-4 font-medium">Location</th>
+            <th className="text-left p-4 font-medium">Status</th>
+            <th className="text-left p-4 font-medium">Date Joined</th>
+            <th className="text-right p-4 font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
           {employees.map((employee) => (
-            <tr key={employee.id} className="border-b">
-              <td className="p-2 flex items-center gap-2">
-                <div className="bg-muted h-8 w-8 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4" />
+            <tr key={employee.id} className="border-b hover:bg-muted/25">
+              <td className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted h-10 w-10 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{employee.name}</div>
+                    <div className="text-sm text-muted-foreground">{employee.email}</div>
+                  </div>
                 </div>
-                {employee.name}
               </td>
-              <td className="p-2">{employee.email}</td>
-              <td className="p-2">{employee.phone || 'Not provided'}</td>
-              <td className="p-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${
+              <td className="p-4">
+                <div className="text-sm">
+                  <div>{employee.phone || 'Not provided'}</div>
+                </div>
+              </td>
+              <td className="p-4">
+                <Badge variant={
                   employee.role === 'admin' 
-                    ? 'bg-red-100 text-red-700' 
+                    ? 'destructive' 
                     : employee.role === 'manager'
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'default'
                       : employee.role === 'sales'
-                        ? 'bg-green-100 text-green-700'
-                        : employee.role === 'accountant'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-purple-100 text-purple-700'
-                }`}>
+                        ? 'secondary'
+                        : 'outline'
+                }>
                   {employee.role.charAt(0).toUpperCase() + employee.role.slice(1)}
-                </span>
+                </Badge>
               </td>
-              <td className="p-2">
-                {employee.state && employee.district ? 
-                  `${employee.district}, ${employee.state}` : 
-                  "Not specified"}
+              <td className="p-4">
+                <div className="text-sm">
+                  {employee.state && employee.district ? 
+                    `${employee.district}, ${employee.state}` : 
+                    "Not specified"}
+                </div>
               </td>
-              <td className="p-2">
-                {employee.date_joined ? 
-                  format(new Date(employee.date_joined), 'MMM dd, yyyy') : 
-                  'Not available'}
+              <td className="p-4">
+                <Badge variant={employee.is_active ? "default" : "secondary"}>
+                  {employee.is_active ? "Active" : "Inactive"}
+                </Badge>
               </td>
-              <td className="p-2 text-right">
+              <td className="p-4">
+                <div className="text-sm">
+                  {employee.date_joined ? 
+                    format(new Date(employee.date_joined), 'MMM dd, yyyy') : 
+                    'Not available'}
+                </div>
+              </td>
+              <td className="p-4 text-right">
                 <div className="flex justify-end gap-2">
                   {canEdit && (
                     <Button

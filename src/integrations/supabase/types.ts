@@ -131,6 +131,7 @@ export type Database = {
           email: string
           id: string
           ifsc_code: string | null
+          is_active: boolean
           name: string
           password: string
           phone: string | null
@@ -150,6 +151,7 @@ export type Database = {
           email: string
           id?: string
           ifsc_code?: string | null
+          is_active?: boolean
           name: string
           password: string
           phone?: string | null
@@ -169,6 +171,7 @@ export type Database = {
           email?: string
           id?: string
           ifsc_code?: string | null
+          is_active?: boolean
           name?: string
           password?: string
           phone?: string | null
