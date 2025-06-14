@@ -67,7 +67,7 @@ const Farmers = () => {
       <div className="min-h-screen flex w-full">
         <Sidebar />
         <main className="flex-1 p-6 overflow-y-auto">
-          <div className="max-w-full mx-auto">
+          <div className="w-full">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
               <h1 className="text-2xl font-bold">Farmers Management</h1>
               <div className="flex flex-col md:flex-row gap-3">
@@ -123,13 +123,13 @@ const Farmers = () => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {filteredFarmers.map((farmer) => (
                   <Card key={farmer.id} className="overflow-hidden">
                     <CardHeader className="bg-muted pb-2">
                       <CardTitle className="text-lg flex justify-between items-start">
-                        <span>{farmer.name}</span>
-                        <span className="text-xs bg-agri-primary text-white px-2 py-1 rounded-full">
+                        <span className="truncate">{farmer.name}</span>
+                        <span className="text-xs bg-agri-primary text-white px-2 py-1 rounded-full whitespace-nowrap ml-2">
                           ID: {farmer.id.slice(0, 8)}
                         </span>
                       </CardTitle>
@@ -138,33 +138,33 @@ const Farmers = () => {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Phone:</span>
-                          <span>{farmer.phone}</span>
+                          <span className="text-sm">{farmer.phone}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Bank:</span>
-                          <span className="truncate max-w-[200px]">{farmer.bank_name || 'Not provided'}</span>
+                          <span className="text-sm truncate max-w-[120px]">{farmer.bank_name || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Account:</span>
-                          <span>{farmer.account_number || 'Not provided'}</span>
+                          <span className="text-sm">{farmer.account_number || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Products:</span>
-                          <span>{farmer.products?.length || 0}</span>
+                          <span className="text-sm">{farmer.products?.length || 0}</span>
                         </div>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-4">
                           <Button 
-                            className="flex-1 bg-agri-primary hover:bg-agri-secondary" 
+                            className="flex-1 bg-agri-primary hover:bg-agri-secondary text-sm" 
                             onClick={() => navigate(`/farmer/${farmer.id}`)}
                           >
-                            <Eye className="h-4 w-4 mr-2" /> View
+                            <Eye className="h-4 w-4 mr-1" /> View
                           </Button>
                           <Button 
                             variant="outline" 
-                            className="flex-1"
+                            className="flex-1 text-sm"
                             onClick={() => handleEditFarmer(farmer)}
                           >
-                            <Edit className="h-4 w-4 mr-2" /> Edit
+                            <Edit className="h-4 w-4 mr-1" /> Edit
                           </Button>
                         </div>
                       </div>
