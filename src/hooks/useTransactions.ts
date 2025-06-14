@@ -1,6 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+
+// Use the database types directly
+type DatabaseTransaction = Database['public']['Tables']['transactions']['Row'];
+type DatabaseTransactionInsert = Database['public']['Tables']['transactions']['Insert'];
 
 export interface TransactionItem {
   id: string;
@@ -9,6 +14,7 @@ export interface TransactionItem {
   quantity: number;
 }
 
+// Updated Transaction interface to match database schema
 export interface Transaction {
   id: string;
   customer_name: string;
@@ -43,7 +49,24 @@ export const useTransactions = () => {
       }
 
       console.log('Transactions fetched successfully:', data);
-      setTransactions(data || []);
+      
+      // Transform the data to match our interface
+      const transformedTransactions: Transaction[] = (data || []).map((dbTransaction: DatabaseTransaction) => ({
+        id: dbTransaction.id,
+        customer_name: dbTransaction.customer_name,
+        customer_mobile: dbTransaction.customer_mobile,
+        items: Array.isArray(dbTransaction.items) ? dbTransaction.items as TransactionItem[] : [],
+        subtotal: Number(dbTransaction.subtotal),
+        discount: Number(dbTransaction.discount),
+        total: Number(dbTransaction.total),
+        coupon_used: dbTransaction.coupon_used,
+        payment_method: dbTransaction.payment_method,
+        status: dbTransaction.status,
+        created_at: dbTransaction.created_at,
+        updated_at: dbTransaction.updated_at,
+      }));
+      
+      setTransactions(transformedTransactions);
     } catch (error) {
       console.error('Error in fetchTransactions:', error);
     } finally {
@@ -54,9 +77,23 @@ export const useTransactions = () => {
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding transaction:', transactionData);
+      
+      // Transform data for database insertion
+      const dbTransactionData: DatabaseTransactionInsert = {
+        customer_name: transactionData.customer_name,
+        customer_mobile: transactionData.customer_mobile,
+        items: transactionData.items,
+        subtotal: transactionData.subtotal,
+        discount: transactionData.discount,
+        total: transactionData.total,
+        coupon_used: transactionData.coupon_used,
+        payment_method: transactionData.payment_method,
+        status: transactionData.status,
+      };
+
       const { data, error } = await supabase
         .from('transactions')
-        .insert([transactionData])
+        .insert([dbTransactionData])
         .select()
         .single();
 

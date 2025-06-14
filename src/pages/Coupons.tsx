@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import Sidebar from '@/components/Sidebar';
@@ -29,6 +28,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+
+// Use database types directly to avoid type mismatches
+type DatabaseCoupon = Database['public']['Tables']['coupons']['Row'];
+type DatabaseCouponInsert = Database['public']['Tables']['coupons']['Insert'];
 
 interface Coupon {
   id?: string;
@@ -69,7 +73,23 @@ const Coupons = () => {
       }
 
       console.log('Coupons fetched successfully:', data);
-      setCoupons(data || []);
+      
+      // Transform database data to match our interface
+      const transformedCoupons: Coupon[] = (data || []).map((dbCoupon: DatabaseCoupon) => ({
+        id: dbCoupon.id,
+        code: dbCoupon.code,
+        discount_type: dbCoupon.discount_type as 'percentage' | 'flat',
+        discount_value: Number(dbCoupon.discount_value),
+        max_discount_limit: dbCoupon.max_discount_limit ? Number(dbCoupon.max_discount_limit) : undefined,
+        expiry_date: dbCoupon.expiry_date,
+        is_active: dbCoupon.is_active,
+        target_type: dbCoupon.target_type as 'all' | 'customer' | 'employee',
+        target_user_id: dbCoupon.target_user_id || undefined,
+        created_at: dbCoupon.created_at,
+        updated_at: dbCoupon.updated_at,
+      }));
+      
+      setCoupons(transformedCoupons);
     } catch (error) {
       console.error('Error in fetchCoupons:', error);
       toast({
@@ -216,7 +236,7 @@ const Coupons = () => {
     if (!validateForm()) return;
     
     try {
-      const couponData = {
+      const couponData: DatabaseCouponInsert = {
         code: couponCode,
         discount_type: discountType,
         discount_value: discountValue,
