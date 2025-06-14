@@ -55,7 +55,7 @@ export const useTransactions = () => {
         id: dbTransaction.id,
         customer_name: dbTransaction.customer_name,
         customer_mobile: dbTransaction.customer_mobile,
-        items: Array.isArray(dbTransaction.items) ? dbTransaction.items as TransactionItem[] : [],
+        items: Array.isArray(dbTransaction.items) ? (dbTransaction.items as unknown as TransactionItem[]) : [],
         subtotal: Number(dbTransaction.subtotal),
         discount: Number(dbTransaction.discount),
         total: Number(dbTransaction.total),
@@ -82,7 +82,7 @@ export const useTransactions = () => {
       const dbTransactionData: DatabaseTransactionInsert = {
         customer_name: transactionData.customer_name,
         customer_mobile: transactionData.customer_mobile,
-        items: transactionData.items,
+        items: transactionData.items as unknown as Database['public']['Tables']['transactions']['Insert']['items'],
         subtotal: transactionData.subtotal,
         discount: transactionData.discount,
         total: transactionData.total,
