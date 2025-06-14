@@ -10,7 +10,7 @@ import TransactionHistory from '@/components/TransactionHistory';
 import SettlementModal from '@/components/SettlementModal';
 import { useFarmers } from '@/hooks/useFarmers';
 import { useFarmerProducts, FarmerProduct } from '@/hooks/useFarmerProducts';
-import { getDailyEarnings, getMonthlyEarnings, getUnsettledAmount } from '@/utils/mockData';
+import { getDailyEarnings, getMonthlyEarnings } from '@/utils/mockData';
 import { Transaction } from '@/utils/types';
 import { ArrowLeft, Plus, DollarSign, Edit } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,7 +19,7 @@ const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
-  const { products: farmerProducts, loading: productsLoading } = useFarmerProducts(id);
+  const { products: farmerProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts(id);
   
   const [farmer, setFarmer] = useState<any>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
@@ -28,6 +28,16 @@ const FarmerDetails = () => {
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [unsettledAmount, setUnsettledAmount] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<FarmerProduct | undefined>(undefined);
+
+  // Calculate unsettled amount from farmer products
+  useEffect(() => {
+    if (farmerProducts) {
+      const unsettled = farmerProducts
+        .filter(product => product.payment_status === 'unsettled')
+        .reduce((total, product) => total + (product.quantity * product.price_per_unit), 0);
+      setUnsettledAmount(unsettled);
+    }
+  }, [farmerProducts]);
 
   useEffect(() => {
     if (id && farmers.length > 0) {
@@ -42,7 +52,6 @@ const FarmerDetails = () => {
         setFarmer(farmerWithDefaults);
         setDailyEarnings(getDailyEarnings(id));
         setMonthlyEarnings(getMonthlyEarnings(id));
-        setUnsettledAmount(getUnsettledAmount(id));
       } else {
         console.error('Farmer not found with ID:', id);
         navigate('/farmers');
@@ -55,8 +64,8 @@ const FarmerDetails = () => {
     setIsProductDialogOpen(true);
   };
   
-  const handleSettlePayment = () => {
-    if (!farmer) return;
+  const handleSettlePayment = async () => {
+    if (!farmer || !id) return;
     
     // Create a settlement transaction
     const settlementTransaction: Transaction = {
@@ -81,7 +90,9 @@ const FarmerDetails = () => {
     };
     
     setFarmer(updatedFarmer);
-    setUnsettledAmount(0);
+    
+    // Refresh farmer products to get updated data
+    await fetchFarmerProducts(id);
   };
   
   if (loading || productsLoading) {
@@ -250,6 +261,7 @@ const FarmerDetails = () => {
                           <th className="text-right p-2">Quantity</th>
                           <th className="text-right p-2">Unit Price (₹)</th>
                           <th className="text-right p-2">Total (₹)</th>
+                          <th className="text-center p-2">Payment Status</th>
                           <th className="text-center p-2">Actions</th>
                         </tr>
                       </thead>
@@ -263,6 +275,15 @@ const FarmerDetails = () => {
                             <td className="text-right p-2">₹{product.price_per_unit.toFixed(2)}</td>
                             <td className="text-right p-2 font-medium">
                               ₹{(product.quantity * product.price_per_unit).toFixed(2)}
+                            </td>
+                            <td className="text-center p-2">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                product.payment_status === 'settled' 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {product.payment_status === 'settled' ? 'Settled' : 'Unsettled'}
+                              </span>
                             </td>
                             <td className="text-center p-2">
                               <Button 
@@ -377,9 +398,11 @@ const FarmerDetails = () => {
       <SettlementModal 
         farmer={farmer}
         unsettledAmount={unsettledAmount}
+        unsettledProducts={farmerProducts.filter(p => p.payment_status === 'unsettled')}
         open={isSettlementOpen}
         onClose={() => setIsSettlementOpen(false)}
         onSettle={handleSettlePayment}
+        farmerId={id}
       />
     </div>
   );

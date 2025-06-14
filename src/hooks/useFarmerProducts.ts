@@ -12,6 +12,8 @@ export interface FarmerProduct {
   price_per_unit: number;
   category: string;
   barcode?: string;
+  payment_status: 'settled' | 'unsettled';
+  transaction_image?: string;
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +107,8 @@ export const useFarmerProducts = (farmerId?: string) => {
           price_per_unit: productData.price_per_unit,
           category: productData.category,
           barcode: productData.barcode,
+          payment_status: productData.payment_status,
+          transaction_image: productData.transaction_image,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)

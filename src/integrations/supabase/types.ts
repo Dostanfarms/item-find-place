@@ -191,8 +191,10 @@ export type Database = {
           farmer_id: string
           id: string
           name: string
+          payment_status: string
           price_per_unit: number
           quantity: number
+          transaction_image: string | null
           unit: string
           updated_at: string
         }
@@ -203,8 +205,10 @@ export type Database = {
           farmer_id: string
           id?: string
           name: string
+          payment_status?: string
           price_per_unit: number
           quantity?: number
+          transaction_image?: string | null
           unit?: string
           updated_at?: string
         }
@@ -215,8 +219,10 @@ export type Database = {
           farmer_id?: string
           id?: string
           name?: string
+          payment_status?: string
           price_per_unit?: number
           quantity?: number
+          transaction_image?: string | null
           unit?: string
           updated_at?: string
         }
