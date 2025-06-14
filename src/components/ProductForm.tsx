@@ -97,7 +97,8 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
       unit,
       price_per_unit: parsedPrice,
       category,
-      barcode: editProduct?.barcode || generateBarcode()
+      barcode: editProduct?.barcode || generateBarcode(),
+      payment_status: editProduct?.payment_status || 'unsettled' as const
     };
     
     console.log('Submitting farmer product data:', productData);

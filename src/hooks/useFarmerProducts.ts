@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -47,7 +46,13 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      setProducts(data || []);
+      // Type assertion to ensure payment_status is properly typed
+      const typedData = (data || []).map(product => ({
+        ...product,
+        payment_status: product.payment_status as 'settled' | 'unsettled'
+      }));
+
+      setProducts(typedData);
     } catch (error) {
       console.error('Error in fetchFarmerProducts:', error);
       toast({
