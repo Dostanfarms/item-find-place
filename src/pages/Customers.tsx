@@ -18,7 +18,7 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingOrders, setViewingOrders] = useState<Customer | null>(null);
 
-  // Filter customers based on search term
+  // Filter customers based on search term - now includes mobile number
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -76,7 +76,7 @@ const Customers = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search customers..."
+                      placeholder="Search by name, email, or mobile..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 w-80"

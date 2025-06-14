@@ -16,7 +16,7 @@ const Transactions = () => {
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.customer_mobile.toLowerCase().includes(searchTerm.toLowerCase());
+                         transaction.customer_mobile.includes(searchTerm);
     const matchesStatus = filterStatus === 'all' || transaction.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -59,7 +59,7 @@ const Transactions = () => {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search transactions..."
+              placeholder="Search by ID, customer name, or mobile..."
               className="pl-8 w-full md:w-[250px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

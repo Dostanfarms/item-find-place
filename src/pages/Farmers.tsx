@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -20,10 +19,11 @@ const Farmers = () => {
   
   const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
   
-  // Filter farmers based on search
+  // Filter farmers based on search - now includes mobile number
   const filteredFarmers = farmers.filter(farmer => 
     farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    farmer.phone.includes(searchTerm)
+    farmer.phone.includes(searchTerm) ||
+    farmer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleAddFarmer = async (farmerData: Farmer) => {
@@ -75,7 +75,7 @@ const Farmers = () => {
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search farmers..."
+                      placeholder="Search by name, phone, or email..."
                       className="pl-8 w-80"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -115,7 +115,7 @@ const Farmers = () => {
                   <>
                     <h3 className="text-xl font-medium mb-2">No farmers found</h3>
                     <p className="text-muted-foreground text-center">
-                      No farmers match your search criteria. Try with a different name or phone number.
+                      No farmers match your search criteria. Try with a different name, phone number, or email.
                     </p>
                   </>
                 ) : (

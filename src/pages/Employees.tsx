@@ -39,7 +39,8 @@ const Employees = () => {
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.role.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (employee.phone && employee.phone.includes(searchTerm))
   );
 
   const handleEdit = (employee: any) => {
@@ -179,7 +180,7 @@ const Employees = () => {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search employees..."
+              placeholder="Search by name, email, role, or mobile..."
               className="pl-8 w-full md:w-[250px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
