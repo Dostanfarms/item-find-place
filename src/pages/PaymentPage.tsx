@@ -11,7 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useCustomers } from '@/hooks/useCustomers';
-import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone, Search } from 'lucide-react';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useCustomerCoupons } from '@/hooks/useCustomerCoupons';
+import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone, Search, Plus } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CartItem {
@@ -21,13 +23,21 @@ interface CartItem {
   quantity: number;
 }
 
+interface VerifiedUser {
+  id: string;
+  name: string;
+  mobile: string;
+  type: 'customer' | 'employee';
+}
+
 const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addTransaction } = useTransactions();
-  const { coupons, loading: couponsLoading } = useCoupons();
-  const { loginCustomer } = useCustomers();
+  const { validateCouponForUser } = useCoupons();
+  const { customers, addCustomer } = useCustomers();
+  const { employees } = useEmployees();
   
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -36,14 +46,20 @@ const PaymentPage = () => {
   const [showUPIScanner, setShowUPIScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isCustomerVerified, setIsCustomerVerified] = useState(false);
+  const [verifiedUser, setVerifiedUser] = useState<VerifiedUser | null>(null);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   // Get cart data from navigation state
   const cartItems: CartItem[] = location.state?.cartItems || [];
   const originalSubtotal: number = location.state?.subtotal || 0;
 
+  // Fetch coupons for the verified user
+  const { coupons: userCoupons, loading: couponsLoading } = useCustomerCoupons(
+    verifiedUser ? verifiedUser.mobile : undefined
+  );
+
   // Filter active coupons
-  const activeCoupons = coupons.filter(coupon => 
+  const activeCoupons = userCoupons.filter(coupon => 
     coupon.is_active && new Date(coupon.expiry_date) > new Date()
   );
 
@@ -75,37 +91,123 @@ const PaymentPage = () => {
 
     try {
       console.log('Verifying mobile number:', customerMobile);
-      const result = await loginCustomer(customerMobile);
-
-      if (result.success && result.customer) {
-        console.log('Customer found:', result.customer);
-        setCustomerName(result.customer.name);
-        setIsCustomerVerified(true);
+      
+      // First search in customers table
+      const customer = customers.find(c => c.mobile === customerMobile);
+      
+      if (customer) {
+        console.log('Customer found:', customer);
+        setCustomerName(customer.name);
+        setVerifiedUser({
+          id: customer.id,
+          name: customer.name,
+          mobile: customer.mobile,
+          type: 'customer'
+        });
         toast({
           title: "Customer verified",
-          description: `Welcome back, ${result.customer.name}!`,
+          description: `Welcome back, ${customer.name}!`,
         });
-      } else {
-        console.log('Customer not found for mobile:', customerMobile);
-        setCustomerName('');
-        setIsCustomerVerified(false);
-        toast({
-          title: "Customer not found",
-          description: "No customer found with this mobile number. You can enter the name manually.",
-          variant: "destructive"
-        });
+        return;
       }
-    } catch (error) {
-      console.error('Error verifying customer:', error);
+
+      // If not found in customers, search in employees table
+      const employee = employees.find(e => e.phone === customerMobile);
+      
+      if (employee) {
+        console.log('Employee found:', employee);
+        setCustomerName(employee.name);
+        setVerifiedUser({
+          id: employee.id,
+          name: employee.name,
+          mobile: customerMobile,
+          type: 'employee'
+        });
+        toast({
+          title: "Employee verified",
+          description: `Welcome, ${employee.name}!`,
+        });
+        return;
+      }
+
+      // If not found in either table, offer to create new customer
+      console.log('Mobile number not found in any table');
       setCustomerName('');
-      setIsCustomerVerified(false);
+      setVerifiedUser(null);
+      toast({
+        title: "Mobile number not found",
+        description: "This mobile number is not registered. You can create a new customer account.",
+        variant: "destructive"
+      });
+      
+    } catch (error) {
+      console.error('Error verifying mobile:', error);
+      setCustomerName('');
+      setVerifiedUser(null);
       toast({
         title: "Verification failed",
-        description: "Failed to verify customer. Please try again.",
+        description: "Failed to verify mobile number. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!customerName.trim()) {
+      toast({
+        title: "Customer name required",
+        description: "Please enter customer name to create account",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCreatingCustomer(true);
+
+    try {
+      console.log('Creating new customer:', { name: customerName, mobile: customerMobile });
+      
+      const result = await addCustomer({
+        name: customerName,
+        mobile: customerMobile,
+        email: null,
+        address: null,
+        pincode: null,
+        password: 'defaultPassword123',
+        profile_photo: null
+      });
+
+      if (result.success) {
+        console.log('Customer created successfully:', result.data);
+        setVerifiedUser({
+          id: result.data.id,
+          name: result.data.name,
+          mobile: result.data.mobile,
+          type: 'customer'
+        });
+        toast({
+          title: "Customer created",
+          description: `Customer account created for ${customerName}`,
+        });
+      } else {
+        console.error('Failed to create customer:', result.error);
+        toast({
+          title: "Failed to create customer",
+          description: "Could not create customer account. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create customer account.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingCustomer(false);
     }
   };
 
@@ -115,8 +217,8 @@ const PaymentPage = () => {
     setCustomerMobile(numericValue);
     
     // Reset verification status when mobile number changes
-    if (isCustomerVerified) {
-      setIsCustomerVerified(false);
+    if (verifiedUser) {
+      setVerifiedUser(null);
       setCustomerName('');
     }
   };
@@ -131,7 +233,7 @@ const PaymentPage = () => {
     
     if (coupon.discount_type === 'percentage') {
       discount = (originalSubtotal * coupon.discount_value) / 100;
-    } else if (coupon.discount_type === 'flat') {
+    } else if (coupon.discount_type === 'fixed') {
       discount = coupon.discount_value;
     }
     
@@ -171,6 +273,27 @@ const PaymentPage = () => {
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate coupon if one is selected
+    if (selectedCoupon && selectedCoupon !== 'none' && verifiedUser) {
+      const selectedCouponData = activeCoupons.find(c => c.id === selectedCoupon);
+      if (selectedCouponData) {
+        const validation = await validateCouponForUser(
+          selectedCouponData.code,
+          verifiedUser.mobile,
+          verifiedUser.type
+        );
+
+        if (!validation.success) {
+          toast({
+            title: "Invalid coupon",
+            description: validation.error,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
     }
 
     setIsProcessing(true);
@@ -300,7 +423,7 @@ const PaymentPage = () => {
                       placeholder="Enter 10-digit mobile number"
                       disabled={isProcessing}
                       maxLength={10}
-                      className={isCustomerVerified ? "border-green-500" : ""}
+                      className={verifiedUser ? "border-green-500" : ""}
                     />
                     <Button
                       onClick={handleVerifyMobile}
@@ -321,20 +444,49 @@ const PaymentPage = () => {
                       )}
                     </Button>
                   </div>
-                  {isCustomerVerified && (
-                    <p className="text-sm text-green-600 mt-1">✓ Customer verified</p>
+                  {verifiedUser && (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✓ {verifiedUser.type === 'customer' ? 'Customer' : 'Employee'} verified
+                    </p>
                   )}
                 </div>
                 <div>
                   <Label htmlFor="customerName">Customer Name</Label>
-                  <Input
-                    id="customerName"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={isCustomerVerified ? "Auto-filled from database" : "Enter customer name"}
-                    disabled={isProcessing}
-                    className={isCustomerVerified ? "border-green-500 bg-green-50" : ""}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder={verifiedUser ? "Auto-filled from database" : "Enter customer name"}
+                      disabled={isProcessing || !!verifiedUser}
+                      className={verifiedUser ? "border-green-500 bg-green-50" : ""}
+                    />
+                    {!verifiedUser && customerMobile.length === 10 && customerName.trim() && (
+                      <Button
+                        onClick={handleCreateCustomer}
+                        disabled={isCreatingCustomer || isProcessing}
+                        variant="outline"
+                        className="shrink-0"
+                      >
+                        {isCreatingCustomer ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  {!verifiedUser && customerMobile.length === 10 && (
+                    <p className="text-sm text-blue-600 mt-1">
+                      Enter name and click Create to add new customer
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -403,6 +555,11 @@ const PaymentPage = () => {
                               <Badge variant="secondary" className="text-xs">
                                 {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
                               </Badge>
+                              {coupon.target_type !== 'all' && (
+                                <Badge variant="outline" className="text-xs">
+                                  {coupon.target_type}
+                                </Badge>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
@@ -421,7 +578,7 @@ const PaymentPage = () => {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No active coupons available
+                    {verifiedUser ? 'No coupons available for your account' : 'Verify mobile number to see available coupons'}
                   </p>
                 )}
               </CardContent>
