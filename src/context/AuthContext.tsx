@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -37,15 +38,21 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   });
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
 
-  // Fetch role permissions from database
+  // Fetch role permissions from database with faster timeout
   const fetchRolePermissions = async (roleName: string) => {
     try {
-      const { data, error } = await supabase
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 1000)
+      );
+
+      const fetchPromise = supabase
         .from('roles')
         .select('permissions')
         .eq('name', roleName)
         .eq('is_active', true)
         .single();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Error fetching role permissions:', error);
@@ -80,8 +87,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
-      // Fetch permissions for the user's role
+      // Fetch permissions for the user's role with 1-second timeout
+      const timeoutId = setTimeout(() => {
+        setRolePermissions([]); // Set empty permissions if timeout
+      }, 1000);
+
       fetchRolePermissions(user.role).then(permissions => {
+        clearTimeout(timeoutId);
         setRolePermissions(permissions);
       });
     } else {
@@ -94,58 +106,67 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('Login attempt:', { username, password });
     
     try {
-      // First check Supabase employees
-      const { data: employees, error } = await supabase
-        .from('employees')
-        .select('*');
+      // Set 1-second timeout for login process
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Login timeout')), 1000)
+      );
 
-      let allUsers = [...mockUsers];
-      
-      if (!error && employees) {
-        console.log('Supabase employees:', employees);
-        const formattedEmployees = employees.map((emp: any) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-          role: emp.role,
-          password: emp.password
-        }));
-        allUsers = [...allUsers, ...formattedEmployees];
-      }
-      
-      const registeredEmployees = localStorage.getItem('registeredEmployees');
-      if (registeredEmployees) {
-        try {
-          const employees = JSON.parse(registeredEmployees);
+      const loginPromise = (async () => {
+        // First check Supabase employees
+        const { data: employees, error } = await supabase
+          .from('employees')
+          .select('*');
+
+        let allUsers = [...mockUsers];
+        
+        if (!error && employees) {
+          console.log('Supabase employees:', employees);
           const formattedEmployees = employees.map((emp: any) => ({
             id: emp.id,
             name: emp.name,
-            email: emp.email || `${emp.name.toLowerCase().replace(/\s+/g, '')}@dostanfarms.com`,
-            role: emp.role || 'sales',
-            password: emp.password || 'password'
+            email: emp.email,
+            role: emp.role,
+            password: emp.password
           }));
           allUsers = [...allUsers, ...formattedEmployees];
-        } catch (error) {
-          console.error('Error parsing registered employees:', error);
         }
-      }
-      
-      const foundUser = allUsers.find(u => {
-        const usernameMatch = u.email === username || 
-                             u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase() ||
-                             u.name.toLowerCase() === username.toLowerCase();
-        const passwordMatch = u.password === password;
-        return usernameMatch && passwordMatch;
-      });
-      
-      if (foundUser) {
-        console.log('Login successful for:', foundUser);
-        const { password: _, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        return true;
-      }
-      
-      return false;
+        
+        const registeredEmployees = localStorage.getItem('registeredEmployees');
+        if (registeredEmployees) {
+          try {
+            const employees = JSON.parse(registeredEmployees);
+            const formattedEmployees = employees.map((emp: any) => ({
+              id: emp.id,
+              name: emp.name,
+              email: emp.email || `${emp.name.toLowerCase().replace(/\s+/g, '')}@dostanfarms.com`,
+              role: emp.role || 'sales',
+              password: emp.password || 'password'
+            }));
+            allUsers = [...allUsers, ...formattedEmployees];
+          } catch (error) {
+            console.error('Error parsing registered employees:', error);
+          }
+        }
+        
+        const foundUser = allUsers.find(u => {
+          const usernameMatch = u.email === username || 
+                               u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase() ||
+                               u.name.toLowerCase() === username.toLowerCase();
+          const passwordMatch = u.password === password;
+          return usernameMatch && passwordMatch;
+        });
+        
+        if (foundUser) {
+          console.log('Login successful for:', foundUser);
+          const { password: _, ...userWithoutPassword } = foundUser;
+          setUser(userWithoutPassword);
+          return true;
+        }
+        
+        return false;
+      })();
+
+      return await Promise.race([loginPromise, timeoutPromise]) as boolean;
     } catch (error) {
       console.error('Error during login:', error);
       return false;

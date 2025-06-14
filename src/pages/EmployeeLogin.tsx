@@ -37,13 +37,29 @@ const EmployeeLogin = () => {
     setIsLoading(true);
 
     try {
+      // Set 1-second timeout for login
+      const loginTimeout = setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: "Login Timeout",
+          description: "Login is taking too long. Please try again.",
+          variant: "destructive",
+        });
+      }, 1000);
+
       const success = await login(username, password);
+      clearTimeout(loginTimeout);
+
       if (success) {
         toast({
           title: "Login successful",
           description: "Welcome to your dashboard!",
         });
-        navigate('/dashboard');
+        
+        // Fast navigation with immediate redirect
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 200);
       } else {
         toast({
           title: "Login Failed",
@@ -64,8 +80,8 @@ const EmployeeLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 transition-all duration-300">
+      <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-6 w-6 text-agri-primary" />
@@ -83,6 +99,7 @@ const EmployeeLogin = () => {
                 placeholder="Enter username or email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                className="transition-all duration-200 focus:scale-[1.02]"
                 required
               />
             </div>
@@ -100,13 +117,14 @@ const EmployeeLogin = () => {
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="transition-all duration-200 focus:scale-[1.02]"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
+                  className="absolute right-0 top-0 h-full px-3 transition-transform duration-200 hover:scale-110"
                   onClick={togglePasswordVisibility}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -116,10 +134,17 @@ const EmployeeLogin = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-agri-primary hover:bg-agri-secondary"
+              className="w-full bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-[1.02]"
               disabled={isLoading}
             >
-              {isLoading ? "Logging in..." : "Login"}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Logging in...
+                </div>
+              ) : (
+                "Login"
+              )}
             </Button>
           </form>
         </CardContent>

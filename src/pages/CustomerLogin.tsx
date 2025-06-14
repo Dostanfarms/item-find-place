@@ -31,8 +31,19 @@ const CustomerLogin = () => {
     setIsLoading(true);
     
     try {
+      // Set 1-second timeout for OTP sending
+      const otpTimeout = setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: "Timeout",
+          description: "OTP sending is taking too long. Please try again.",
+          variant: "destructive"
+        });
+      }, 1000);
+
       // Check if customer exists in Supabase
       const result = await loginCustomer(mobile);
+      clearTimeout(otpTimeout);
       
       if (!result.success) {
         toast({
@@ -44,7 +55,7 @@ const CustomerLogin = () => {
         return;
       }
       
-      // Simulate OTP sending
+      // Fast OTP simulation - 500ms instead of 1.5 seconds
       setTimeout(() => {
         setIsLoading(false);
         setOtpSent(true);
@@ -52,7 +63,7 @@ const CustomerLogin = () => {
           title: "OTP Sent",
           description: "An OTP has been sent to your mobile number"
         });
-      }, 1500);
+      }, 500);
       
     } catch (error) {
       console.error('Error checking customer:', error);
@@ -80,8 +91,19 @@ const CustomerLogin = () => {
     setIsLoading(true);
     
     try {
+      // Set 1-second timeout for login
+      const loginTimeout = setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: "Login Timeout",
+          description: "Login is taking too long. Please try again.",
+          variant: "destructive"
+        });
+      }, 1000);
+
       // Simulate OTP verification and get customer data
       const result = await loginCustomer(mobile);
+      clearTimeout(loginTimeout);
       
       if (result.success && result.customer) {
         // Store logged in customer info
@@ -92,7 +114,10 @@ const CustomerLogin = () => {
           description: `Welcome back, ${result.customer.name}!`
         });
         
-        navigate('/customer-home');
+        // Fast navigation with immediate redirect
+        setTimeout(() => {
+          navigate('/customer-home');
+        }, 200);
       } else {
         toast({
           title: "Login Failed",
@@ -113,15 +138,15 @@ const CustomerLogin = () => {
   };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 transition-all duration-300">
+      <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="absolute left-4 top-4" 
-              onClick={() => navigate('/app-landing')}
+              className="absolute left-4 top-4 transition-transform duration-200 hover:scale-110" 
+              onClick={() => navigate('/app')}
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Back</span>
@@ -145,6 +170,7 @@ const CustomerLogin = () => {
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   disabled={otpSent || isLoading}
+                  className="transition-all duration-200 focus:scale-[1.02]"
                   required
                 />
                 {!otpSent && (
@@ -153,15 +179,23 @@ const CustomerLogin = () => {
                     variant="outline"
                     onClick={handleSendOtp}
                     disabled={isLoading}
+                    className="transition-all duration-200 hover:scale-105"
                   >
-                    {isLoading ? "Sending..." : "Send OTP"}
+                    {isLoading ? (
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                        Sending...
+                      </div>
+                    ) : (
+                      "Send OTP"
+                    )}
                   </Button>
                 )}
               </div>
             </div>
             
             {otpSent && (
-              <div className="space-y-2">
+              <div className="space-y-2 animate-fade-in">
                 <Label htmlFor="otp">OTP</Label>
                 <Input
                   id="otp"
@@ -169,6 +203,7 @@ const CustomerLogin = () => {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   disabled={isLoading}
+                  className="transition-all duration-200 focus:scale-[1.02]"
                   required
                 />
               </div>
@@ -177,17 +212,24 @@ const CustomerLogin = () => {
             {otpSent && (
               <Button 
                 type="submit" 
-                className="w-full bg-agri-primary hover:bg-agri-secondary"
+                className="w-full bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-[1.02]"
                 disabled={isLoading}
               >
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Logging in...
+                  </div>
+                ) : (
+                  "Login"
+                )}
               </Button>
             )}
             
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/customer-register" className="text-primary hover:underline">
+                <Link to="/customer-register" className="text-primary hover:underline transition-colors duration-200">
                   Register
                 </Link>
               </p>

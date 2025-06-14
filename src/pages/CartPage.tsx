@@ -25,6 +25,7 @@ const CartPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Get customer data from localStorage
   const customerString = localStorage.getItem('currentCustomer');
@@ -52,8 +53,9 @@ const CartPage = () => {
     return null; // Redirect handled in useEffect
   }
   
-  // Functions to update cart
+  // Functions to update cart with faster feedback
   const increaseQuantity = (productId: string) => {
+    setIsUpdating(true);
     setCartItems(prev => 
       prev.map(item => 
         item.productId === productId 
@@ -61,9 +63,13 @@ const CartPage = () => {
           : item
       )
     );
+    
+    // Fast feedback reset
+    setTimeout(() => setIsUpdating(false), 200);
   };
   
   const decreaseQuantity = (productId: string) => {
+    setIsUpdating(true);
     setCartItems(prev => 
       prev.map(item => 
         item.productId === productId && item.quantity > 1
@@ -71,14 +77,22 @@ const CartPage = () => {
           : item
       )
     );
+    
+    // Fast feedback reset
+    setTimeout(() => setIsUpdating(false), 200);
   };
   
   const removeItem = (productId: string) => {
+    setIsUpdating(true);
     setCartItems(prev => prev.filter(item => item.productId !== productId));
+    
     toast({
       title: "Item removed",
       description: "Item has been removed from your cart"
     });
+    
+    // Fast feedback reset
+    setTimeout(() => setIsUpdating(false), 200);
   };
   
   // Calculate subtotal
@@ -95,17 +109,20 @@ const CartPage = () => {
       return;
     }
     
-    navigate('/payment');
+    // Fast navigation
+    setTimeout(() => {
+      navigate('/payment');
+    }, 100);
   };
   
   return (
-    <div className="min-h-screen bg-muted/30 p-4">
+    <div className="min-h-screen bg-muted/30 p-4 transition-all duration-300">
       <header className="container mx-auto max-w-md mb-6">
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden"
+            className="md:hidden transition-transform duration-200 hover:scale-110"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             <Menu className="h-5 w-5" />
@@ -114,6 +131,7 @@ const CartPage = () => {
             variant="outline" 
             size="icon" 
             onClick={() => navigate('/customer-home')}
+            className="transition-transform duration-200 hover:scale-110"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -124,14 +142,14 @@ const CartPage = () => {
         </div>
       </header>
       
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar with faster animations */}
       {menuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-40 md:hidden animate-fade-in">
           <div 
-            className="fixed inset-0 bg-black/50" 
+            className="fixed inset-0 bg-black/50 transition-opacity duration-200" 
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg p-4">
+          <div className="fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg p-4 animate-slide-in-right">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2 border-b pb-4">
                 <Package className="h-6 w-6 text-agri-primary" />
@@ -139,7 +157,7 @@ const CartPage = () => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="ml-auto"
+                  className="ml-auto transition-transform duration-200 hover:scale-110"
                   onClick={() => setMenuOpen(false)}
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -147,7 +165,7 @@ const CartPage = () => {
               </div>
               <Button
                 variant="ghost"
-                className="flex items-center justify-start gap-2"
+                className="flex items-center justify-start gap-2 transition-transform duration-200 hover:scale-105"
                 onClick={() => {
                   navigate('/customer-home');
                   setMenuOpen(false);
@@ -162,7 +180,7 @@ const CartPage = () => {
       )}
       
       <div className="container mx-auto max-w-md">
-        <Card className="mb-4">
+        <Card className="mb-4 animate-fade-in">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
@@ -176,7 +194,7 @@ const CartPage = () => {
                 <p className="text-muted-foreground">Your cart is empty</p>
                 <Button 
                   onClick={() => navigate('/customer-home')}
-                  className="mt-4 bg-agri-primary hover:bg-agri-secondary"
+                  className="mt-4 bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-105"
                 >
                   Continue Shopping
                 </Button>
@@ -184,7 +202,7 @@ const CartPage = () => {
             ) : (
               <ul className="divide-y">
                 {cartItems.map((item) => (
-                  <li key={item.productId} className="p-4">
+                  <li key={item.productId} className={`p-4 transition-all duration-200 ${isUpdating ? 'opacity-75' : 'opacity-100'}`}>
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">{item.name}</span>
                       <span>₹{item.pricePerUnit}/{item.unit}</span>
@@ -194,18 +212,19 @@ const CartPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-7 w-7 transition-transform duration-200 hover:scale-110"
                           onClick={() => decreaseQuantity(item.productId)}
-                          disabled={item.quantity <= 1}
+                          disabled={item.quantity <= 1 || isUpdating}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span>{item.quantity}</span>
+                        <span className="min-w-[2rem] text-center font-medium">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-7 w-7 transition-transform duration-200 hover:scale-110"
                           onClick={() => increaseQuantity(item.productId)}
+                          disabled={isUpdating}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -215,8 +234,9 @@ const CartPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-red-500"
+                          className="h-7 w-7 text-red-500 transition-transform duration-200 hover:scale-110"
                           onClick={() => removeItem(item.productId)}
+                          disabled={isUpdating}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -234,8 +254,9 @@ const CartPage = () => {
                 <p className="font-medium">₹{subtotal}</p>
               </div>
               <Button 
-                className="bg-agri-primary hover:bg-agri-secondary"
+                className="bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-105"
                 onClick={handleCheckout}
+                disabled={isUpdating}
               >
                 Proceed to Checkout
               </Button>
