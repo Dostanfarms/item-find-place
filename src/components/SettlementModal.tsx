@@ -113,7 +113,7 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[50vh] pr-4">
+        <ScrollArea className="flex-1 max-h-[45vh] pr-4">
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md">
               <span className="font-medium">Total Amount to Settle:</span>
@@ -121,24 +121,61 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
             </div>
             
             <div>
-              <h4 className="text-sm font-medium mb-2">Payment will be sent to:</h4>
-              <div className="space-y-2 p-3 border rounded-md">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Account Holder:</span>
-                  <span>{farmer.name}</span>
+              <h4 className="text-sm font-medium mb-3">Farmer Details:</h4>
+              <div className="space-y-3 p-4 border rounded-md bg-gray-50">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground font-medium">Name:</span>
+                  <span className="font-medium">{farmer.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Bank:</span>
-                  <span>{farmer.bank_name}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground font-medium">Phone:</span>
+                  <span>{farmer.phone}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Account Number:</span>
-                  <span>{farmer.account_number}</span>
+                {farmer.email && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Email:</span>
+                    <span className="text-sm">{farmer.email}</span>
+                  </div>
+                )}
+                {farmer.address && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-muted-foreground font-medium">Address:</span>
+                    <span className="text-sm text-right max-w-[200px]">{farmer.address}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium mb-3">Payment will be sent to:</h4>
+              <div className="space-y-3 p-4 border rounded-md bg-blue-50">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground font-medium">Account Holder:</span>
+                  <span className="font-medium">{farmer.name}</span>
                 </div>
+                {farmer.bank_name && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Bank:</span>
+                    <span>{farmer.bank_name}</span>
+                  </div>
+                )}
+                {farmer.account_number && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Account Number:</span>
+                    <span className="font-mono">{farmer.account_number}</span>
+                  </div>
+                )}
                 {farmer.ifsc_code && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">IFSC Code:</span>
-                    <span>{farmer.ifsc_code}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">IFSC Code:</span>
+                    <span className="font-mono">{farmer.ifsc_code}</span>
+                  </div>
+                )}
+                {(!farmer.bank_name || !farmer.account_number) && (
+                  <div className="text-center py-2">
+                    <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                      Incomplete bank details - Please verify with farmer
+                    </span>
                   </div>
                 )}
               </div>
@@ -146,22 +183,22 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
             
             {unsettledProducts.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-2">Unsettled Products:</h4>
-                <div className="border rounded-md max-h-32 overflow-y-auto">
+                <h4 className="text-sm font-medium mb-3">Unsettled Products ({unsettledProducts.length}):</h4>
+                <div className="border rounded-md max-h-40 overflow-y-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-muted border-b">
-                        <th className="text-left p-2 text-xs">Product</th>
-                        <th className="text-left p-2 text-xs">Date</th>
-                        <th className="text-right p-2 text-xs">Amount</th>
+                        <th className="text-left p-2 text-xs font-medium">Product</th>
+                        <th className="text-left p-2 text-xs font-medium">Date</th>
+                        <th className="text-right p-2 text-xs font-medium">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="text-sm">
                       {unsettledProducts.map((product) => (
-                        <tr key={product.id} className="border-b">
-                          <td className="p-2">{product.name}</td>
-                          <td className="p-2">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
-                          <td className="text-right p-2">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
+                        <tr key={product.id} className="border-b hover:bg-gray-50">
+                          <td className="p-2 font-medium">{product.name}</td>
+                          <td className="p-2 text-gray-600">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
+                          <td className="text-right p-2 font-medium">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
