@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
+import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { Search, Plus, User, Edit, Eye } from 'lucide-react';
 
 const Farmers = () => {
@@ -17,6 +18,7 @@ const Farmers = () => {
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | undefined>(undefined);
   
   const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
+  const { products: allProducts } = useFarmerProducts();
   
   // Filter farmers based on search - now includes mobile number
   const filteredFarmers = farmers.filter(farmer => 
@@ -24,6 +26,11 @@ const Farmers = () => {
     farmer.phone.includes(searchTerm) ||
     farmer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Get product count for each farmer
+  const getProductCount = (farmerId: string) => {
+    return allProducts.filter(product => product.farmer_id === farmerId).length;
+  };
   
   const handleAddFarmer = async (farmerData: Farmer) => {
     let result;
@@ -162,7 +169,7 @@ const Farmers = () => {
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {farmer.products?.length || 0}
+                          {getProductCount(farmer.id)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">

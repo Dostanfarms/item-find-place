@@ -1,23 +1,23 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Product, useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useFarmerProducts, FarmerProduct } from '@/hooks/useFarmerProducts';
 import { Barcode, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ProductFormProps {
   onCancel: () => void;
-  editProduct?: Product;
+  editProduct?: FarmerProduct;
+  farmerId: string;
 }
 
-const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
-  const { addProduct, updateProduct } = useProducts();
+const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
+  const { addFarmerProduct, updateFarmerProduct } = useFarmerProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { toast } = useToast();
   const [name, setName] = useState(editProduct?.name || '');
@@ -91,6 +91,7 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
     setIsSubmitting(true);
     
     const productData = {
+      farmer_id: farmerId,
       name: name.trim(),
       quantity: parsedQuantity,
       unit,
@@ -99,42 +100,19 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
       barcode: editProduct?.barcode || generateBarcode()
     };
     
-    console.log('Submitting product data:', productData);
+    console.log('Submitting farmer product data:', productData);
     
     try {
       if (editProduct) {
-        // Update existing product - only pass the fields that can be updated
-        const updateData = {
-          name: productData.name,
-          quantity: productData.quantity,
-          unit: productData.unit,
-          price_per_unit: productData.price_per_unit,
-          category: productData.category,
-          barcode: productData.barcode
-        };
-        
-        const result = await updateProduct(editProduct.id, updateData);
+        // Update existing product
+        const result = await updateFarmerProduct(editProduct.id, productData);
         if (result.success) {
-          toast({
-            title: "Success",
-            description: "Product updated successfully"
-          });
           onCancel(); // Close form
-        } else {
-          toast({
-            title: "Error",
-            description: result.error || "Failed to update product",
-            variant: "destructive"
-          });
         }
       } else {
         // Add new product
-        const result = await addProduct(productData);
+        const result = await addFarmerProduct(productData);
         if (result.success) {
-          toast({
-            title: "Success", 
-            description: "Product added successfully"
-          });
           // Reset form
           setName('');
           setQuantity('1');
@@ -142,17 +120,11 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
           const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
-        } else {
-          toast({
-            title: "Error",
-            description: result.error || "Failed to add product",
-            variant: "destructive"
-          });
         }
       }
       
     } catch (error) {
-      console.error('Error saving product:', error);
+      console.error('Error saving farmer product:', error);
       toast({
         title: "Error",
         description: "Failed to save product. Please try again.",

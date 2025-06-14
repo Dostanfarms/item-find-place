@@ -183,6 +183,53 @@ export type Database = {
         }
         Relationships: []
       }
+      farmer_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          farmer_id: string
+          id: string
+          name: string
+          price_per_unit: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category: string
+          created_at?: string
+          farmer_id: string
+          id?: string
+          name: string
+          price_per_unit: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          farmer_id?: string
+          id?: string
+          name?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farmer_products_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmers: {
         Row: {
           account_number: string | null

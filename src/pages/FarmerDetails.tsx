@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -11,8 +10,9 @@ import ProductForm from '@/components/ProductForm';
 import TransactionHistory from '@/components/TransactionHistory';
 import SettlementModal from '@/components/SettlementModal';
 import { useFarmers } from '@/hooks/useFarmers';
+import { useFarmerProducts, FarmerProduct } from '@/hooks/useFarmerProducts';
 import { getDailyEarnings, getMonthlyEarnings, getUnsettledAmount } from '@/utils/mockData';
-import { Product, Transaction } from '@/utils/types';
+import { Transaction } from '@/utils/types';
 import { ArrowLeft, Plus, DollarSign, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -20,6 +20,7 @@ const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
+  const { products: farmerProducts, loading: productsLoading } = useFarmerProducts(id);
   
   const [farmer, setFarmer] = useState<any>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
@@ -27,7 +28,7 @@ const FarmerDetails = () => {
   const [dailyEarnings, setDailyEarnings] = useState([]);
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [unsettledAmount, setUnsettledAmount] = useState(0);
-  const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
+  const [selectedProduct, setSelectedProduct] = useState<FarmerProduct | undefined>(undefined);
 
   useEffect(() => {
     if (id && farmers.length > 0) {
@@ -36,7 +37,7 @@ const FarmerDetails = () => {
         // Add products and transactions arrays if they don't exist
         const farmerWithDefaults = {
           ...foundFarmer,
-          products: foundFarmer.products || [],
+          products: farmerProducts || [],
           transactions: foundFarmer.transactions || []
         };
         setFarmer(farmerWithDefaults);
@@ -48,59 +49,9 @@ const FarmerDetails = () => {
         navigate('/farmers');
       }
     }
-  }, [id, farmers, navigate]);
+  }, [id, farmers, farmerProducts, navigate]);
   
-  const handleProductSubmit = (product: Product) => {
-    if (!farmer) return;
-    
-    if (selectedProduct) {
-      // Update existing product
-      const updatedProducts = farmer.products.map(p => 
-        p.id === product.id ? product : p
-      );
-      
-      // Update farmer state with updated products
-      const updatedFarmer = { 
-        ...farmer, 
-        products: updatedProducts
-      };
-      
-      setFarmer(updatedFarmer);
-      setSelectedProduct(undefined);
-      setIsProductDialogOpen(false);
-    } else {
-      // Add new product
-      // Add product to farmer
-      const updatedFarmer = { 
-        ...farmer, 
-        products: [...farmer.products, product] 
-      };
-      
-      // Create transaction for the product
-      const transaction: Transaction = {
-        id: `tr_${Date.now()}`,
-        amount: product.quantity * product.price_per_unit,
-        date: new Date(),
-        type: 'credit',
-        description: `${product.name} delivery`,
-        farmerId: farmer.id,
-        settled: false
-      };
-      
-      updatedFarmer.transactions = [...farmer.transactions, transaction];
-      
-      // Update farmer state
-      setFarmer(updatedFarmer);
-      setIsProductDialogOpen(false);
-      
-      // Update earnings and unsettled amount
-      setDailyEarnings(getDailyEarnings(farmer.id));
-      setMonthlyEarnings(getMonthlyEarnings(farmer.id));
-      setUnsettledAmount(prev => prev + (product.quantity * product.price_per_unit));
-    }
-  };
-  
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: FarmerProduct) => {
     setSelectedProduct(product);
     setIsProductDialogOpen(true);
   };
@@ -134,13 +85,13 @@ const FarmerDetails = () => {
     setUnsettledAmount(0);
   };
   
-  if (loading) {
+  if (loading || productsLoading) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <Sidebar />
           <main className="flex-1 p-6 flex items-center justify-center">
-            <p>Loading farmers...</p>
+            <p>Loading farmer details...</p>
           </main>
         </div>
       </SidebarProvider>
@@ -267,7 +218,7 @@ const FarmerDetails = () => {
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Products</p>
-                    <p className="text-xl font-semibold">{farmer.products?.length || 0}</p>
+                    <p className="text-xl font-semibold">{farmerProducts?.length || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Transactions</p>
@@ -291,7 +242,7 @@ const FarmerDetails = () => {
                     <CardTitle>Products</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {farmer.products.length === 0 ? (
+                    {farmerProducts.length === 0 ? (
                       <div className="text-center py-6">
                         <p className="text-muted-foreground">No products added yet.</p>
                         <Button 
@@ -317,7 +268,7 @@ const FarmerDetails = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {farmer.products.map((product) => (
+                            {farmerProducts.map((product) => (
                               <tr key={product.id} className="border-b">
                                 <td className="p-2">{product.name}</td>
                                 <td className="p-2">{product.category || 'N/A'}</td>
@@ -432,6 +383,7 @@ const FarmerDetails = () => {
                   setSelectedProduct(undefined);
                 }}
                 editProduct={selectedProduct}
+                farmerId={farmer.id}
               />
             </DialogContent>
           </Dialog>
