@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Sidebar from "./components/Sidebar";
+import { Sidebar } from "./components/sidebar/Sidebar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Farmers from "./pages/Farmers";
@@ -51,8 +51,10 @@ const EmployeeLayout = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </SidebarProvider>

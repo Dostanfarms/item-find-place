@@ -8,7 +8,6 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useTickets } from '@/hooks/useTickets';
 import { useTransactions } from '@/hooks/useTransactions';
-import { useSidebar } from '@/components/ui/sidebar';
 import { 
   TrendingUp, 
   Users, 
@@ -17,8 +16,7 @@ import {
   ShoppingCart,
   Tag,
   Ticket,
-  Receipt,
-  Menu
+  Receipt
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -28,14 +26,9 @@ const Dashboard = () => {
   const { coupons } = useCoupons();
   const { tickets } = useTickets();
   const { transactions } = useTransactions();
-  const { setOpenMobile } = useSidebar();
 
   const handleSalesDashboardClick = () => {
     navigate('/sales-dashboard');
-  };
-
-  const handleMobileMenuClick = () => {
-    setOpenMobile(true);
   };
 
   // Calculate total value of products
@@ -94,22 +87,11 @@ const Dashboard = () => {
   ];
 
   return (
-    <div>
+    <div className="w-full max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          {/* Mobile Menu Button - only visible on mobile */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={handleMobileMenuClick}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
         </div>
         <div className="flex gap-2">
           <Button 

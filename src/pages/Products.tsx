@@ -1,11 +1,9 @@
 
 import React, { useState } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import Sidebar from '@/components/Sidebar';
 import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
@@ -115,143 +113,131 @@ const Products = () => {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <Sidebar />
-          <main className="flex-1 p-6 overflow-y-auto">
-            <div className="text-center py-12">
-              <div className="text-muted-foreground text-lg">Loading products...</div>
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
+      <div className="text-center py-12">
+        <div className="text-muted-foreground text-lg">Loading products...</div>
+      </div>
     );
   }
   
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h1 className="text-2xl font-bold">Products Management</h1>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products or barcodes..."
-                  className="pl-8 w-full md:w-[250px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) setSelectedProduct(undefined);
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="bg-agri-primary hover:bg-agri-secondary">
-                    <Plus className="mr-2 h-4 w-4" /> Add Product
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <ProductForm 
-                    farmerId={selectedFarmerId}
-                    onCancel={() => {
-                      setIsDialogOpen(false);
-                      setSelectedProduct(undefined);
-                    }}
-                    editProduct={selectedProduct}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
+    <div className="w-full max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Products Management</h1>
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products or barcodes..."
+              className="pl-8 w-full md:w-[250px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          
-          {filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              {searchTerm ? (
-                <>
-                  <h3 className="text-lg font-medium mb-1">No products found</h3>
-                  <p className="text-muted-foreground text-center">
-                    No products match your search criteria. Try with a different name or barcode.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg font-medium mb-1">No products added yet</h3>
-                  <p className="text-muted-foreground text-center">
-                    Get started by adding your first product using the "Add Product" button.
-                  </p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden w-[200px] h-[280px]">
-                  <CardHeader className="bg-muted pb-2">
-                    <CardTitle className="text-sm truncate">
-                      {product.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="space-y-3">
-                      {/* Smaller Barcode Display */}
-                      {product.barcode && (
-                        <div className="text-center p-2 bg-white rounded-lg border">
-                          <div className="mb-2">
-                            <Barcode128 
-                              value={product.barcode}
-                              format="CODE128"
-                              width={0.6}
-                              height={15}
-                              displayValue={true}
-                              fontSize={4}
-                              margin={0}
-                            />
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => printBarcode(product)}
-                            className="w-full mt-1 text-xs h-6"
-                          >
-                            <Printer className="h-2 w-2 mr-1" /> Print
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-xs text-muted-foreground">Quantity:</span>
-                          <span className="text-xs font-semibold">{product.quantity} {product.unit}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-xs text-muted-foreground">Price/Unit:</span>
-                          <span className="text-xs font-semibold">₹{product.price_per_unit}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-1 mt-3">
-                        <Button 
-                          size="sm"
-                          className="flex-1 bg-agri-primary hover:bg-agri-secondary text-xs" 
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" /> Edit
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </main>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setSelectedProduct(undefined);
+          }}>
+            <DialogTrigger asChild>
+              <Button className="bg-agri-primary hover:bg-agri-secondary">
+                <Plus className="mr-2 h-4 w-4" /> Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <ProductForm 
+                farmerId={selectedFarmerId}
+                onCancel={() => {
+                  setIsDialogOpen(false);
+                  setSelectedProduct(undefined);
+                }}
+                editProduct={selectedProduct}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
-    </SidebarProvider>
+      
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
+          <Package className="h-12 w-12 text-muted-foreground mb-4" />
+          {searchTerm ? (
+            <>
+              <h3 className="text-lg font-medium mb-1">No products found</h3>
+              <p className="text-muted-foreground text-center">
+                No products match your search criteria. Try with a different name or barcode.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-medium mb-1">No products added yet</h3>
+              <p className="text-muted-foreground text-center">
+                Get started by adding your first product using the "Add Product" button.
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="overflow-hidden w-full max-w-[240px] h-[280px] mx-auto">
+              <CardHeader className="bg-muted pb-2">
+                <CardTitle className="text-sm truncate">
+                  {product.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {/* Smaller Barcode Display */}
+                  {product.barcode && (
+                    <div className="text-center p-2 bg-white rounded-lg border">
+                      <div className="mb-2">
+                        <Barcode128 
+                          value={product.barcode}
+                          format="CODE128"
+                          width={0.6}
+                          height={15}
+                          displayValue={true}
+                          fontSize={4}
+                          margin={0}
+                        />
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => printBarcode(product)}
+                        className="w-full mt-1 text-xs h-6"
+                      >
+                        <Printer className="h-2 w-2 mr-1" /> Print
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-muted-foreground">Quantity:</span>
+                      <span className="text-xs font-semibold">{product.quantity} {product.unit}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-muted-foreground">Price/Unit:</span>
+                      <span className="text-xs font-semibold">₹{product.price_per_unit}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-1 mt-3">
+                    <Button 
+                      size="sm"
+                      className="flex-1 bg-agri-primary hover:bg-agri-secondary text-xs" 
+                      onClick={() => handleEditProduct(product)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" /> Edit
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
