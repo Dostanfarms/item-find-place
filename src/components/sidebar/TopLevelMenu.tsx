@@ -10,7 +10,8 @@ import {
   SidebarGroupContent, 
   SidebarMenu, 
   SidebarMenuButton, 
-  SidebarMenuItem 
+  SidebarMenuItem,
+  useSidebar
 } from '@/components/ui/sidebar';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 const TopLevelMenu = () => {
   const { checkPermission } = useAuth();
   const location = useLocation();
+  const { state } = useSidebar();
 
   const getNavClass = (path: string) => {
     const isActive = location.pathname === path;
@@ -53,6 +55,11 @@ const TopLevelMenu = () => {
   const visibleMenuItems = menuItems.filter(item => 
     checkPermission(item.resource, item.action)
   );
+
+  // Don't render anything when collapsed
+  if (state === 'collapsed') {
+    return null;
+  }
 
   return (
     <SidebarGroup>

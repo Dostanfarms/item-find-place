@@ -30,6 +30,7 @@ import { getAccessibleResources } from '@/utils/employeeData';
 const ManageMenu = () => {
   const location = useLocation();
   const { currentUser } = useAuth();
+  const { state } = useSidebar();
   const [manageOpen, setManageOpen] = useState(false);
 
   // Open the manage menu if current location is under any manage item
@@ -104,7 +105,8 @@ const ManageMenu = () => {
     ? manageItems.filter(item => accessibleResources.includes(item.resource))
     : manageItems;
 
-  if (filteredManageItems.length === 0) {
+  // Don't render anything when collapsed or no items
+  if (state === 'collapsed' || filteredManageItems.length === 0) {
     return null;
   }
 
