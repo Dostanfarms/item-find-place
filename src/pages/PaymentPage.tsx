@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,15 +52,28 @@ const PaymentPage = () => {
   const cartItems: CartItem[] = location.state?.cartItems || [];
   const originalSubtotal: number = location.state?.subtotal || 0;
 
-  // Fetch coupons for the verified user
+  // Fetch coupons for the verified user (works for both customers and employees)
   const { coupons: userCoupons, loading: couponsLoading } = useCustomerCoupons(
     verifiedUser ? verifiedUser.mobile : undefined
   );
 
-  // Filter active coupons
-  const activeCoupons = userCoupons.filter(coupon => 
-    coupon.is_active && new Date(coupon.expiry_date) > new Date()
-  );
+  // Filter active coupons for the specific user type
+  const activeCoupons = userCoupons.filter(coupon => {
+    if (!coupon.is_active || new Date(coupon.expiry_date) <= new Date()) {
+      return false;
+    }
+    
+    // Show coupons that are either for 'all' users OR specifically for this user type and mobile
+    if (coupon.target_type === 'all') {
+      return true;
+    }
+    
+    if (verifiedUser && coupon.target_type === verifiedUser.type && coupon.target_user_id === verifiedUser.mobile) {
+      return true;
+    }
+    
+    return false;
+  });
 
   useEffect(() => {
     // Show UPI scanner when UPI is selected
@@ -106,7 +118,7 @@ const PaymentPage = () => {
         });
         toast({
           title: "Customer verified",
-          description: `Welcome back, ${customer.name}!`,
+          description: `Welcome back, ${customer.name}! Loading your available coupons...`,
         });
         return;
       }
@@ -125,7 +137,7 @@ const PaymentPage = () => {
         });
         toast({
           title: "Employee verified",
-          description: `Welcome, ${employee.name}!`,
+          description: `Welcome, ${employee.name}! Loading your available coupons...`,
         });
         return;
       }
@@ -578,7 +590,7 @@ const PaymentPage = () => {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {verifiedUser ? 'No coupons available for your account' : 'Verify mobile number to see available coupons'}
+                    {verifiedUser ? `No coupons available for your ${verifiedUser.type} account` : 'Verify mobile number to see available coupons'}
                   </p>
                 )}
               </CardContent>
