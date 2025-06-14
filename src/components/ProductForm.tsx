@@ -11,13 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ProductFormProps {
-  farmerId?: string;
-  onSubmit?: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
   editProduct?: Product;
 }
 
-const ProductForm = ({ farmerId, onSubmit, onCancel, editProduct }: ProductFormProps) => {
+const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
   const { addProduct, updateProduct } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { toast } = useToast();
