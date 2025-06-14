@@ -1,3 +1,4 @@
+
 export interface Farmer {
   id: string;
   name: string;
@@ -96,13 +97,23 @@ export interface OrderItem {
 
 // Coupon system types
 export interface Coupon {
+  id: string;
   code: string;
-  discountType: 'percentage' | 'flat';
-  discountValue: number;
-  maxDiscountLimit?: number;
-  expiryDate: Date;
-  targetType?: 'all' | 'customer' | 'employee';
-  targetUserId?: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  expiry_date: string;
+  is_active: boolean;
+  max_discount_limit: number | null;
+  target_type: 'all' | 'customer' | 'employee';
+  target_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CouponValidationResult {
+  success: boolean;
+  coupon?: Coupon;
+  error?: string;
 }
 
 // Role-based access control types - updated to match Supabase schema

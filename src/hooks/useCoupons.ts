@@ -94,6 +94,44 @@ export const useCoupons = () => {
     }
   };
 
+  const validateCouponForUser = async (couponCode: string, userMobile: string, userType: 'customer' | 'employee') => {
+    try {
+      console.log('Validating coupon:', couponCode, 'for user:', userMobile, 'type:', userType);
+      
+      const { data: coupon, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        console.error('Coupon not found:', error);
+        return { success: false, error: 'Invalid coupon code' };
+      }
+
+      // Check if coupon is expired
+      if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
+        return { success: false, error: 'Coupon has expired' };
+      }
+
+      // Check if coupon is for all users
+      if (coupon.target_type === 'all') {
+        return { success: true, coupon };
+      }
+
+      // Check if coupon is for specific user type and matches the user
+      if (coupon.target_type === userType && coupon.target_user_id === userMobile) {
+        return { success: true, coupon };
+      }
+
+      return { success: false, error: 'This coupon is not valid for your account' };
+    } catch (error) {
+      console.error('Error validating coupon:', error);
+      return { success: false, error: 'Failed to validate coupon' };
+    }
+  };
+
   const addCoupon = async (couponData: Omit<Coupon, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding coupon to Supabase:', couponData);
@@ -261,6 +299,7 @@ export const useCoupons = () => {
     addCoupon,
     updateCoupon,
     deleteCoupon,
-    verifyMobileNumber
+    verifyMobileNumber,
+    validateCouponForUser
   };
 };
