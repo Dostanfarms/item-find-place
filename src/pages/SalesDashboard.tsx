@@ -79,7 +79,7 @@ const SalesDashboardContent = () => {
   };
 
   const calculateDiscount = () => {
-    if (!selectedCoupon) return 0;
+    if (!selectedCoupon || selectedCoupon === 'none') return 0;
     
     const coupon = activeCoupons.find(c => c.id === selectedCoupon);
     if (!coupon) return 0;
@@ -132,7 +132,7 @@ const SalesDashboardContent = () => {
     const discount = calculateDiscount();
     const total = calculateTotal();
     
-    const selectedCouponData = selectedCoupon ? activeCoupons.find(c => c.id === selectedCoupon) : null;
+    const selectedCouponData = selectedCoupon && selectedCoupon !== 'none' ? activeCoupons.find(c => c.id === selectedCoupon) : null;
 
     // Navigate to payment page with cart data
     navigate('/payment', {
@@ -291,7 +291,7 @@ const SalesDashboardContent = () => {
                             <SelectValue placeholder="Select a coupon" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">No coupon</SelectItem>
+                            <SelectItem value="none">No coupon</SelectItem>
                             {activeCoupons.map((coupon) => (
                               <SelectItem key={coupon.id} value={coupon.id}>
                                 <div className="flex items-center gap-2">
