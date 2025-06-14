@@ -126,14 +126,14 @@ const Products = () => {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex">
+      <div className="min-h-screen w-full flex bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Fixed Header */}
-          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+          <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Products Management</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Products Management</h1>
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -169,9 +169,9 @@ const Products = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-6 overflow-auto">
             {filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-muted rounded-lg">
+              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
                 <Package className="h-16 w-16 text-muted-foreground mb-6" />
                 {searchTerm ? (
                   <>
@@ -190,26 +190,26 @@ const Products = () => {
                 )}
               </div>
             ) : (
-              <Card>
-                <CardHeader>
+              <Card className="border shadow-sm">
+                <CardHeader className="bg-gray-50 border-b">
                   <CardTitle className="text-xl">Product Inventory</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
+                  <div className="overflow-auto">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableHead className="w-[25%]">Product Name</TableHead>
-                          <TableHead className="w-[15%]">Category</TableHead>
-                          <TableHead className="w-[12%]">Quantity</TableHead>
-                          <TableHead className="w-[12%]">Price/Unit</TableHead>
-                          <TableHead className="w-[23%]">Barcode</TableHead>
-                          <TableHead className="w-[13%] text-right">Actions</TableHead>
+                          <TableHead className="w-[25%] font-semibold">Product Name</TableHead>
+                          <TableHead className="w-[15%] font-semibold">Category</TableHead>
+                          <TableHead className="w-[12%] font-semibold">Quantity</TableHead>
+                          <TableHead className="w-[12%] font-semibold">Price/Unit</TableHead>
+                          <TableHead className="w-[23%] font-semibold">Barcode</TableHead>
+                          <TableHead className="w-[13%] text-right font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => (
-                          <TableRow key={product.id} className="hover:bg-muted/50">
+                          <TableRow key={product.id} className="hover:bg-gray-50 border-b">
                             <TableCell className="font-medium">
                               <div className="truncate" title={product.name}>
                                 {product.name}

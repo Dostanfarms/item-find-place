@@ -61,39 +61,37 @@ const Customers = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex">
+      <div className="min-h-screen w-full flex bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Fixed Header */}
-          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+          <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Customer Management</h1>
-                <Badge variant="secondary" className="text-base px-4 py-2">
-                  {customers.length} Total Customers
-                </Badge>
+                <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
+                <div className="flex items-center gap-4">
+                  <Badge variant="secondary" className="text-base px-4 py-2">
+                    {customers.length} Total Customers
+                  </Badge>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search customers..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-80"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">Registered Customers</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search customers..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-80"
-                      />
-                    </div>
-                  </div>
-                </div>
+          <div className="flex-1 p-6 overflow-auto">
+            <Card className="border shadow-sm">
+              <CardHeader className="bg-gray-50 border-b">
+                <CardTitle className="text-xl">Registered Customers</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {filteredCustomers.length === 0 ? (
@@ -106,21 +104,21 @@ const Customers = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
+                  <div className="overflow-auto">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableHead className="w-[20%]">Name</TableHead>
-                          <TableHead className="w-[20%]">Email</TableHead>
-                          <TableHead className="w-[15%]">Mobile</TableHead>
-                          <TableHead className="w-[25%]">Address</TableHead>
-                          <TableHead className="w-[12%]">Date Registered</TableHead>
-                          <TableHead className="text-right w-[8%]">Actions</TableHead>
+                          <TableHead className="w-[20%] font-semibold">Name</TableHead>
+                          <TableHead className="w-[20%] font-semibold">Email</TableHead>
+                          <TableHead className="w-[15%] font-semibold">Mobile</TableHead>
+                          <TableHead className="w-[25%] font-semibold">Address</TableHead>
+                          <TableHead className="w-[12%] font-semibold">Date Registered</TableHead>
+                          <TableHead className="text-right w-[8%] font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredCustomers.map((customer) => (
-                          <TableRow key={customer.id}>
+                          <TableRow key={customer.id} className="hover:bg-gray-50 border-b">
                             <TableCell className="font-medium truncate" title={customer.name}>
                               {customer.name}
                             </TableCell>

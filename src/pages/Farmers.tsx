@@ -63,14 +63,14 @@ const Farmers = () => {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex">
+      <div className="min-h-screen w-full flex bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Fixed Header */}
-          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+          <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Farmers Management</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Farmers Management</h1>
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -107,9 +107,9 @@ const Farmers = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-6 overflow-auto">
             {filteredFarmers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-muted rounded-lg">
+              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
                 <User className="h-16 w-16 text-muted-foreground mb-6" />
                 {searchTerm ? (
                   <>
@@ -128,27 +128,27 @@ const Farmers = () => {
                 )}
               </div>
             ) : (
-              <Card>
-                <CardHeader>
+              <Card className="border shadow-sm">
+                <CardHeader className="bg-gray-50 border-b">
                   <CardTitle className="text-xl">Registered Farmers</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
+                  <div className="overflow-auto">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableHead className="w-[20%]">Name</TableHead>
-                          <TableHead className="w-[15%]">Phone</TableHead>
-                          <TableHead className="w-[20%]">Email</TableHead>
-                          <TableHead className="w-[20%]">Bank Name</TableHead>
-                          <TableHead className="w-[15%]">Account Number</TableHead>
-                          <TableHead className="w-[10%]">Products</TableHead>
-                          <TableHead className="text-right w-[15%]">Actions</TableHead>
+                          <TableHead className="w-[20%] font-semibold">Name</TableHead>
+                          <TableHead className="w-[15%] font-semibold">Phone</TableHead>
+                          <TableHead className="w-[20%] font-semibold">Email</TableHead>
+                          <TableHead className="w-[20%] font-semibold">Bank Name</TableHead>
+                          <TableHead className="w-[15%] font-semibold">Account Number</TableHead>
+                          <TableHead className="w-[10%] font-semibold">Products</TableHead>
+                          <TableHead className="text-right w-[15%] font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredFarmers.map((farmer) => (
-                          <TableRow key={farmer.id}>
+                          <TableRow key={farmer.id} className="hover:bg-gray-50 border-b">
                             <TableCell className="font-medium truncate" title={farmer.name}>
                               {farmer.name}
                             </TableCell>
