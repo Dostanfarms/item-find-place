@@ -3,13 +3,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { Plus, ShoppingCart, Package } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useNavigate } from 'react-router-dom';
 
 const Sales = () => {
-  const { toast } = useToast();
   const { products } = useProducts();
   const navigate = useNavigate();
   
@@ -56,11 +54,6 @@ const Sales = () => {
 
   const handleProceedToPayment = () => {
     if (cart.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add items to cart before proceeding to payment",
-        variant: "destructive"
-      });
       return;
     }
 

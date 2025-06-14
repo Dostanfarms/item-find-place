@@ -82,20 +82,10 @@ const PaymentPage = () => {
 
   const handleVerifyMobile = async () => {
     if (!customerMobile.trim()) {
-      toast({
-        title: "Mobile number required",
-        description: "Please enter a mobile number to verify",
-        variant: "destructive"
-      });
       return;
     }
 
     if (customerMobile.length !== 10) {
-      toast({
-        title: "Invalid mobile number",
-        description: "Please enter a valid 10-digit mobile number",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -116,10 +106,6 @@ const PaymentPage = () => {
           mobile: customer.mobile,
           type: 'customer'
         });
-        toast({
-          title: "Customer verified",
-          description: `Welcome back, ${customer.name}! Loading your available coupons...`,
-        });
         return;
       }
 
@@ -135,10 +121,6 @@ const PaymentPage = () => {
           mobile: customerMobile,
           type: 'employee'
         });
-        toast({
-          title: "Employee verified",
-          description: `Welcome, ${employee.name}! Loading your available coupons...`,
-        });
         return;
       }
 
@@ -146,21 +128,11 @@ const PaymentPage = () => {
       console.log('Mobile number not found in any table');
       setCustomerName('');
       setVerifiedUser(null);
-      toast({
-        title: "Mobile number not found",
-        description: "This mobile number is not registered. You can create a new customer account.",
-        variant: "destructive"
-      });
       
     } catch (error) {
       console.error('Error verifying mobile:', error);
       setCustomerName('');
       setVerifiedUser(null);
-      toast({
-        title: "Verification failed",
-        description: "Failed to verify mobile number. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsVerifying(false);
     }
@@ -168,11 +140,6 @@ const PaymentPage = () => {
 
   const handleCreateCustomer = async () => {
     if (!customerName.trim()) {
-      toast({
-        title: "Customer name required",
-        description: "Please enter customer name to create account",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -199,25 +166,11 @@ const PaymentPage = () => {
           mobile: result.data.mobile,
           type: 'customer'
         });
-        toast({
-          title: "Customer created",
-          description: `Customer account created for ${customerName}`,
-        });
       } else {
         console.error('Failed to create customer:', result.error);
-        toast({
-          title: "Failed to create customer",
-          description: "Could not create customer account. Please try again.",
-          variant: "destructive"
-        });
       }
     } catch (error) {
       console.error('Error creating customer:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create customer account.",
-        variant: "destructive"
-      });
     } finally {
       setIsCreatingCustomer(false);
     }
@@ -261,29 +214,14 @@ const PaymentPage = () => {
 
   const handlePayment = async () => {
     if (!customerName.trim()) {
-      toast({
-        title: "Customer name required",
-        description: "Please enter customer name",
-        variant: "destructive"
-      });
       return;
     }
 
     if (!customerMobile.trim()) {
-      toast({
-        title: "Mobile number required",
-        description: "Please enter customer mobile number",
-        variant: "destructive"
-      });
       return;
     }
 
     if (!paymentMethod) {
-      toast({
-        title: "Payment method required",
-        description: "Please select a payment method",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -298,11 +236,6 @@ const PaymentPage = () => {
         );
 
         if (!validation.success) {
-          toast({
-            title: "Invalid coupon",
-            description: validation.error,
-            variant: "destructive"
-          });
           return;
         }
       }
@@ -354,30 +287,15 @@ const PaymentPage = () => {
         existingTransactions.push(localTransaction);
         localStorage.setItem('transactions', JSON.stringify(existingTransactions));
 
-        toast({
-          title: "Payment successful",
-          description: "Transaction completed and saved successfully",
-        });
-
         // Navigate to receipt page
         navigate('/order-receipt', {
           state: { transaction: localTransaction }
         });
       } else {
         console.error('Failed to save transaction:', result.error);
-        toast({
-          title: "Error saving transaction",
-          description: result.error || "Failed to save transaction. Please try again.",
-          variant: "destructive"
-        });
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      toast({
-        title: "Payment error",
-        description: "Failed to process payment. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsProcessing(false);
     }

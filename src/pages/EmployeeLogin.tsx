@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 
 const EmployeeLogin = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +15,6 @@ const EmployeeLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { toast } = useToast();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -26,22 +24,12 @@ const EmployeeLogin = () => {
     e.preventDefault();
     
     if (!email.trim() || !password.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter both email and password.",
-        variant: "destructive",
-      });
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -51,29 +39,13 @@ const EmployeeLogin = () => {
       const result = await login(email, password);
 
       if (result.success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome to your dashboard!",
-        });
-        
         // Navigate to dashboard
         setTimeout(() => {
           navigate('/dashboard');
         }, 200);
-      } else {
-        toast({
-          title: "Login Failed",
-          description: result.message || "Invalid email or password. Please check your credentials and try again.",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred during login. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }

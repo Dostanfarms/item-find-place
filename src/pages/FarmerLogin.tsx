@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
 import { mockFarmers } from '@/utils/mockData';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -21,7 +20,6 @@ const FarmerLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   // Validate phone number (10 digits, starts with 6-9)
   const validatePhone = (phone: string) => {
@@ -33,11 +31,6 @@ const FarmerLogin = () => {
     e.preventDefault();
     
     if (!validatePhone(phone)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit phone number starting with 6-9",
-        variant: "destructive"
-      });
       return;
     }
     
@@ -47,11 +40,6 @@ const FarmerLogin = () => {
     const farmerExists = mockFarmers.some(farmer => farmer.phone === phone);
     
     if (!farmerExists) {
-      toast({
-        title: "Account not found",
-        description: "No farmer account exists with this phone number",
-        variant: "destructive"
-      });
       setIsLoading(false);
       return;
     }
@@ -64,11 +52,6 @@ const FarmerLogin = () => {
     setTimeout(() => {
       setIsOtpSent(true);
       setIsLoading(false);
-      
-      toast({
-        title: "OTP sent",
-        description: `A 6-digit OTP has been sent to ${phone}. For testing, use: ${randomOtp}`,
-      });
     }, 1500);
   };
 
@@ -89,19 +72,8 @@ const FarmerLogin = () => {
             isLoggedIn: true
           }));
           
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${farmer.name}!`,
-          });
-          
           navigate(`/farmer-dashboard/${farmer.id}`);
         }
-      } else {
-        toast({
-          title: "Invalid OTP",
-          description: "The OTP you entered is incorrect. Please try again.",
-          variant: "destructive"
-        });
       }
       
       setIsLoading(false);
