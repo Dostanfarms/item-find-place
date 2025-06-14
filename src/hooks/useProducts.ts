@@ -64,12 +64,24 @@ export const useProducts = () => {
     }
   };
 
-  const updateProduct = async (id: string, productData: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>) => {
+  const updateProduct = async (id: string, productData: Partial<Product>) => {
     try {
       console.log('Updating product:', id, productData);
+      
+      // Create update object with only the fields that can be updated
+      const updateData: any = {};
+      
+      if (productData.name !== undefined) updateData.name = productData.name;
+      if (productData.quantity !== undefined) updateData.quantity = productData.quantity;
+      if (productData.unit !== undefined) updateData.unit = productData.unit;
+      if (productData.price_per_unit !== undefined) updateData.price_per_unit = productData.price_per_unit;
+      if (productData.category !== undefined) updateData.category = productData.category;
+      if (productData.farmer_id !== undefined) updateData.farmer_id = productData.farmer_id;
+      if (productData.barcode !== undefined) updateData.barcode = productData.barcode;
+
       const { data, error } = await supabase
         .from('products')
-        .update(productData)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
