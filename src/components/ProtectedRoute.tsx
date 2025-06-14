@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => {
   const { currentUser } = useAuth();
-  const { roles } = useRoles();
+  const { roles, loading: rolesLoading } = useRoles();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -19,6 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     console.log('Current user:', currentUser);
     console.log('Required resource:', resource);
     console.log('Required action:', action);
+    console.log('Roles loading:', rolesLoading);
     
     if (!currentUser) {
       console.log('No current user - redirecting to login');
@@ -29,6 +30,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     if (!currentUser.role) {
       console.log('No role assigned to user');
       setHasAccess(false);
+      return;
+    }
+
+    // Wait for roles to finish loading
+    if (rolesLoading) {
+      console.log('Still loading roles from database...');
+      setHasAccess(null);
       return;
     }
 
@@ -85,7 +93,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     });
 
     setHasAccess(hasPermission);
-  }, [currentUser, roles, resource, action]);
+  }, [currentUser, roles, rolesLoading, resource, action]);
 
   // If no user, redirect to login
   if (!currentUser) {
@@ -93,9 +101,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     return <Navigate to="/employee-login" replace />;
   }
 
-  // Still loading permissions
-  if (hasAccess === null) {
-    console.log('Still loading permissions...');
+  // Still loading permissions or roles
+  if (hasAccess === null || rolesLoading) {
+    console.log('Still loading permissions or roles...');
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-muted-foreground text-lg">Checking permissions...</div>
