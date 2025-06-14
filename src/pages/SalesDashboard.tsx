@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,60 +8,101 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useTransactions } from '@/hooks/useTransactions';
 import { useProducts } from '@/hooks/useProducts';
 import { TrendingUp, ShoppingCart, Package, IndianRupee, Menu } from 'lucide-react';
+
 const SalesDashboard = () => {
   const navigate = useNavigate();
-  const {
-    transactions
-  } = useTransactions();
-  const {
-    products
-  } = useProducts();
+  const { transactions } = useTransactions();
+  const { products } = useProducts();
 
   // Calculate stats
   const totalSales = transactions.reduce((sum, t) => sum + Number(t.total), 0);
   const todaysSales = transactions.filter(t => new Date(t.created_at).toDateString() === new Date().toDateString()).reduce((sum, t) => sum + Number(t.total), 0);
 
-  // Sample data for charts
-  const salesData = [{
-    name: 'Mon',
-    sales: 2400
-  }, {
-    name: 'Tue',
-    sales: 1398
-  }, {
-    name: 'Wed',
-    sales: 9800
-  }, {
-    name: 'Thu',
-    sales: 3908
-  }, {
-    name: 'Fri',
-    sales: 4800
-  }, {
-    name: 'Sat',
-    sales: 3800
-  }, {
-    name: 'Sun',
-    sales: 4300
-  }];
-  const productData = [{
-    name: 'Vegetables',
-    value: 400
-  }, {
-    name: 'Fruits',
-    value: 300
-  }, {
-    name: 'Grains',
-    value: 200
-  }, {
-    name: 'Others',
-    value: 100
-  }];
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-  return <div className="h-full flex flex-col">
+  // Generate weekly sales data from actual transactions
+  const getWeeklySalesData = () => {
+    const weeklyData = [];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayName = days[date.getDay() === 0 ? 6 : date.getDay() - 1];
+      
+      const daySales = transactions
+        .filter(t => new Date(t.created_at).toDateString() === date.toDateString())
+        .reduce((sum, t) => sum + Number(t.total), 0);
+      
+      weeklyData.push({
+        name: dayName,
+        sales: daySales
+      });
+    }
+    
+    return weeklyData;
+  };
+
+  // Generate monthly sales data from actual transactions
+  const getMonthlySalesData = () => {
+    const monthlyData = [];
+    const currentDate = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      const monthSales = transactions
+        .filter(t => {
+          const transactionDate = new Date(t.created_at);
+          return transactionDate.getMonth() === date.getMonth() && 
+                 transactionDate.getFullYear() === date.getFullYear();
+        })
+        .reduce((sum, t) => sum + Number(t.total), 0);
+      
+      monthlyData.push({
+        name: monthName,
+        sales: monthSales
+      });
+    }
+    
+    return monthlyData;
+  };
+
+  // Get today's category-wise sales
+  const getTodayCategorySales = () => {
+    const today = new Date().toDateString();
+    const todayTransactions = transactions.filter(t => new Date(t.created_at).toDateString() === today);
+    
+    const categoryMap = new Map();
+    
+    todayTransactions.forEach(transaction => {
+      if (Array.isArray(transaction.items)) {
+        transaction.items.forEach(item => {
+          // Find the product to get its category
+          const product = products.find(p => p.name === item.name);
+          const category = product ? product.category : 'Others';
+          
+          const currentValue = categoryMap.get(category) || 0;
+          categoryMap.set(category, currentValue + (item.price * item.quantity));
+        });
+      }
+    });
+    
+    return Array.from(categoryMap.entries()).map(([name, value]) => ({
+      name,
+      value: Number(value.toFixed(2))
+    }));
+  };
+
+  const salesData = getWeeklySalesData();
+  const monthlySalesData = getMonthlySalesData();
+  const todayCategoryData = getTodayCategorySales();
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+
+  return (
+    <div className="h-full flex flex-col">
       <div className="flex-none flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          
           <div>
             <h1 className="text-3xl font-bold">Sales Dashboard</h1>
             <p className="text-muted-foreground">Track your sales performance</p>
@@ -132,7 +174,7 @@ const SalesDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip formatter={(value) => [`₹${Number(value).toFixed(2)}`, 'Sales']} />
                   <Bar dataKey="sales" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
@@ -141,24 +183,73 @@ const SalesDashboard = () => {
 
           <Card className="flex flex-col">
             <CardHeader className="flex-none">
-              <CardTitle>Product Categories</CardTitle>
+              <CardTitle>Monthly Sales</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={productData} cx="50%" cy="50%" labelLine={false} label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
-                    {productData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
+                <BarChart data={monthlySalesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`₹${Number(value).toFixed(2)}`, 'Sales']} />
+                  <Bar dataKey="sales" fill="#00C49F" />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
+
+        {/* Today's Category Sales */}
+        {todayCategoryData.length > 0 && (
+          <Card className="flex-none">
+            <CardHeader>
+              <CardTitle>Today's Category-wise Sales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={todayCategoryData} 
+                        cx="50%" 
+                        cy="50%" 
+                        labelLine={false} 
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} 
+                        outerRadius={80} 
+                        fill="#8884d8" 
+                        dataKey="value"
+                      >
+                        {todayCategoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`₹${Number(value).toFixed(2)}`, 'Sales']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Category Breakdown</h4>
+                  {todayCategoryData.map((category, index) => (
+                    <div key={category.name} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </div>
+                      <span className="text-sm font-medium">₹{category.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default SalesDashboard;
