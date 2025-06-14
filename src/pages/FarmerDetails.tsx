@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -5,22 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
 import Sidebar from '@/components/Sidebar';
 import ProductForm from '@/components/ProductForm';
 import TransactionHistory from '@/components/TransactionHistory';
 import SettlementModal from '@/components/SettlementModal';
-import { mockFarmers, getDailyEarnings, getMonthlyEarnings, getUnsettledAmount } from '@/utils/mockData';
-import { Farmer, Product, Transaction } from '@/utils/types';
+import { useFarmers } from '@/hooks/useFarmers';
+import { getDailyEarnings, getMonthlyEarnings, getUnsettledAmount } from '@/utils/mockData';
+import { Product, Transaction } from '@/utils/types';
 import { ArrowLeft, Plus, DollarSign, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 
 const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { farmers, loading } = useFarmers();
   
-  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [farmer, setFarmer] = useState<any>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [dailyEarnings, setDailyEarnings] = useState([]);
@@ -29,23 +30,25 @@ const FarmerDetails = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
 
   useEffect(() => {
-    if (id) {
-      const foundFarmer = mockFarmers.find(farmer => farmer.id === id);
+    if (id && farmers.length > 0) {
+      const foundFarmer = farmers.find(farmer => farmer.id === id);
       if (foundFarmer) {
-        setFarmer(foundFarmer);
+        // Add products and transactions arrays if they don't exist
+        const farmerWithDefaults = {
+          ...foundFarmer,
+          products: foundFarmer.products || [],
+          transactions: foundFarmer.transactions || []
+        };
+        setFarmer(farmerWithDefaults);
         setDailyEarnings(getDailyEarnings(id));
         setMonthlyEarnings(getMonthlyEarnings(id));
         setUnsettledAmount(getUnsettledAmount(id));
       } else {
-        toast({
-          title: "Farmer not found",
-          description: "The requested farmer could not be found.",
-          variant: "destructive"
-        });
+        console.error('Farmer not found with ID:', id);
         navigate('/farmers');
       }
     }
-  }, [id, navigate, toast]);
+  }, [id, farmers, navigate]);
   
   const handleProductSubmit = (product: Product) => {
     if (!farmer) return;
@@ -65,11 +68,6 @@ const FarmerDetails = () => {
       setFarmer(updatedFarmer);
       setSelectedProduct(undefined);
       setIsProductDialogOpen(false);
-      
-      toast({
-        title: "Product Updated",
-        description: `Updated ${product.name} successfully`,
-      });
     } else {
       // Add new product
       // Add product to farmer
@@ -99,11 +97,6 @@ const FarmerDetails = () => {
       setDailyEarnings(getDailyEarnings(farmer.id));
       setMonthlyEarnings(getMonthlyEarnings(farmer.id));
       setUnsettledAmount(prev => prev + (product.quantity * product.price_per_unit));
-      
-      toast({
-        title: "Product Added",
-        description: `Added ${product.quantity} ${product.unit} of ${product.name} for ₹${(product.quantity * product.price_per_unit).toFixed(2)}`,
-      });
     }
   };
   
@@ -141,13 +134,32 @@ const FarmerDetails = () => {
     setUnsettledAmount(0);
   };
   
+  if (loading) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <Sidebar />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <p>Loading farmers...</p>
+          </main>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   if (!farmer) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <Sidebar />
           <main className="flex-1 p-6 flex items-center justify-center">
-            <p>Loading farmer details...</p>
+            <div className="text-center">
+              <p className="text-lg mb-4">Farmer not found</p>
+              <Button onClick={() => navigate('/farmers')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Farmers
+              </Button>
+            </div>
           </main>
         </div>
       </SidebarProvider>
@@ -210,8 +222,12 @@ const FarmerDetails = () => {
                         <span>{farmer.phone}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Email:</span>
+                        <span>{farmer.email}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Address:</span>
-                        <span className="text-right">{farmer.address}</span>
+                        <span className="text-right">{farmer.address || 'Not provided'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Joined:</span>
@@ -224,11 +240,11 @@ const FarmerDetails = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Bank:</span>
-                        <span>{farmer.bank_name}</span>
+                        <span>{farmer.bank_name || 'Not provided'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Account:</span>
-                        <span>{farmer.account_number}</span>
+                        <span>{farmer.account_number || 'Not provided'}</span>
                       </div>
                       {farmer.ifsc_code && (
                         <div className="flex justify-between">
@@ -251,11 +267,11 @@ const FarmerDetails = () => {
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Products</p>
-                    <p className="text-xl font-semibold">{farmer.products.length}</p>
+                    <p className="text-xl font-semibold">{farmer.products?.length || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Transactions</p>
-                    <p className="text-xl font-semibold">{farmer.transactions.length}</p>
+                    <p className="text-xl font-semibold">{farmer.transactions?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
