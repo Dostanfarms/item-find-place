@@ -2,16 +2,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface TransactionItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export interface Transaction {
   id: string;
   customer_name: string;
   customer_mobile: string;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
+  items: TransactionItem[];
   subtotal: number;
   discount: number;
   total: number;
@@ -29,6 +31,7 @@ export const useTransactions = () => {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
+      console.log('Fetching transactions from Supabase...');
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
@@ -39,6 +42,7 @@ export const useTransactions = () => {
         return;
       }
 
+      console.log('Transactions fetched successfully:', data);
       setTransactions(data || []);
     } catch (error) {
       console.error('Error in fetchTransactions:', error);

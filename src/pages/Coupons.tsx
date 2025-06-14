@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import Sidebar from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
-import { Coupon } from '@/utils/types';
 import {
   Table,
   TableBody,
@@ -28,55 +28,67 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Coupon {
+  id?: string;
+  code: string;
+  discount_type: 'percentage' | 'flat';
+  discount_value: number;
+  max_discount_limit?: number;
+  expiry_date: string;
+  is_active: boolean;
+  target_type: 'all' | 'customer' | 'employee';
+  target_user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 const Coupons = () => {
   const { toast } = useToast();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Load coupons from localStorage on component mount
-  useEffect(() => {
-    const savedCoupons = localStorage.getItem('coupons');
-    if (savedCoupons) {
-      const parsedCoupons = JSON.parse(savedCoupons);
-      // Convert date strings back to Date objects
-      const couponsWithDates = parsedCoupons.map((coupon: any) => ({
-        ...coupon,
-        expiryDate: new Date(coupon.expiryDate)
-      }));
-      setCoupons(couponsWithDates);
-    } else {
-      // Set default coupons if none exist
-      const defaultCoupons = [
-        {
-          code: 'SUMMER10',
-          discountType: 'percentage' as const,
-          discountValue: 10,
-          maxDiscountLimit: 500,
-          expiryDate: new Date(2025, 5, 30),
-          targetType: 'all' as const
-        },
-        {
-          code: 'WELCOME200',
-          discountType: 'flat' as const,
-          discountValue: 200,
-          expiryDate: new Date(2025, 11, 31),
-          targetType: 'all' as const
-        }
-      ];
-      setCoupons(defaultCoupons);
-      localStorage.setItem('coupons', JSON.stringify(defaultCoupons));
+  const fetchCoupons = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching coupons from Supabase...');
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching coupons:', error);
+        toast({
+          title: "Error loading coupons",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Coupons fetched successfully:', data);
+      setCoupons(data || []);
+    } catch (error) {
+      console.error('Error in fetchCoupons:', error);
+      toast({
+        title: "Error loading coupons",
+        description: "Failed to load coupons from database",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  }, []);
-  
-  // Save coupons to localStorage whenever coupons change
-  const saveCouponsToStorage = (updatedCoupons: Coupon[]) => {
-    localStorage.setItem('coupons', JSON.stringify(updatedCoupons));
-    setCoupons(updatedCoupons);
   };
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editCouponId, setEditCouponId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'flat'>('percentage');
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -94,7 +106,7 @@ const Coupons = () => {
     setTargetType('all');
     setTargetUserId('');
     setIsEditMode(false);
-    setEditIndex(null);
+    setEditCouponId(null);
   };
   
   const openAddDialog = () => {
@@ -102,29 +114,53 @@ const Coupons = () => {
     setIsDialogOpen(true);
   };
   
-  const openEditDialog = (index: number) => {
-    const coupon = coupons[index];
+  const openEditDialog = (coupon: Coupon) => {
     setCouponCode(coupon.code);
-    setDiscountType(coupon.discountType);
-    setDiscountValue(coupon.discountValue);
-    setMaxDiscountLimit(coupon.maxDiscountLimit);
-    setExpiryDate(coupon.expiryDate);
-    setTargetType(coupon.targetType || 'all');
-    setTargetUserId(coupon.targetUserId || '');
+    setDiscountType(coupon.discount_type);
+    setDiscountValue(coupon.discount_value);
+    setMaxDiscountLimit(coupon.max_discount_limit || undefined);
+    setExpiryDate(new Date(coupon.expiry_date));
+    setTargetType(coupon.target_type);
+    setTargetUserId(coupon.target_user_id || '');
     setIsEditMode(true);
-    setEditIndex(index);
+    setEditCouponId(coupon.id || null);
     setIsDialogOpen(true);
   };
   
-  const handleDelete = (index: number) => {
-    const updatedCoupons = [...coupons];
-    updatedCoupons.splice(index, 1);
-    saveCouponsToStorage(updatedCoupons);
-    
-    toast({
-      title: "Coupon deleted",
-      description: "The coupon has been successfully removed.",
-    });
+  const handleDelete = async (couponId: string) => {
+    try {
+      console.log('Deleting coupon:', couponId);
+      const { error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('id', couponId);
+
+      if (error) {
+        console.error('Error deleting coupon:', error);
+        toast({
+          title: "Error deleting coupon",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Coupon deleted successfully');
+      toast({
+        title: "Coupon deleted",
+        description: "The coupon has been successfully removed.",
+      });
+      
+      // Refresh the list
+      await fetchCoupons();
+    } catch (error) {
+      console.error('Error in handleDelete:', error);
+      toast({
+        title: "Error deleting coupon",
+        description: "Failed to delete coupon",
+        variant: "destructive"
+      });
+    }
   };
   
   const validateForm = () => {
@@ -173,67 +209,113 @@ const Coupons = () => {
       return false;
     }
     
-    // Check if coupon code already exists (when adding new coupon)
-    if (!isEditMode && coupons.some(c => c.code.toLowerCase() === couponCode.toLowerCase())) {
-      toast({
-        title: "Duplicate coupon code",
-        description: "This coupon code already exists. Please use a different code.",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
     return true;
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
     
-    const couponData: Coupon = {
-      code: couponCode,
-      discountType,
-      discountValue,
-      maxDiscountLimit: discountType === 'percentage' ? maxDiscountLimit : undefined,
-      expiryDate: expiryDate!,
-      targetType,
-      targetUserId: (targetType === 'customer' || targetType === 'employee') ? targetUserId : undefined
-    };
-    
-    if (isEditMode && editIndex !== null) {
-      // Update existing coupon
-      const updatedCoupons = [...coupons];
-      updatedCoupons[editIndex] = couponData;
-      saveCouponsToStorage(updatedCoupons);
-      
+    try {
+      const couponData = {
+        code: couponCode,
+        discount_type: discountType,
+        discount_value: discountValue,
+        max_discount_limit: discountType === 'percentage' ? maxDiscountLimit : null,
+        expiry_date: expiryDate!.toISOString(),
+        target_type: targetType,
+        target_user_id: (targetType === 'customer' || targetType === 'employee') ? targetUserId : null,
+        is_active: true
+      };
+
+      if (isEditMode && editCouponId) {
+        console.log('Updating coupon:', editCouponId, couponData);
+        const { error } = await supabase
+          .from('coupons')
+          .update(couponData)
+          .eq('id', editCouponId);
+
+        if (error) {
+          console.error('Error updating coupon:', error);
+          toast({
+            title: "Error updating coupon",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        toast({
+          title: "Coupon updated",
+          description: "The coupon has been successfully updated.",
+        });
+      } else {
+        console.log('Creating new coupon:', couponData);
+        const { error } = await supabase
+          .from('coupons')
+          .insert([couponData]);
+
+        if (error) {
+          console.error('Error creating coupon:', error);
+          if (error.code === '23505') {
+            toast({
+              title: "Duplicate coupon code",
+              description: "This coupon code already exists. Please use a different code.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Error creating coupon",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+          return;
+        }
+
+        toast({
+          title: "Coupon created",
+          description: "New coupon has been successfully created.",
+        });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      await fetchCoupons();
+    } catch (error) {
+      console.error('Error in handleSave:', error);
       toast({
-        title: "Coupon updated",
-        description: "The coupon has been successfully updated.",
-      });
-    } else {
-      // Add new coupon
-      const updatedCoupons = [...coupons, couponData];
-      saveCouponsToStorage(updatedCoupons);
-      
-      toast({
-        title: "Coupon created",
-        description: "New coupon has been successfully created.",
+        title: "Error saving coupon",
+        description: "Failed to save coupon",
+        variant: "destructive"
       });
     }
-    
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const getTargetTypeLabel = (coupon: Coupon) => {
-    switch (coupon.targetType) {
+    switch (coupon.target_type) {
       case 'customer':
-        return `Customer: ${coupon.targetUserId}`;
+        return `Customer: ${coupon.target_user_id}`;
       case 'employee':
-        return `Employee: ${coupon.targetUserId}`;
+        return `Employee: ${coupon.target_user_id}`;
       default:
         return 'All Users';
     }
   };
+
+  if (loading) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <Sidebar />
+          <main className="flex-1 p-6 overflow-y-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="text-lg">Loading coupons...</div>
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -274,34 +356,34 @@ const Coupons = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {coupons.map((coupon, index) => (
-                    <TableRow key={index}>
+                  {coupons.map((coupon) => (
+                    <TableRow key={coupon.id}>
                       <TableCell className="font-medium">{coupon.code}</TableCell>
                       <TableCell className="capitalize">
-                        {coupon.discountType}
+                        {coupon.discount_type}
                       </TableCell>
                       <TableCell>
-                        {coupon.discountType === 'percentage'
-                          ? `${coupon.discountValue}%`
-                          : `₹${coupon.discountValue}`}
+                        {coupon.discount_type === 'percentage'
+                          ? `${coupon.discount_value}%`
+                          : `₹${coupon.discount_value}`}
                       </TableCell>
                       <TableCell>
-                        {coupon.maxDiscountLimit ? `₹${coupon.maxDiscountLimit}` : '-'}
+                        {coupon.max_discount_limit ? `₹${coupon.max_discount_limit}` : '-'}
                       </TableCell>
                       <TableCell>
                         {getTargetTypeLabel(coupon)}
                       </TableCell>
                       <TableCell>
-                        {format(new Date(coupon.expiryDate), 'dd MMM yyyy')}
+                        {format(new Date(coupon.expiry_date), 'dd MMM yyyy')}
                       </TableCell>
                       <TableCell>
-                        {new Date(coupon.expiryDate) > new Date() ? (
+                        {new Date(coupon.expiry_date) > new Date() && coupon.is_active ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Active
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Expired
+                            {new Date(coupon.expiry_date) <= new Date() ? 'Expired' : 'Inactive'}
                           </span>
                         )}
                       </TableCell>
@@ -309,14 +391,14 @@ const Coupons = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => openEditDialog(index)}
+                          onClick={() => openEditDialog(coupon)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(index)}
+                          onClick={() => handleDelete(coupon.id!)}
                           className="text-red-500"
                         >
                           <Trash2 className="h-4 w-4" />

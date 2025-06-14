@@ -348,6 +348,51 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          coupon_used: string | null
+          created_at: string
+          customer_mobile: string
+          customer_name: string
+          discount: number
+          id: string
+          items: Json
+          payment_method: string
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          coupon_used?: string | null
+          created_at?: string
+          customer_mobile: string
+          customer_name: string
+          discount?: number
+          id?: string
+          items?: Json
+          payment_method: string
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+        }
+        Update: {
+          coupon_used?: string | null
+          created_at?: string
+          customer_mobile?: string
+          customer_name?: string
+          discount?: number
+          id?: string
+          items?: Json
+          payment_method?: string
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
