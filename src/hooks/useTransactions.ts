@@ -39,13 +39,7 @@ export const useTransactions = () => {
         return;
       }
 
-      // Transform the data to match our Transaction interface
-      const transformedData = (data || []).map(item => ({
-        ...item,
-        items: Array.isArray(item.items) ? item.items : JSON.parse(item.items as string || '[]')
-      })) as Transaction[];
-
-      setTransactions(transformedData);
+      setTransactions(data || []);
     } catch (error) {
       console.error('Error in fetchTransactions:', error);
     } finally {
