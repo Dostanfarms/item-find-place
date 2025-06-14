@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,9 +53,69 @@ export const useCoupons = () => {
     }
   };
 
+  const verifyMobileNumber = async (mobile: string, targetType: string) => {
+    try {
+      console.log('Verifying mobile number:', mobile, 'for target type:', targetType);
+      
+      let tableName = '';
+      let mobileColumn = '';
+      
+      if (targetType === 'customer') {
+        tableName = 'customers';
+        mobileColumn = 'mobile';
+      } else if (targetType === 'employee') {
+        tableName = 'employees';
+        mobileColumn = 'phone';
+      } else {
+        return { success: false, error: 'Invalid target type' };
+      }
+
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('id, name')
+        .eq(mobileColumn, mobile)
+        .single();
+
+      if (error) {
+        console.error('Error verifying mobile number:', error);
+        return { success: false, error: `${targetType} with this mobile number not found` };
+      }
+
+      console.log('Mobile number verified:', data);
+      return { success: true, user: data };
+    } catch (error) {
+      console.error('Error in verifyMobileNumber:', error);
+      return { success: false, error: 'Failed to verify mobile number' };
+    }
+  };
+
   const addCoupon = async (couponData: Omit<Coupon, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding coupon to Supabase:', couponData);
+      
+      let finalTargetUserId = couponData.target_user_id;
+      
+      // If target type is customer or employee and target_user_id is provided, treat it as mobile number
+      if ((couponData.target_type === 'customer' || couponData.target_type === 'employee') && couponData.target_user_id) {
+        const verificationResult = await verifyMobileNumber(couponData.target_user_id, couponData.target_type);
+        
+        if (!verificationResult.success) {
+          toast({
+            title: "Error",
+            description: verificationResult.error,
+            variant: "destructive"
+          });
+          return { success: false, error: verificationResult.error };
+        }
+        
+        // Store the mobile number as target_user_id for targeted coupons
+        finalTargetUserId = couponData.target_user_id;
+        
+        toast({
+          title: "Mobile Verified",
+          description: `Coupon will be created for ${verificationResult.user?.name}`,
+        });
+      }
       
       const { data, error } = await supabase
         .from('coupons')
@@ -68,7 +127,7 @@ export const useCoupons = () => {
           is_active: couponData.is_active,
           max_discount_limit: couponData.max_discount_limit ? Number(couponData.max_discount_limit) : null,
           target_type: couponData.target_type,
-          target_user_id: couponData.target_user_id
+          target_user_id: finalTargetUserId
         }])
         .select()
         .single();
@@ -196,6 +255,7 @@ export const useCoupons = () => {
     fetchCoupons,
     addCoupon,
     updateCoupon,
-    deleteCoupon
+    deleteCoupon,
+    verifyMobileNumber
   };
 };

@@ -7,15 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent, CheckCircle } from 'lucide-react';
 import { useCoupons } from '@/hooks/useCoupons';
 
 const Coupons = () => {
   const { toast } = useToast();
-  const { coupons, loading, addCoupon, updateCoupon, deleteCoupon } = useCoupons();
+  const { coupons, loading, addCoupon, updateCoupon, deleteCoupon, verifyMobileNumber } = useCoupons();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [verifiedUser, setVerifiedUser] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   
   const [formData, setFormData] = useState({
     code: '',
@@ -32,8 +34,48 @@ const Coupons = () => {
     coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleVerifyMobile = async () => {
+    if (!formData.target_user_id || formData.target_type === 'all') {
+      toast({
+        title: "Error",
+        description: "Please enter a mobile number and select customer or employee target type",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+    const result = await verifyMobileNumber(formData.target_user_id, formData.target_type);
+    
+    if (result.success) {
+      setVerifiedUser(result.user);
+      toast({
+        title: "Mobile Verified",
+        description: `Found ${formData.target_type}: ${result.user?.name}`,
+      });
+    } else {
+      setVerifiedUser(null);
+      toast({
+        title: "Verification Failed",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
+    setIsVerifying(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate mobile number for targeted coupons
+    if ((formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && !verifiedUser) {
+      toast({
+        title: "Error",
+        description: "Please verify the mobile number before creating the coupon",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const couponData = {
       code: formData.code,
@@ -74,12 +116,14 @@ const Coupons = () => {
       target_type: coupon.target_type,
       target_user_id: coupon.target_user_id || ''
     });
+    setVerifiedUser(null);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCoupon(null);
+    setVerifiedUser(null);
     setFormData({
       code: '',
       discount_type: 'percentage',
@@ -102,6 +146,11 @@ const Coupons = () => {
         });
       }
     }
+  };
+
+  const handleTargetTypeChange = (value: string) => {
+    setFormData(prev => ({ ...prev, target_type: value, target_user_id: '' }));
+    setVerifiedUser(null);
   };
 
   if (loading) {
@@ -200,7 +249,7 @@ const Coupons = () => {
                       id="target_type"
                       className="w-full p-2 border rounded-md"
                       value={formData.target_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_type: e.target.value }))}
+                      onChange={(e) => handleTargetTypeChange(e.target.value)}
                     >
                       <option value="all">All Users</option>
                       <option value="customer">Customer</option>
@@ -208,13 +257,40 @@ const Coupons = () => {
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor="target_user_id">Target User ID (Optional)</Label>
-                    <Input
-                      id="target_user_id"
-                      value={formData.target_user_id}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_user_id: e.target.value }))}
-                      placeholder="User ID"
-                    />
+                    <Label htmlFor="target_user_id">
+                      {formData.target_type === 'customer' ? 'Customer Mobile' : 
+                       formData.target_type === 'employee' ? 'Employee Mobile' : 'Target User ID'} (Optional)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="target_user_id"
+                        value={formData.target_user_id}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, target_user_id: e.target.value }));
+                          setVerifiedUser(null);
+                        }}
+                        placeholder={formData.target_type === 'customer' || formData.target_type === 'employee' ? 
+                                   "Mobile Number" : "User ID"}
+                        disabled={formData.target_type === 'all'}
+                      />
+                      {(formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleVerifyMobile}
+                          disabled={isVerifying}
+                          className="whitespace-nowrap"
+                        >
+                          {isVerifying ? 'Verifying...' : verifiedUser ? <CheckCircle className="h-4 w-4 text-green-600" /> : 'Verify'}
+                        </Button>
+                      )}
+                    </div>
+                    {verifiedUser && (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✓ Verified: {verifiedUser.name}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -293,6 +369,12 @@ const Coupons = () => {
                       Max discount: ₹{coupon.max_discount_limit}
                     </div>
                   )}
+
+                  <div className="text-sm text-muted-foreground">
+                    Target: {coupon.target_type === 'all' ? 'All Users' : 
+                            coupon.target_type === 'customer' ? 'Customer' : 'Employee'}
+                    {coupon.target_user_id && ` (${coupon.target_user_id})`}
+                  </div>
 
                   {coupon.expiry_date && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
