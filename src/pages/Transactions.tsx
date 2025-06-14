@@ -15,7 +15,8 @@ const Transactions = () => {
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.customer_id.toLowerCase().includes(searchTerm.toLowerCase());
+                         transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.customer_mobile.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || transaction.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -41,14 +42,14 @@ const Transactions = () => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-muted-foreground text-lg">Loading transactions...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 flex flex-col p-6">
       <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold">Transactions</h1>
@@ -154,7 +155,7 @@ const Transactions = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          <span>Customer: {transaction.customer_id}</span>
+                          <span>Customer: {transaction.customer_name}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -189,7 +190,7 @@ const Transactions = () => {
                           <div key={index} className="text-xs bg-muted p-2 rounded">
                             <div className="font-medium">{item.name}</div>
                             <div className="text-muted-foreground">
-                              {item.quantity} × ₹{item.price_per_unit} = ₹{(item.quantity * item.price_per_unit).toFixed(2)}
+                              {item.quantity} × ₹{item.price} = ₹{(item.quantity * item.price).toFixed(2)}
                             </div>
                           </div>
                         ))}

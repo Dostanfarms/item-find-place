@@ -77,11 +77,37 @@ const Sales = () => {
       return;
     }
 
+    const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
+    if (!selectedCustomerData) {
+      toast({
+        title: "Customer not found",
+        description: "Please select a valid customer",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const transactionItems = cart.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price_per_unit,
+      quantity: item.quantity
+    }));
+
+    const subtotal = getTotalAmount();
+    const discount = 0;
+    const total = subtotal - discount;
+
     const transaction = {
-      customer_id: selectedCustomer,
-      items: cart,
-      total: getTotalAmount(),
-      payment_method: 'cash'
+      customer_name: selectedCustomerData.name,
+      customer_mobile: selectedCustomerData.mobile,
+      items: transactionItems,
+      subtotal,
+      discount,
+      total,
+      coupon_used: null,
+      payment_method: 'cash',
+      status: 'completed'
     };
 
     const result = await addTransaction(transaction);
@@ -89,7 +115,7 @@ const Sales = () => {
     if (result?.success) {
       toast({
         title: "Transaction completed",
-        description: `Sale completed successfully. Total: ₹${getTotalAmount().toFixed(2)}`
+        description: `Sale completed successfully. Total: ₹${total.toFixed(2)}`
       });
       setCart([]);
       setSelectedCustomer('');
@@ -97,7 +123,7 @@ const Sales = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 flex flex-col p-6">
       <div className="flex-none mb-6">
         <h1 className="text-3xl font-bold">Sales Dashboard</h1>
         <p className="text-muted-foreground">Process sales transactions</p>
