@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -412,8 +411,6 @@ const FarmerDetails = () => {
           }}>
             <DialogContent>
               <ProductForm 
-                farmerId={farmer.id} 
-                onSubmit={handleProductSubmit} 
                 onCancel={() => {
                   setIsProductDialogOpen(false);
                   setSelectedProduct(undefined);
