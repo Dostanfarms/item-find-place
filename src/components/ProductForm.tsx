@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,17 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [category, setCategory] = useState(editProduct?.category || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate total price
+  const totalPrice = React.useMemo(() => {
+    const parsedQuantity = parseFloat(quantity);
+    const parsedPrice = parseFloat(pricePerUnit);
+    
+    if (!isNaN(parsedQuantity) && !isNaN(parsedPrice) && parsedQuantity > 0 && parsedPrice > 0) {
+      return parsedQuantity * parsedPrice;
+    }
+    return 0;
+  }, [quantity, pricePerUnit]);
 
   // Set default category when categories load
   useEffect(() => {
@@ -215,10 +227,10 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
                 id="quantity"
                 type="number"
                 min="0"
-                step="0.01"
+                step={unit === 'quintal' ? "0.01" : "0.01"}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                placeholder="e.g. 1, 0.5"
+                placeholder={unit === 'quintal' ? "e.g. 1.5, 2.25" : "e.g. 1, 0.5"}
                 required
                 disabled={isSubmitting}
               />
@@ -237,6 +249,7 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
                   <SelectItem value="ml">Milliliter (ml)</SelectItem>
                   <SelectItem value="pcs">Pieces (pcs)</SelectItem>
                   <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="quintal">Quintal</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -256,6 +269,19 @@ const ProductForm = ({ onCancel, editProduct }: ProductFormProps) => {
               />
             </div>
           </div>
+
+          {/* Total Price Display */}
+          {totalPrice > 0 && (
+            <div className="bg-muted/50 p-4 rounded-lg border">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-muted-foreground">Total Price:</span>
+                <span className="text-lg font-bold text-agri-primary">₹{totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {quantity} {unit} × ₹{pricePerUnit} per {unit}
+              </div>
+            </div>
+          )}
 
           {editProduct?.barcode && (
             <div className="space-y-2">
