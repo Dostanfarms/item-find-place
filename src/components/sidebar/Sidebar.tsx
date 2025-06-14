@@ -17,7 +17,7 @@ export const Sidebar = () => {
   
   return (
     <>
-      {/* This is the main sidebar */}
+      {/* This is the main sidebar - desktop only */}
       <SidebarContainer>
         <SidebarHeader className="py-6">
           <div className="flex items-center px-4 gap-2 justify-between">
@@ -25,9 +25,9 @@ export const Sidebar = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <span className="text-lg font-bold">Dostanfarms Admin</span>
             </div>
-            {/* Desktop toggle button - shows when sidebar is expanded, hidden on mobile */}
+            {/* Single desktop toggle button - only shows when sidebar is expanded */}
             {state === 'expanded' && (
-              <SidebarTrigger className="hidden md:flex bg-transparent hover:bg-gray-100 p-1 rounded-md">
+              <SidebarTrigger className="bg-transparent hover:bg-gray-100 p-1 rounded-md">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
             )}
@@ -40,9 +40,9 @@ export const Sidebar = () => {
         </SidebarContent>
       </SidebarContainer>
       
-      {/* Floating toggle button that appears when sidebar is collapsed on desktop only */}
+      {/* Single floating toggle button that appears when sidebar is collapsed - desktop only */}
       {state === 'collapsed' && (
-        <div className="fixed z-50 top-4 left-4 hidden md:block">
+        <div className="fixed z-50 top-4 left-4">
           <SidebarTrigger className="bg-white shadow-md border rounded-md p-2 hover:bg-gray-50">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
