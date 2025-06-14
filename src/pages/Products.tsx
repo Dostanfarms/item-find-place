@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
-  const [selectedFarmerId, setSelectedFarmerId] = useState<string>('1');
   
   const { products, loading } = useProducts();
 
@@ -26,7 +24,6 @@ const Products = () => {
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
-    setSelectedFarmerId(product.farmer_id || '1');
     setIsDialogOpen(true);
   };
 
@@ -144,7 +141,6 @@ const Products = () => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <ProductForm 
-                farmerId={selectedFarmerId}
                 onCancel={() => {
                   setIsDialogOpen(false);
                   setSelectedProduct(undefined);

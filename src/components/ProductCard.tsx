@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -22,7 +21,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       pricePerUnit: Number(product.price_per_unit),
       unit: product.unit,
       category: product.category,
-      farmerId: product.farmer_id || ''
+      farmerId: '' // Remove farmer_id reference, use empty string as default
     });
   };
 
