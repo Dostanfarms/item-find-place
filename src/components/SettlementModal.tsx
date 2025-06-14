@@ -170,35 +170,43 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
               </div>
             )}
 
-            <div>
-              <h4 className="text-sm font-medium mb-2">Upload Transaction Image:</h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Upload Transaction Proof:</h4>
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
                 <PhotoUploadField
                   value={transactionImage}
                   onChange={setTransactionImage}
                   name="transaction-image"
-                  className="w-32 h-32"
+                  className="w-24 h-24 mb-3"
                 />
                 {!transactionImage && (
-                  <div className="text-center mt-2">
-                    <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Upload proof of transaction
+                  <div className="text-center">
+                    <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Upload transaction receipt or proof
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Required before settling payment
                     </p>
                   </div>
+                )}
+                {transactionImage && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✓ Transaction image uploaded
+                  </p>
                 )}
               </div>
             </div>
           </div>
         </ScrollArea>
 
-        <DialogFooter className="flex-shrink-0 mt-4 sm:justify-between">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex-shrink-0 mt-4 flex flex-col sm:flex-row gap-2 sm:justify-between">
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             onClick={handleSettle} 
-            className="bg-agri-primary hover:bg-agri-secondary"
+            className="bg-agri-primary hover:bg-agri-secondary w-full sm:w-auto"
             disabled={unsettledAmount <= 0 || !transactionImage || isSubmitting}
           >
             <Check className="mr-2 h-4 w-4" /> 
