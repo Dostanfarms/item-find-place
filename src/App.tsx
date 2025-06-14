@@ -38,6 +38,7 @@ import Tickets from "./pages/Tickets";
 import Coupons from "./pages/Coupons";
 import Employees from "./pages/Employees";
 import Roles from "./pages/Roles";
+import Settlements from "./pages/Settlements";
 import EmployeeLogin from "./pages/EmployeeLogin";
 import EmployeeRegister from "./pages/EmployeeRegister";
 import AccessDenied from "./pages/AccessDenied";
@@ -130,6 +131,10 @@ const App = () => (
               
               <Route element={<ProtectedRoute resource="roles" action="view" />}>
                 <Route path="/roles" element={<Roles />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="settlements" action="view" />}>
+                <Route path="/settlements" element={<Settlements />} />
               </Route>
               
               {/* Farmer Details - accessible by employees */}
