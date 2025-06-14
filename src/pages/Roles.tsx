@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -45,6 +44,7 @@ const resources = [
   { id: 'products', name: 'Products' },
   { id: 'categories', name: 'Categories' },
   { id: 'sales', name: 'Sales' },
+  { id: 'sales-dashboard', name: 'Sales Dashboard' },
   { id: 'transactions', name: 'Transactions' },
   { id: 'settlements', name: 'Settlements' },
   { id: 'coupons', name: 'Coupons' },

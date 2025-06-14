@@ -10,6 +10,7 @@ export const rolePermissions: RolePermission[] = [
       { resource: 'products', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'categories', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'sales', actions: ['view', 'create', 'edit', 'delete'] },
+      { resource: 'sales-dashboard', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'transactions', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'settlements', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'coupons', actions: ['view', 'create', 'edit', 'delete'] },
@@ -28,6 +29,7 @@ export const rolePermissions: RolePermission[] = [
       { resource: 'products', actions: ['view', 'create', 'edit'] },
       { resource: 'categories', actions: ['view', 'create', 'edit'] },
       { resource: 'sales', actions: ['view', 'create'] },
+      { resource: 'sales-dashboard', actions: ['view'] },
       { resource: 'transactions', actions: ['view'] },
       { resource: 'settlements', actions: ['view'] },
       { resource: 'coupons', actions: ['view', 'create'] },
@@ -44,6 +46,7 @@ export const rolePermissions: RolePermission[] = [
       { resource: 'products', actions: ['view'] },
       { resource: 'categories', actions: ['view'] },
       { resource: 'sales', actions: ['view', 'create'] },
+      { resource: 'sales-dashboard', actions: ['view'] },
       { resource: 'tickets', actions: ['view', 'create'] },
       { resource: 'customer', actions: ['view'] }
     ]
@@ -56,6 +59,7 @@ export const rolePermissions: RolePermission[] = [
       { resource: 'products', actions: ['view'] },
       { resource: 'categories', actions: ['view'] },
       { resource: 'sales', actions: ['view', 'create'] },
+      { resource: 'sales-dashboard', actions: ['view'] },
       { resource: 'transactions', actions: ['view'] },
       { resource: 'coupons', actions: ['view'] },
       { resource: 'customer', actions: ['view'] }
