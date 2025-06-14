@@ -242,7 +242,6 @@ export type Database = {
           barcode: string | null
           category: string
           created_at: string
-          farmer_id: string | null
           id: string
           name: string
           price_per_unit: number
@@ -254,7 +253,6 @@ export type Database = {
           barcode?: string | null
           category: string
           created_at?: string
-          farmer_id?: string | null
           id?: string
           name: string
           price_per_unit: number
@@ -266,7 +264,6 @@ export type Database = {
           barcode?: string | null
           category?: string
           created_at?: string
-          farmer_id?: string | null
           id?: string
           name?: string
           price_per_unit?: number
