@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useEmployees } from '@/hooks/useEmployees';
-import { Search, Plus, Users, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Users, UserCheck, UserX, Menu } from 'lucide-react';
 import AddEmployeeDialog from '@/components/employees/AddEmployeeDialog';
 import EditEmployeeDialog from '@/components/employees/EditEmployeeDialog';
 import EmployeeTable from '@/components/employees/EmployeeTable';
@@ -165,9 +166,14 @@ const Employees = () => {
   return (
     <div className="flex-1 flex flex-col p-6">
       <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Employee Management</h1>
-          <p className="text-muted-foreground">Manage your team members and their roles</p>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="md:hidden">
+            <Menu className="h-5 w-5" />
+          </SidebarTrigger>
+          <div>
+            <h1 className="text-3xl font-bold">Employee Management</h1>
+            <p className="text-muted-foreground">Manage your team members and their roles</p>
+          </div>
         </div>
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative">
