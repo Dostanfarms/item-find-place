@@ -129,7 +129,7 @@ const Products = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col">
           {/* Header */}
           <div className="flex-shrink-0 p-6 border-b bg-white">
             <div className="flex items-center justify-between">
@@ -168,7 +168,7 @@ const Products = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 min-h-0">
+          <div className="flex-1 p-6 overflow-hidden">
             {filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
                 <Package className="h-16 w-16 text-muted-foreground mb-6" />
@@ -193,47 +193,56 @@ const Products = () => {
                 <CardHeader className="flex-shrink-0">
                   <CardTitle className="text-xl">Product Inventory</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 p-0 min-h-0">
-                  <div className="h-full overflow-auto">
+                <CardContent className="flex-1 p-0 overflow-hidden">
+                  <div className="w-full overflow-auto h-full">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
-                          <TableHead className="w-[25%]">Product Name</TableHead>
-                          <TableHead className="w-[15%]">Category</TableHead>
-                          <TableHead className="w-[12%]">Quantity</TableHead>
-                          <TableHead className="w-[12%]">Price/Unit</TableHead>
-                          <TableHead className="w-[20%]">Barcode</TableHead>
-                          <TableHead className="text-right w-[16%]">Actions</TableHead>
+                          <TableHead className="min-w-[200px]">Product Name</TableHead>
+                          <TableHead className="min-w-[120px]">Category</TableHead>
+                          <TableHead className="min-w-[100px]">Quantity</TableHead>
+                          <TableHead className="min-w-[100px]">Price/Unit</TableHead>
+                          <TableHead className="min-w-[180px]">Barcode</TableHead>
+                          <TableHead className="min-w-[100px] text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => (
-                          <TableRow key={product.id}>
-                            <TableCell className="font-medium truncate" title={product.name}>
-                              {product.name}
-                            </TableCell>
-                            <TableCell className="truncate" title={product.category}>
-                              {product.category}
+                          <TableRow key={product.id} className="hover:bg-muted/50">
+                            <TableCell className="font-medium">
+                              <div className="max-w-[200px] truncate" title={product.name}>
+                                {product.name}
+                              </div>
                             </TableCell>
                             <TableCell>
+                              <div className="max-w-[120px] truncate" title={product.category}>
+                                {product.category}
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
                               {product.quantity} {product.unit}
                             </TableCell>
-                            <TableCell>₹{product.price_per_unit}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              ₹{product.price_per_unit}
+                            </TableCell>
                             <TableCell>
-                              {product.barcode && (
+                              {product.barcode ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="text-xs truncate max-w-[100px]" title={product.barcode}>
+                                  <div className="text-xs max-w-[120px] truncate font-mono" title={product.barcode}>
                                     {product.barcode}
                                   </div>
                                   <Button 
                                     variant="outline" 
                                     size="sm"
                                     onClick={() => printBarcode(product)}
-                                    className="h-6 px-2"
+                                    className="h-8 w-8 p-0 flex-shrink-0"
+                                    title="Print Barcode"
                                   >
                                     <Printer className="h-3 w-3" />
                                   </Button>
                                 </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">No barcode</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right">
@@ -241,9 +250,11 @@ const Products = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleEditProduct(product)}
+                                className="h-8 px-3"
                                 title="Edit Product"
                               >
-                                <Edit className="h-3 w-3 mr-1" /> Edit
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
                               </Button>
                             </TableCell>
                           </TableRow>
