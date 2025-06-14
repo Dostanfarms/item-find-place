@@ -1,4 +1,3 @@
-
 export interface Farmer {
   id: string;
   name: string;
@@ -123,8 +122,6 @@ export interface RolePermission {
 export interface RoleData {
   id: string;
   name: string;
-  description?: string;
-  category?: string;
   permissions: Permission[];
   is_active: boolean;
   created_at: string;

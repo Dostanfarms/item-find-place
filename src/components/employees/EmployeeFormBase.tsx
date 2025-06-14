@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -6,17 +5,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Eye, EyeOff } from 'lucide-react';
-import { Role } from '@/utils/types';
 import { states, districts, villages, banks } from '@/utils/locationData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PhotoUploadField from '@/components/PhotoUploadField';
+import { useRoles } from '@/hooks/useRoles';
 
 export interface EmployeeFormData {
   name: string;
   email: string;
   phone: string;
   password: string;
-  role: Role;
+  role: string;
   state: string;
   district: string;
   village: string;
@@ -45,6 +44,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   const [availableVillages, setAvailableVillages] = useState<string[]>([]);
   const [statesList] = useState<string[]>(Object.keys(states));
   const [banksList] = useState<string[]>(banks);
+  const { roles, loading: rolesLoading } = useRoles();
   
   useEffect(() => {
     if (formData.state) {
@@ -124,16 +124,18 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
             <Label htmlFor="role">Role</Label>
             <Select 
               value={formData.role} 
-              onValueChange={(value) => onChange({ role: value as Role })}
+              onValueChange={(value) => onChange({ role: value })}
+              disabled={rolesLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select role" />
+                <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="sales">Sales</SelectItem>
-                <SelectItem value="accountant">Accountant</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                    {role.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
