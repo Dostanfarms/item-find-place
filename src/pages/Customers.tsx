@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Eye, Edit, Trash2, Menu } from 'lucide-react';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import CustomerEditDialog from '@/components/customers/CustomerEditDialog';
 import CustomerOrdersDialog from '@/components/customers/CustomerOrdersDialog';
-import Sidebar from '@/components/Sidebar';
+import { Sidebar } from '@/components/sidebar/Sidebar';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
 
 const Customers = () => {
