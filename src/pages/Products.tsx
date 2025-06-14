@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import Sidebar from '@/components/Sidebar';
 import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { Search, Plus, Package, Edit, Printer, ScanLine } from 'lucide-react';
+import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Barcode128 from 'react-barcode-generator';
 
@@ -18,8 +18,6 @@ const Products = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
   const [selectedFarmerId, setSelectedFarmerId] = useState<string>('1');
-  const [scannedBarcode, setScannedBarcode] = useState('');
-  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   
   const { products, loading, addProduct, updateProduct } = useProducts();
 
@@ -47,34 +45,6 @@ const Products = () => {
     setSelectedProduct(product);
     setSelectedFarmerId(product.farmer_id || '1');
     setIsDialogOpen(true);
-  };
-
-  const handleBarcodeSearch = () => {
-    if (!scannedBarcode.trim()) {
-      toast({
-        title: "Please enter a barcode",
-        description: "Enter or scan a barcode to search for products",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const foundProduct = products.find(product => product.barcode === scannedBarcode.trim());
-    
-    if (foundProduct) {
-      setScannedProduct(foundProduct);
-      toast({
-        title: "Product Found!",
-        description: `Found: ${foundProduct.name}`,
-      });
-    } else {
-      setScannedProduct(null);
-      toast({
-        title: "Product Not Found",
-        description: "No product found with this barcode",
-        variant: "destructive"
-      });
-    }
   };
 
   const printBarcode = (product: Product) => {
@@ -213,42 +183,6 @@ const Products = () => {
               </Dialog>
             </div>
           </div>
-
-          {/* Barcode Scanner Section */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ScanLine className="h-5 w-5" />
-                Barcode Scanner
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3 mb-4">
-                <Input
-                  placeholder="Enter or scan barcode..."
-                  value={scannedBarcode}
-                  onChange={(e) => setScannedBarcode(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleBarcodeSearch()}
-                  className="flex-1"
-                />
-                <Button onClick={handleBarcodeSearch} className="bg-agri-primary hover:bg-agri-secondary">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
-                </Button>
-              </div>
-              
-              {scannedProduct && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold text-green-800 mb-2">Product Found:</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div><strong>Name:</strong> {scannedProduct.name}</div>
-                    <div><strong>Quantity:</strong> {scannedProduct.quantity} {scannedProduct.unit}</div>
-                    <div><strong>Price:</strong> ₹{scannedProduct.price_per_unit}</div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
           
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
