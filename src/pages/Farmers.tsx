@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import Sidebar from '@/components/Sidebar';
 import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
-import { Search, Plus, User, Edit, Eye } from 'lucide-react';
+import { Search, Plus, User, Edit, Eye, Menu } from 'lucide-react';
 
 const Farmers = () => {
   const navigate = useNavigate();
@@ -68,7 +67,12 @@ const Farmers = () => {
         <Sidebar />
         <main className="flex-1 p-4 overflow-y-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h1 className="text-2xl font-bold">Farmers Management</h1>
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+              <h1 className="text-2xl font-bold">Farmers Management</h1>
+            </div>
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

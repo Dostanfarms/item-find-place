@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { Search, Eye, Edit, Trash2 } from 'lucide-react';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Search, Eye, Edit, Trash2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -67,7 +66,12 @@ const Customers = () => {
         <Sidebar />
         <main className="flex-1 p-4 overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Customer Management</h1>
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+              <h1 className="text-2xl font-bold">Customer Management</h1>
+            </div>
             <Badge variant="secondary">
               {customers.length} Total Customers
             </Badge>

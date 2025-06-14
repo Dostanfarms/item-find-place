@@ -25,9 +25,6 @@ export const Sidebar = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <span className="text-lg font-bold">Dostanfarms Admin</span>
             </div>
-            <SidebarTrigger>
-              <Menu className="h-5 w-5" />
-            </SidebarTrigger>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -37,10 +34,10 @@ export const Sidebar = () => {
         </SidebarContent>
       </SidebarContainer>
       
-      {/* This is the floating toggle button that appears when sidebar is collapsed */}
+      {/* Single floating toggle button that appears when sidebar is collapsed */}
       {state === 'collapsed' && (
         <div className="fixed z-50 top-4 left-4">
-          <SidebarTrigger className="bg-white shadow-md border rounded-md p-2">
+          <SidebarTrigger className="bg-white shadow-md border rounded-md p-2 hover:bg-gray-50">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
         </div>
