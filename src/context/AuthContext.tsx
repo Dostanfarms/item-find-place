@@ -31,7 +31,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   });
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
 
-  // Fetch role permissions from database
+  // Fetch role permissions from database with case-insensitive matching
   const fetchRolePermissions = async (roleName: string) => {
     try {
       console.log('Fetching permissions for role:', roleName);
@@ -39,7 +39,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       const { data, error } = await supabase
         .from('roles')
         .select('permissions')
-        .eq('name', roleName)
+        .ilike('name', roleName) // Use ilike for case-insensitive matching
         .eq('is_active', true)
         .single();
 
@@ -184,8 +184,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     }
 
-    // Fallback: admin role gets all permissions
-    if (user.role === 'admin') {
+    // Fallback: admin role gets all permissions (case-insensitive)
+    if (user.role.toLowerCase() === 'admin') {
       console.log('Admin user - granting access');
       return true;
     }

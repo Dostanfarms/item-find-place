@@ -34,7 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
 
     console.log('Available roles from database:', roles);
 
-    // Find the role data from the database
+    // Find the role data from the database with case-insensitive matching
     const userRole = roles.find(role => 
       role.name.toLowerCase() === currentUser.role.toLowerCase()
     );
@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
 
     if (!userRole) {
       console.log('Role not found in database:', currentUser.role);
-      // For admin users, grant access even if role not found in database
+      // For admin users, grant access even if role not found in database (case-insensitive)
       if (currentUser.role.toLowerCase() === 'admin') {
         console.log('Admin user detected, granting access');
         setHasAccess(true);
