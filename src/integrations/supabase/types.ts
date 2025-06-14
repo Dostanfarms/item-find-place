@@ -154,7 +154,7 @@ export type Database = {
           password: string
           phone?: string | null
           profile_photo?: string | null
-          role: string
+          role?: string
           state?: string | null
           updated_at?: string
           village?: string | null
@@ -278,33 +278,27 @@ export type Database = {
       }
       roles: {
         Row: {
-          category: string | null
           created_at: string
-          description: string | null
           id: string
-          is_active: boolean
+          is_active: boolean | null
           name: string
-          permissions: Json
+          permissions: Json | null
           updated_at: string
         }
         Insert: {
-          category?: string | null
           created_at?: string
-          description?: string | null
           id?: string
-          is_active?: boolean
+          is_active?: boolean | null
           name: string
-          permissions?: Json
+          permissions?: Json | null
           updated_at?: string
         }
         Update: {
-          category?: string | null
           created_at?: string
-          description?: string | null
           id?: string
-          is_active?: boolean
+          is_active?: boolean | null
           name?: string
-          permissions?: Json
+          permissions?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -351,51 +345,6 @@ export type Database = {
           user_id?: string
           user_name?: string
           user_type?: string
-        }
-        Relationships: []
-      }
-      transactions: {
-        Row: {
-          coupon_used: string | null
-          created_at: string
-          customer_mobile: string
-          customer_name: string
-          discount: number
-          id: string
-          items: Json
-          payment_method: string
-          status: string
-          subtotal: number
-          total: number
-          updated_at: string
-        }
-        Insert: {
-          coupon_used?: string | null
-          created_at?: string
-          customer_mobile: string
-          customer_name: string
-          discount?: number
-          id?: string
-          items?: Json
-          payment_method: string
-          status?: string
-          subtotal?: number
-          total?: number
-          updated_at?: string
-        }
-        Update: {
-          coupon_used?: string | null
-          created_at?: string
-          customer_mobile?: string
-          customer_name?: string
-          discount?: number
-          id?: string
-          items?: Json
-          payment_method?: string
-          status?: string
-          subtotal?: number
-          total?: number
-          updated_at?: string
         }
         Relationships: []
       }
