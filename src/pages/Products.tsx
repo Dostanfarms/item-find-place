@@ -129,17 +129,17 @@ const Products = () => {
       <div className="min-h-screen w-full flex bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Fixed Header - Desktop Only */}
+          {/* Fixed Header */}
           <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">Products Management</h1>
-                <div className="flex items-center gap-4">
+            <div className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search products or barcodes..."
-                      className="pl-8 w-80"
+                      className="pl-8 w-full sm:w-80"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -169,7 +169,7 @@ const Products = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-4 md:p-6 overflow-auto">
             {filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
                 <Package className="h-16 w-16 text-muted-foreground mb-6" />
@@ -195,28 +195,28 @@ const Products = () => {
                   <CardTitle className="text-xl">Product Inventory</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="overflow-auto">
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableHead className="w-[25%] font-semibold">Product Name</TableHead>
-                          <TableHead className="w-[15%] font-semibold">Category</TableHead>
-                          <TableHead className="w-[12%] font-semibold">Quantity</TableHead>
-                          <TableHead className="w-[12%] font-semibold">Price/Unit</TableHead>
-                          <TableHead className="w-[23%] font-semibold">Barcode</TableHead>
-                          <TableHead className="w-[13%] text-right font-semibold">Actions</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
+                          <TableHead className="min-w-[80px] font-semibold">Quantity</TableHead>
+                          <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
+                          <TableHead className="min-w-[140px] font-semibold">Barcode</TableHead>
+                          <TableHead className="min-w-[100px] text-right font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => (
                           <TableRow key={product.id} className="hover:bg-gray-50 border-b">
                             <TableCell className="font-medium">
-                              <div className="truncate" title={product.name}>
+                              <div className="max-w-[150px] truncate" title={product.name}>
                                 {product.name}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="truncate" title={product.category}>
+                              <div className="max-w-[100px] truncate" title={product.category}>
                                 {product.category}
                               </div>
                             </TableCell>
@@ -228,7 +228,7 @@ const Products = () => {
                             </TableCell>
                             <TableCell>
                               {product.barcode ? (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 max-w-[140px]">
                                   <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
                                     {product.barcode}
                                   </div>
@@ -236,7 +236,7 @@ const Products = () => {
                                     variant="outline" 
                                     size="sm"
                                     onClick={() => printBarcode(product)}
-                                    className="h-8 w-8 p-0 flex-shrink-0"
+                                    className="h-7 w-7 p-0 flex-shrink-0"
                                     title="Print Barcode"
                                   >
                                     <Printer className="h-3 w-3" />
@@ -251,11 +251,11 @@ const Products = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleEditProduct(product)}
-                                className="h-8 px-3"
+                                className="h-7 px-2"
                                 title="Edit Product"
                               >
                                 <Edit className="h-3 w-3 mr-1" />
-                                Edit
+                                <span className="hidden sm:inline">Edit</span>
                               </Button>
                             </TableCell>
                           </TableRow>

@@ -64,13 +64,13 @@ const Customers = () => {
       <div className="min-h-screen w-full flex bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Fixed Header - Desktop Only */}
+          {/* Fixed Header */}
           <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
-                <div className="flex items-center gap-4">
-                  <Badge variant="secondary" className="text-base px-4 py-2">
+            <div className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Customer Management</h1>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <Badge variant="secondary" className="text-sm md:text-base px-3 py-1.5 w-fit">
                     {customers.length} Total Customers
                   </Badge>
                   <div className="relative">
@@ -79,7 +79,7 @@ const Customers = () => {
                       placeholder="Search by name, email, or mobile..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-80"
+                      className="pl-10 w-full sm:w-80"
                     />
                   </div>
                 </div>
@@ -88,7 +88,7 @@ const Customers = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-4 md:p-6 overflow-auto">
             <Card className="border shadow-sm">
               <CardHeader className="bg-gray-50 border-b">
                 <CardTitle className="text-xl">Registered Customers</CardTitle>
@@ -104,32 +104,40 @@ const Customers = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="overflow-auto">
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader className="bg-gray-50">
                         <TableRow>
-                          <TableHead className="w-[20%] font-semibold">Name</TableHead>
-                          <TableHead className="w-[20%] font-semibold">Email</TableHead>
-                          <TableHead className="w-[15%] font-semibold">Mobile</TableHead>
-                          <TableHead className="w-[25%] font-semibold">Address</TableHead>
-                          <TableHead className="w-[12%] font-semibold">Date Registered</TableHead>
-                          <TableHead className="text-right w-[8%] font-semibold">Actions</TableHead>
+                          <TableHead className="min-w-[120px] font-semibold">Name</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Email</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Mobile</TableHead>
+                          <TableHead className="min-w-[150px] font-semibold">Address</TableHead>
+                          <TableHead className="min-w-[100px] font-semibold">Date Registered</TableHead>
+                          <TableHead className="min-w-[120px] text-right font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredCustomers.map((customer) => (
                           <TableRow key={customer.id} className="hover:bg-gray-50 border-b">
-                            <TableCell className="font-medium truncate" title={customer.name}>
-                              {customer.name}
+                            <TableCell className="font-medium">
+                              <div className="max-w-[120px] truncate" title={customer.name}>
+                                {customer.name}
+                              </div>
                             </TableCell>
-                            <TableCell className="truncate" title={customer.email || 'Not provided'}>
-                              {customer.email || 'Not provided'}
+                            <TableCell>
+                              <div className="max-w-[150px] truncate" title={customer.email || 'Not provided'}>
+                                {customer.email || 'Not provided'}
+                              </div>
                             </TableCell>
-                            <TableCell>{customer.mobile}</TableCell>
-                            <TableCell className="truncate" title={customer.address || 'Not provided'}>
-                              {customer.address || 'Not provided'}
+                            <TableCell className="whitespace-nowrap">{customer.mobile}</TableCell>
+                            <TableCell>
+                              <div className="max-w-[150px] truncate" title={customer.address || 'Not provided'}>
+                                {customer.address || 'Not provided'}
+                              </div>
                             </TableCell>
-                            <TableCell>{new Date(customer.date_joined || new Date()).toLocaleDateString()}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {new Date(customer.date_joined || new Date()).toLocaleDateString()}
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-1 justify-end">
                                 <Button
@@ -137,6 +145,7 @@ const Customers = () => {
                                   size="sm"
                                   onClick={() => setViewingOrders(customer)}
                                   title="View Orders"
+                                  className="h-7 w-7 p-0"
                                 >
                                   <Eye className="h-3 w-3" />
                                 </Button>
@@ -145,6 +154,7 @@ const Customers = () => {
                                   size="sm"
                                   onClick={() => setEditingCustomer(customer)}
                                   title="Edit Customer"
+                                  className="h-7 w-7 p-0"
                                 >
                                   <Edit className="h-3 w-3" />
                                 </Button>
@@ -153,6 +163,7 @@ const Customers = () => {
                                   size="sm"
                                   onClick={() => handleDeleteCustomer(customer.id)}
                                   title="Delete Customer"
+                                  className="h-7 w-7 p-0"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>

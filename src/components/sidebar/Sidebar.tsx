@@ -25,9 +25,9 @@ export const Sidebar = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <span className="text-lg font-bold">Dostanfarms Admin</span>
             </div>
-            {/* Single desktop toggle button - only shows when sidebar is expanded */}
+            {/* Single desktop toggle button - only shows when sidebar is expanded and on desktop */}
             {state === 'expanded' && (
-              <SidebarTrigger className="bg-transparent hover:bg-gray-100 p-1 rounded-md">
+              <SidebarTrigger className="hidden md:flex bg-transparent hover:bg-gray-100 p-1 rounded-md">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
             )}
@@ -42,7 +42,7 @@ export const Sidebar = () => {
       
       {/* Single floating toggle button that appears when sidebar is collapsed - desktop only */}
       {state === 'collapsed' && (
-        <div className="fixed z-50 top-4 left-4">
+        <div className="fixed z-50 top-4 left-4 hidden md:block">
           <SidebarTrigger className="bg-white shadow-md border rounded-md p-2 hover:bg-gray-50">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
