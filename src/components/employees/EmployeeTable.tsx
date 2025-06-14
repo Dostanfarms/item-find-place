@@ -68,17 +68,9 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
                 </div>
               </td>
               <td className="p-4">
-                <Badge variant={
-                  employee.role === 'admin' 
-                    ? 'destructive' 
-                    : employee.role === 'manager'
-                      ? 'default'
-                      : employee.role === 'sales'
-                        ? 'secondary'
-                        : 'outline'
-                }>
+                <div className="text-sm font-medium">
                   {employee.role.charAt(0).toUpperCase() + employee.role.slice(1)}
-                </Badge>
+                </div>
               </td>
               <td className="p-4">
                 <div className="text-sm">
@@ -88,7 +80,10 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
                 </div>
               </td>
               <td className="p-4">
-                <Badge variant={employee.is_active ? "default" : "secondary"}>
+                <Badge 
+                  variant={employee.is_active ? "default" : "destructive"}
+                  className={employee.is_active ? "bg-green-500 hover:bg-green-600" : ""}
+                >
                   {employee.is_active ? "Active" : "Inactive"}
                 </Badge>
               </td>
