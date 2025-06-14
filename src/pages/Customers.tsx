@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Eye, Edit, Trash2, Menu } from 'lucide-react';
@@ -50,13 +49,11 @@ const Customers = () => {
   if (loading) {
     return (
       <SidebarProvider>
-        <div className="min-h-screen flex w-full">
+        <div className="min-h-screen w-full flex">
           <Sidebar />
-          <main className="flex-1 p-6 overflow-y-auto">
-            <div className="text-center py-12">
-              <div className="text-muted-foreground text-lg">Loading customers...</div>
-            </div>
-          </main>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-muted-foreground text-lg">Loading customers...</div>
+          </div>
         </div>
       </SidebarProvider>
     );
@@ -64,127 +61,130 @@ const Customers = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen w-full flex">
         <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-              <h1 className="text-2xl font-bold">Customer Management</h1>
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="flex-shrink-0 p-6 border-b bg-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">Customer Management</h1>
+              </div>
+              <Badge variant="secondary" className="text-base px-4 py-2">
+                {customers.length} Total Customers
+              </Badge>
             </div>
-            <Badge variant="secondary">
-              {customers.length} Total Customers
-            </Badge>
           </div>
 
-          <Card className="w-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Registered Customers</CardTitle>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search customers..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
-                    />
+          {/* Content */}
+          <div className="flex-1 p-6 overflow-auto">
+            <Card className="h-full">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">Registered Customers</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search customers..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-80"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {filteredCustomers.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground text-lg mb-2">
-                    {searchTerm ? 'No customers found matching your search' : 'No customers registered yet'}
+              </CardHeader>
+              <CardContent className="p-0">
+                {filteredCustomers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-muted-foreground text-lg mb-2">
+                      {searchTerm ? 'No customers found matching your search' : 'No customers registered yet'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {searchTerm ? 'Try adjusting your search terms' : 'Customers who register through the customer portal will appear here'}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {searchTerm ? 'Try adjusting your search terms' : 'Customers who register through the customer portal will appear here'}
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-auto w-full">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Mobile</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Date Registered</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCustomers.map((customer) => (
-                        <TableRow key={customer.id}>
-                          <TableCell className="font-medium">{customer.name}</TableCell>
-                          <TableCell>{customer.email || 'Not provided'}</TableCell>
-                          <TableCell>{customer.mobile}</TableCell>
-                          <TableCell className="max-w-xs truncate" title={customer.address}>
-                            {customer.address || 'Not provided'}
-                          </TableCell>
-                          <TableCell>{new Date(customer.date_joined || new Date()).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setViewingOrders(customer)}
-                                title="View Orders"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setEditingCustomer(customer)}
-                                title="Edit Customer"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteCustomer(customer.id)}
-                                title="Delete Customer"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                ) : (
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[200px]">Name</TableHead>
+                          <TableHead className="w-[250px]">Email</TableHead>
+                          <TableHead className="w-[150px]">Mobile</TableHead>
+                          <TableHead className="w-[300px]">Address</TableHead>
+                          <TableHead className="w-[150px]">Date Registered</TableHead>
+                          <TableHead className="text-right w-[150px]">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredCustomers.map((customer) => (
+                          <TableRow key={customer.id}>
+                            <TableCell className="font-medium">{customer.name}</TableCell>
+                            <TableCell>{customer.email || 'Not provided'}</TableCell>
+                            <TableCell>{customer.mobile}</TableCell>
+                            <TableCell className="max-w-xs truncate" title={customer.address}>
+                              {customer.address || 'Not provided'}
+                            </TableCell>
+                            <TableCell>{new Date(customer.date_joined || new Date()).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setViewingOrders(customer)}
+                                  title="View Orders"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingCustomer(customer)}
+                                  title="Edit Customer"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteCustomer(customer.id)}
+                                  title="Delete Customer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-          {/* Edit Customer Dialog */}
-          {editingCustomer && (
-            <CustomerEditDialog
-              customer={editingCustomer}
-              open={!!editingCustomer}
-              onClose={() => setEditingCustomer(null)}
-              onSave={handleEditCustomer}
-            />
-          )}
+        {/* Edit Customer Dialog */}
+        {editingCustomer && (
+          <CustomerEditDialog
+            customer={editingCustomer}
+            open={!!editingCustomer}
+            onClose={() => setEditingCustomer(null)}
+            onSave={handleEditCustomer}
+          />
+        )}
 
-          {/* View Orders Dialog */}
-          {viewingOrders && (
-            <CustomerOrdersDialog
-              customer={viewingOrders}
-              open={!!viewingOrders}
-              onClose={() => setViewingOrders(null)}
-            />
-          )}
-        </main>
+        {/* View Orders Dialog */}
+        {viewingOrders && (
+          <CustomerOrdersDialog
+            customer={viewingOrders}
+            open={!!viewingOrders}
+            onClose={() => setViewingOrders(null)}
+          />
+        )}
       </div>
     </SidebarProvider>
   );
