@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CustomerProtectedRoute from "./components/CustomerProtectedRoute";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -139,8 +140,8 @@ const App = () => (
               <Route path="/farmer-tickets" element={<FarmerTicketHistory />} />
             </Route>
             
-            {/* Customer Routes */}
-            <Route element={<ProtectedRoute resource="customer" action="view" />}>
+            {/* Customer Routes - Now using CustomerProtectedRoute */}
+            <Route element={<CustomerProtectedRoute />}>
               <Route path="/customer-home" element={<CustomerHome />} />
               <Route path="/customer-products" element={<CustomerProducts />} />
               <Route path="/customer-profile" element={<CustomerProfile />} />
