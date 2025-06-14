@@ -22,13 +22,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Mock users for demo purposes - these will be supplemented by Supabase data
-const mockUsers = [
-  { id: '1', name: 'Admin User', email: 'admin@dostanfarms.com', role: 'admin', password: 'password' },
-  { id: '2', name: 'Sales Executive', email: 'sales@dostanfarms.com', role: 'sales', password: 'password' },
-  { id: '3', name: 'Manager User', email: 'manager@dostanfarms.com', role: 'manager', password: 'password' }
-];
-
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -38,11 +31,11 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   });
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
 
-  // Fetch role permissions from database with faster timeout
+  // Fetch role permissions from database
   const fetchRolePermissions = async (roleName: string) => {
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 1000)
+        setTimeout(() => reject(new Error('Timeout')), 2000)
       );
 
       const fetchPromise = supabase
@@ -61,10 +54,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Fetched role permissions:', data);
       
-      // Ensure permissions is always an array
       let permissions = data?.permissions || [];
       
-      // Handle different permission formats from Supabase
       if (typeof permissions === 'string') {
         try {
           permissions = JSON.parse(permissions);
@@ -73,7 +64,6 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           permissions = [];
         }
       } else if (!Array.isArray(permissions)) {
-        // If it's an object but not an array, convert it to array format
         permissions = [];
       }
       
@@ -87,10 +77,10 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
-      // Fetch permissions for the user's role with 1-second timeout
+      
       const timeoutId = setTimeout(() => {
-        setRolePermissions([]); // Set empty permissions if timeout
-      }, 1000);
+        setRolePermissions([]);
+      }, 2000);
 
       fetchRolePermissions(user.role).then(permissions => {
         clearTimeout(timeoutId);
@@ -102,64 +92,38 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [user]);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    console.log('Login attempt:', { username, password });
+  const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('Login attempt:', { email, password });
     
     try {
-      // Set 1-second timeout for login process
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Login timeout')), 1000)
+        setTimeout(() => reject(new Error('Login timeout')), 3000)
       );
 
       const loginPromise = (async () => {
-        // First check Supabase employees
+        // Check credentials against Supabase employees table
         const { data: employees, error } = await supabase
           .from('employees')
-          .select('*');
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .eq('is_active', true)
+          .single();
 
-        let allUsers = [...mockUsers];
-        
-        if (!error && employees) {
-          console.log('Supabase employees:', employees);
-          const formattedEmployees = employees.map((emp: any) => ({
-            id: emp.id,
-            name: emp.name,
-            email: emp.email,
-            role: emp.role,
-            password: emp.password
-          }));
-          allUsers = [...allUsers, ...formattedEmployees];
+        if (error) {
+          console.error('Login error:', error);
+          return false;
         }
-        
-        const registeredEmployees = localStorage.getItem('registeredEmployees');
-        if (registeredEmployees) {
-          try {
-            const employees = JSON.parse(registeredEmployees);
-            const formattedEmployees = employees.map((emp: any) => ({
-              id: emp.id,
-              name: emp.name,
-              email: emp.email || `${emp.name.toLowerCase().replace(/\s+/g, '')}@dostanfarms.com`,
-              role: emp.role || 'sales',
-              password: emp.password || 'password'
-            }));
-            allUsers = [...allUsers, ...formattedEmployees];
-          } catch (error) {
-            console.error('Error parsing registered employees:', error);
-          }
-        }
-        
-        const foundUser = allUsers.find(u => {
-          const usernameMatch = u.email === username || 
-                               u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase() ||
-                               u.name.toLowerCase() === username.toLowerCase();
-          const passwordMatch = u.password === password;
-          return usernameMatch && passwordMatch;
-        });
-        
-        if (foundUser) {
-          console.log('Login successful for:', foundUser);
-          const { password: _, ...userWithoutPassword } = foundUser;
-          setUser(userWithoutPassword);
+
+        if (employees) {
+          console.log('Login successful for employee:', employees);
+          const authenticatedUser: User = {
+            id: employees.id,
+            name: employees.name,
+            email: employees.email,
+            role: employees.role
+          };
+          setUser(authenticatedUser);
           return true;
         }
         

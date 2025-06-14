@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const EmployeeLogin = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +25,21 @@ const EmployeeLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please enter both username and password.",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return;
@@ -37,18 +48,7 @@ const EmployeeLogin = () => {
     setIsLoading(true);
 
     try {
-      // Set 1-second timeout for login
-      const loginTimeout = setTimeout(() => {
-        setIsLoading(false);
-        toast({
-          title: "Login Timeout",
-          description: "Login is taking too long. Please try again.",
-          variant: "destructive",
-        });
-      }, 1000);
-
-      const success = await login(username, password);
-      clearTimeout(loginTimeout);
+      const success = await login(email, password);
 
       if (success) {
         toast({
@@ -56,14 +56,14 @@ const EmployeeLogin = () => {
           description: "Welcome to your dashboard!",
         });
         
-        // Fast navigation with immediate redirect
+        // Navigate to dashboard
         setTimeout(() => {
           navigate('/dashboard');
         }, 200);
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid username or password. Please try again.",
+          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
@@ -92,13 +92,13 @@ const EmployeeLogin = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username/Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter username or email"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="transition-all duration-200 focus:scale-[1.02]"
                 required
               />
@@ -114,7 +114,7 @@ const EmployeeLogin = () => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="transition-all duration-200 focus:scale-[1.02]"

@@ -9,12 +9,18 @@ import {
   SidebarMenuItem, 
   SidebarMenuButton 
 } from '@/components/ui/sidebar';
-import { LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const UserSection = () => {
   const location = useLocation();
   const { currentUser, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    // Redirect to employee login after logout
+    window.location.href = '/employee-login';
+  };
 
   return (
     <SidebarGroup>
@@ -24,13 +30,17 @@ const UserSection = () => {
           {currentUser ? (
             <>
               <SidebarMenuItem>
-                <div className="px-4 py-2">
-                  <p className="text-sm font-medium">{currentUser.name}</p>
+                <div className="px-4 py-2 border rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 mb-1">
+                    <User className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium">{currentUser.name}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{currentUser.email}</p>
                   <p className="text-xs text-muted-foreground capitalize">{currentUser.role} Role</p>
                 </div>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={logout} className="flex items-center gap-3 w-full">
+                <SidebarMenuButton onClick={handleLogout} className="flex items-center gap-3 w-full text-destructive hover:text-destructive">
                   <LogOut className="h-5 w-5" />
                   <span>Logout</span>
                 </SidebarMenuButton>
