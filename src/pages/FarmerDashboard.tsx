@@ -40,17 +40,6 @@ const FarmerDashboard = () => {
     navigate('/farmer-login');
   };
 
-  const handleAddProduct = () => {
-    // Navigate to farmer details page where they can add products
-    if (farmer?.id) {
-      navigate(`/farmer/${farmer.id}`);
-    }
-  };
-
-  const handleViewTickets = () => {
-    navigate('/farmer-tickets');
-  };
-
   if (!farmer) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
@@ -103,19 +92,9 @@ const FarmerDashboard = () => {
         {/* My Products Section */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                My Products ({products?.length || 0})
-              </span>
-              <Button 
-                size="sm"
-                onClick={handleAddProduct}
-                className="bg-agri-primary hover:bg-agri-secondary"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              My Products ({products?.length || 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -127,7 +106,7 @@ const FarmerDashboard = () => {
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No products added yet</p>
-                <p className="text-sm">Add your first product to get started</p>
+                <p className="text-sm">Contact admin to add products</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -151,51 +130,6 @@ const FarmerDashboard = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card 
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={handleAddProduct}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Manage Products
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Add and manage your products</p>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={handleViewTickets}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Ticket className="h-5 w-5" />
-                Support Tickets
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">View and create support tickets</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Sales Report
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">View your sales analytics</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
