@@ -5,16 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, ShoppingCart, User, Package, CreditCard } from 'lucide-react';
+import { Plus, ShoppingCart, User, Package } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useNavigate } from 'react-router-dom';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useTransactions } from '@/hooks/useTransactions';
 
 const Sales = () => {
   const { toast } = useToast();
   const { products } = useProducts();
-  const navigate = useNavigate();
+  const { customers } = useCustomers();
+  const { addTransaction } = useTransactions();
   
   const [cart, setCart] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredProducts = products.filter(product =>
@@ -55,51 +58,67 @@ const Sales = () => {
     return cart.reduce((total, item) => total + (item.price_per_unit * item.quantity), 0);
   };
 
-  const handleProceedToPayment = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
-        description: "Please add items to cart before proceeding to payment",
+        description: "Please add items to cart before checkout",
         variant: "destructive"
       });
       return;
     }
 
-    // Navigate to payment page with cart data
-    navigate('/payment', {
-      state: {
-        cartItems: cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price_per_unit,
-          quantity: item.quantity
-        })),
-        subtotal: getTotalAmount()
-      }
-    });
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category?.toLowerCase()) {
-      case 'vegetables': return '🥬';
-      case 'fruits': return '🍎';
-      case 'grains': return '🌾';
-      case 'dairy': return '🥛';
-      case 'grocery': return '🛒';
-      case 'fashion': return '👕';
-      default: return '🌱';
+    if (!selectedCustomer) {
+      toast({
+        title: "Customer required",
+        description: "Please select a customer for this transaction",
+        variant: "destructive"
+      });
+      return;
     }
-  };
 
-  const getCategoryColor = (category: string) => {
-    switch (category?.toLowerCase()) {
-      case 'vegetables': return 'from-green-100 to-green-200';
-      case 'fruits': return 'from-orange-100 to-orange-200';
-      case 'grains': return 'from-yellow-100 to-yellow-200';
-      case 'dairy': return 'from-blue-100 to-blue-200';
-      case 'grocery': return 'from-purple-100 to-purple-200';
-      case 'fashion': return 'from-pink-100 to-pink-200';
-      default: return 'from-gray-100 to-gray-200';
+    const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
+    if (!selectedCustomerData) {
+      toast({
+        title: "Customer not found",
+        description: "Please select a valid customer",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const transactionItems = cart.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price_per_unit,
+      quantity: item.quantity
+    }));
+
+    const subtotal = getTotalAmount();
+    const discount = 0;
+    const total = subtotal - discount;
+
+    const transaction = {
+      customer_name: selectedCustomerData.name,
+      customer_mobile: selectedCustomerData.mobile,
+      items: transactionItems,
+      subtotal,
+      discount,
+      total,
+      coupon_used: null,
+      payment_method: 'cash',
+      status: 'completed'
+    };
+
+    const result = await addTransaction(transaction);
+    
+    if (result?.success) {
+      toast({
+        title: "Transaction completed",
+        description: `Sale completed successfully. Total: ₹${total.toFixed(2)}`
+      });
+      setCart([]);
+      setSelectedCustomer('');
     }
   };
 
@@ -128,46 +147,24 @@ const Sales = () => {
               </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredProducts.map((product) => (
-                  <Card key={product.id} className="group cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-                    <div className={`aspect-square bg-gradient-to-br ${getCategoryColor(product.category)} p-6 flex items-center justify-center relative overflow-hidden`}>
-                      <div className="text-6xl group-hover:scale-110 transition-transform duration-300">
-                        {getCategoryIcon(product.category)}
-                      </div>
-                      <div className="absolute top-2 right-2">
-                        <span className="bg-white/90 text-xs font-medium px-2 py-1 rounded-full text-gray-700">
-                          {product.category}
-                        </span>
-                      </div>
-                    </div>
+                  <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
-                      <div className="mb-3">
-                        <h3 className="font-bold text-lg mb-1 group-hover:text-blue-600 transition-colors">
-                          {product.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Stock: {product.quantity} {product.unit}
-                        </p>
+                      <h3 className="font-medium text-sm mb-1">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Stock: {product.quantity} {product.unit}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm">₹{product.price_per_unit}</span>
+                        <Button 
+                          size="sm" 
+                          onClick={() => addToCart(product)}
+                          className="h-7 px-2"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
                       </div>
-                      
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-right">
-                          <span className="text-2xl font-bold text-green-600">
-                            ₹{product.price_per_unit}
-                          </span>
-                          <p className="text-xs text-muted-foreground">per {product.unit}</p>
-                        </div>
-                      </div>
-
-                      <Button 
-                        onClick={() => addToCart(product)}
-                        disabled={product.quantity === 0}
-                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Cart
-                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -186,75 +183,73 @@ const Sales = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
+              {/* Customer Selection */}
+              <div className="flex-none mb-4">
+                <Label htmlFor="customer">Customer</Label>
+                <select
+                  id="customer"
+                  className="w-full mt-1 p-2 border rounded-md"
+                  value={selectedCustomer}
+                  onChange={(e) => setSelectedCustomer(e.target.value)}
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Cart Items */}
               <div className="flex-1 overflow-auto mb-4">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground text-lg font-medium">Cart is empty</p>
-                    <p className="text-sm text-muted-foreground">Add products to get started</p>
-                  </div>
+                  <p className="text-center text-muted-foreground py-8">Cart is empty</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {cart.map((item) => (
-                      <Card key={item.id} className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm">{item.name}</h4>
-                              <p className="text-xs text-muted-foreground">₹{item.price_per_unit} each</p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeFromCart(item.id)}
-                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              ×
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="h-7 w-7 p-0"
-                            >
-                              -
-                            </Button>
-                            <span className="text-sm w-8 text-center font-medium">{item.quantity}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="h-7 w-7 p-0"
-                            >
-                              +
-                            </Button>
-                            <div className="ml-auto">
-                              <span className="font-bold">₹{(item.price_per_unit * item.quantity).toFixed(2)}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">₹{item.price_per_unit} each</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="h-6 w-6 p-0"
+                          >
+                            -
+                          </Button>
+                          <span className="text-xs w-8 text-center">{item.quantity}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="h-6 w-6 p-0"
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
 
               {/* Total and Checkout */}
-              <div className="flex-none space-y-4 border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-medium">Subtotal:</span>
-                  <span className="text-xl font-bold text-green-600">₹{getTotalAmount().toFixed(2)}</span>
+              <div className="flex-none space-y-3">
+                <div className="flex justify-between items-center font-bold">
+                  <span>Total:</span>
+                  <span>₹{getTotalAmount().toFixed(2)}</span>
                 </div>
                 <Button 
-                  onClick={handleProceedToPayment}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg py-6"
-                  disabled={cart.length === 0}
+                  onClick={handleCheckout}
+                  className="w-full"
+                  disabled={cart.length === 0 || !selectedCustomer}
                 >
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  Proceed to Payment
+                  Complete Sale
                 </Button>
               </div>
             </CardContent>

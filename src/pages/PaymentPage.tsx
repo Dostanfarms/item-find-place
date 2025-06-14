@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCoupons } from '@/hooks/useCoupons';
-import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone, User } from 'lucide-react';
+import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CartItem {
@@ -184,7 +184,7 @@ const PaymentPage = () => {
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground mb-4">No items were found for checkout.</p>
-            <Button onClick={() => navigate('/sales')}>
+            <Button onClick={() => navigate('/sales-dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Sales
             </Button>
@@ -195,87 +195,75 @@ const PaymentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-muted/30 p-4">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <Button 
             variant="outline" 
             size="icon"
-            onClick={() => navigate('/sales')}
+            onClick={() => navigate('/sales-dashboard')}
             disabled={isProcessing}
-            className="shadow-md"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Payment</h1>
-            <p className="text-gray-600">Complete your transaction</p>
-          </div>
+          <h1 className="text-2xl font-bold">Payment</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Customer Details & Payment */}
           <div className="space-y-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Customer Details
-                </CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="customerName" className="text-sm font-medium text-gray-700">Customer Name</Label>
+                  <Label htmlFor="customerName">Customer Name</Label>
                   <Input
                     id="customerName"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Enter customer name"
                     disabled={isProcessing}
-                    className="mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerMobile" className="text-sm font-medium text-gray-700">Mobile Number</Label>
+                  <Label htmlFor="customerMobile">Mobile Number</Label>
                   <Input
                     id="customerMobile"
                     value={customerMobile}
                     onChange={(e) => setCustomerMobile(e.target.value)}
                     placeholder="Enter mobile number"
                     disabled={isProcessing}
-                    className="mt-1"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Payment Method
-                </CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Method</CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={isProcessing}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">💵 Cash</SelectItem>
-                    <SelectItem value="card">💳 Card</SelectItem>
-                    <SelectItem value="upi">📱 UPI</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
                   </SelectContent>
                 </Select>
 
                 {/* UPI Scanner */}
                 {showUPIScanner && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg text-center border border-blue-200">
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <Smartphone className="h-5 w-5 text-blue-600" />
                       <span className="font-medium text-blue-600">Scan QR Code to Pay</span>
                     </div>
-                    <div className="bg-white p-4 rounded-lg inline-block shadow-md">
+                    <div className="bg-white p-4 rounded-lg inline-block">
                       <QRCode
                         value={`upi://pay?pa=merchant@upi&pn=${customerName}&am=${finalTotal}&cu=INR&tn=Payment for Order ${Date.now()}`}
                         size={200}
@@ -289,14 +277,14 @@ const PaymentPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Tag className="h-5 w-5" />
                   Apply Coupon
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="space-y-4">
                 {couponsLoading ? (
                   <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground">Loading coupons...</p>
@@ -322,16 +310,13 @@ const PaymentPage = () => {
                       </SelectContent>
                     </Select>
                     {selectedCoupon && selectedCoupon !== 'none' && (
-                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="p-3 bg-green-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Tag className="h-4 w-4 text-green-600" />
                           <span className="font-medium text-green-600">
                             Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
                           </span>
                         </div>
-                        <p className="text-sm text-green-600 mt-1">
-                          You saved ₹{calculateDiscount().toFixed(2)}
-                        </p>
                       </div>
                     )}
                   </div>
@@ -346,17 +331,17 @@ const PaymentPage = () => {
 
           {/* Order Summary */}
           <div>
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
                   Order Summary
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="space-y-4">
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {cartItems.map((item, index) => (
-                    <div key={`${item.id}-${index}`} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                    <div key={`${item.id}-${index}`} className="flex justify-between items-center p-3 bg-muted rounded-lg">
                       <div>
                         <h4 className="font-medium">{item.name}</h4>
                         <p className="text-sm text-muted-foreground">₹{item.price} × {item.quantity}</p>
@@ -381,16 +366,16 @@ const PaymentPage = () => {
                   
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
                     <span>Total:</span>
-                    <span className="text-green-600">₹{finalTotal.toFixed(2)}</span>
+                    <span>₹{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg py-6 shadow-lg"
+                  className="w-full bg-green-600 hover:bg-green-700"
                   onClick={handlePayment}
                   disabled={isProcessing}
                 >
-                  <CreditCard className="h-5 w-5 mr-2" />
+                  <CreditCard className="h-4 w-4 mr-2" />
                   {isProcessing ? 'Processing...' : 'Complete Payment'}
                 </Button>
               </CardContent>
