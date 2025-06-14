@@ -14,16 +14,10 @@ import {
 } from '@/components/ui/sidebar';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useSidebar } from '@/components/ui/sidebar';
 
 const TopLevelMenu = () => {
   const { checkPermission } = useAuth();
   const location = useLocation();
-  const { setOpenMobile } = useSidebar();
-
-  const handleLinkClick = () => {
-    setOpenMobile(false);
-  };
 
   const getNavClass = (path: string) => {
     const isActive = location.pathname === path;
@@ -70,7 +64,6 @@ const TopLevelMenu = () => {
                 <NavLink 
                   to={item.url} 
                   className={getNavClass(item.url)}
-                  onClick={handleLinkClick}
                 >
                   <item.icon className="mr-2 h-4 w-4" />
                   <span>{item.title}</span>
