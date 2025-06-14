@@ -19,27 +19,12 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
   const [selectedFarmerId, setSelectedFarmerId] = useState<string>('1');
   
-  const { products, loading, addProduct, updateProduct } = useProducts();
+  const { products, loading } = useProducts();
 
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  
-  const handleAddProduct = async (newProduct: any) => {
-    let result;
-    
-    if (selectedProduct) {
-      result = await updateProduct(newProduct.id, newProduct);
-    } else {
-      result = await addProduct(newProduct);
-    }
-    
-    if (result.success) {
-      setIsDialogOpen(false);
-      setSelectedProduct(undefined);
-    }
-  };
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
@@ -172,7 +157,6 @@ const Products = () => {
                 <DialogContent className="sm:max-w-[600px]">
                   <ProductForm 
                     farmerId={selectedFarmerId}
-                    onSubmit={handleAddProduct} 
                     onCancel={() => {
                       setIsDialogOpen(false);
                       setSelectedProduct(undefined);

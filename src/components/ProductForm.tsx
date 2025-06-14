@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -120,11 +119,6 @@ const ProductForm = ({ farmerId, onSubmit, onCancel, editProduct }: ProductFormP
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
         }
-      }
-      
-      // Call the optional onSubmit callback if provided
-      if (onSubmit) {
-        onSubmit(productData);
       }
       
     } catch (error) {
