@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,9 @@ const SalesDashboard = () => {
     
     const categoryMap = new Map();
     
+    console.log('Today\'s transactions:', todayTransactions);
+    console.log('Available products:', products);
+    
     todayTransactions.forEach(transaction => {
       if (Array.isArray(transaction.items)) {
         const transactionSubtotal = Number(transaction.subtotal);
@@ -86,7 +90,16 @@ const SalesDashboard = () => {
         transaction.items.forEach(item => {
           // Find the product by name to get its category
           const product = products.find(p => p.name === item.name);
-          const category = product?.category || 'Uncategorized';
+          console.log(`Looking for product: "${item.name}", found:`, product);
+          
+          let category;
+          if (product && product.category && product.category.trim() !== '') {
+            category = product.category;
+          } else {
+            // If product not found or has no category, skip this item or handle differently
+            console.warn(`Product "${item.name}" not found in products list or has no category`);
+            return; // Skip items without proper category instead of marking as Uncategorized
+          }
           
           const currentValue = categoryMap.get(category) || 0;
           const itemSubtotal = Number(item.price) * Number(item.quantity);
@@ -98,10 +111,13 @@ const SalesDashboard = () => {
       }
     });
     
-    return Array.from(categoryMap.entries()).map(([name, value]) => ({
+    const result = Array.from(categoryMap.entries()).map(([name, value]) => ({
       name,
       value: Number(value.toFixed(2))
     }));
+    
+    console.log('Category breakdown result:', result);
+    return result;
   };
 
   const salesData = getWeeklySalesData();
@@ -259,3 +275,4 @@ const SalesDashboard = () => {
 };
 
 export default SalesDashboard;
+
