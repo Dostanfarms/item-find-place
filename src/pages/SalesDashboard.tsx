@@ -2,11 +2,12 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useProducts } from '@/hooks/useProducts';
-import { TrendingUp, ShoppingCart, Package, IndianRupee } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Package, IndianRupee, Menu } from 'lucide-react';
 
 const SalesDashboard = () => {
   const navigate = useNavigate();
@@ -42,9 +43,14 @@ const SalesDashboard = () => {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-none flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Sales Dashboard</h1>
-          <p className="text-muted-foreground">Track your sales performance</p>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="md:hidden">
+            <Menu className="h-5 w-5" />
+          </SidebarTrigger>
+          <div>
+            <h1 className="text-3xl font-bold">Sales Dashboard</h1>
+            <p className="text-muted-foreground">Track your sales performance</p>
+          </div>
         </div>
         <Button 
           onClick={() => navigate('/sales')}
