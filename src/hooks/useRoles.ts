@@ -6,8 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 export interface Role {
   id: string;
   name: string;
-  description?: string;
-  category?: string;
   permissions: any;
   is_active: boolean;
   created_at: string;
@@ -74,7 +72,6 @@ export const useRoles = () => {
 
       console.log('Role added successfully:', data);
       
-      // Don't update local state here - let the real-time subscription handle it
       toast({
         title: "Success",
         description: `${roleData.name} role was successfully created`

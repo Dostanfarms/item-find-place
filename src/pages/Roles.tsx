@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -59,14 +60,6 @@ const actions = [
   { id: 'delete', name: 'Delete' }
 ];
 
-const categories = [
-  { id: 'management', name: 'Management' },
-  { id: 'operations', name: 'Operations' },
-  { id: 'sales', name: 'Sales' },
-  { id: 'support', name: 'Support' },
-  { id: 'administration', name: 'Administration' }
-];
-
 const Roles = () => {
   const { toast } = useToast();
   const { roles, loading, addRole, updateRole } = useRoles();
@@ -74,8 +67,6 @@ const Roles = () => {
   const [permissions, setPermissions] = useState<any[]>([]);
   const [createRoleDialogOpen, setCreateRoleDialogOpen] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleDescription, setNewRoleDescription] = useState('');
-  const [newRoleCategory, setNewRoleCategory] = useState('');
 
   useEffect(() => {
     if (roles.length > 0 && !selectedRole) {
@@ -169,8 +160,6 @@ const Roles = () => {
     
     const newRole = {
       name: newRoleName,
-      description: newRoleDescription,
-      category: newRoleCategory,
       permissions: [{ resource: 'dashboard', actions: ['view'] }],
       is_active: true
     };
@@ -180,8 +169,6 @@ const Roles = () => {
     if (result?.success) {
       setCreateRoleDialogOpen(false);
       setNewRoleName('');
-      setNewRoleDescription('');
-      setNewRoleCategory('');
       setSelectedRole(result.data);
     }
   };
@@ -234,12 +221,7 @@ const Roles = () => {
                 <SelectContent>
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{role.name}</span>
-                        {role.category && (
-                          <span className="text-xs text-muted-foreground">{role.category}</span>
-                        )}
-                      </div>
+                      <span className="font-medium">{role.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -311,35 +293,6 @@ const Roles = () => {
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roleDescription" className="text-right">
-                Description
-              </Label>
-              <Input
-                id="roleDescription"
-                placeholder="Role description"
-                className="col-span-3"
-                value={newRoleDescription}
-                onChange={(e) => setNewRoleDescription(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="roleCategory" className="text-right">
-                Category
-              </Label>
-              <Select value={newRoleCategory} onValueChange={setNewRoleCategory}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
