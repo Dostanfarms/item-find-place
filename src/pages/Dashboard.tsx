@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,32 +7,31 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useTickets } from '@/hooks/useTickets';
 import { useTransactions } from '@/hooks/useTransactions';
-import { 
-  TrendingUp, 
-  Users, 
-  Package, 
-  IndianRupee,
-  ShoppingCart,
-  Tag,
-  Ticket,
-  Receipt
-} from 'lucide-react';
-
+import { TrendingUp, Users, Package, IndianRupee, ShoppingCart, Tag, Ticket, Receipt } from 'lucide-react';
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { products } = useProducts();
-  const { customers } = useCustomers();
-  const { coupons } = useCoupons();
-  const { tickets } = useTickets();
-  const { transactions } = useTransactions();
-
+  const {
+    products
+  } = useProducts();
+  const {
+    customers
+  } = useCustomers();
+  const {
+    coupons
+  } = useCoupons();
+  const {
+    tickets
+  } = useTickets();
+  const {
+    transactions
+  } = useTransactions();
   const handleSalesDashboardClick = () => {
     navigate('/sales-dashboard');
   };
 
   // Calculate total value of products
   const totalProductValue = products.reduce((total, product) => {
-    return total + (product.price_per_unit * product.quantity);
+    return total + product.price_per_unit * product.quantity;
   }, 0);
 
   // Calculate total sales from transactions
@@ -43,69 +41,47 @@ const Dashboard = () => {
 
   // Calculate today's sales
   const today = new Date().toDateString();
-  const todaySales = transactions
-    .filter(transaction => new Date(transaction.created_at).toDateString() === today)
-    .reduce((total, transaction) => total + Number(transaction.total), 0);
-
-  const stats = [
-    {
-      title: "Total Products",
-      value: products.length.toString(),
-      change: `Value: ₹${totalProductValue.toFixed(2)}`,
-      icon: <Package className="h-6 w-6" />
-    },
-    {
-      title: "Total Sales",
-      value: `₹${totalSales.toFixed(2)}`,
-      change: `${transactions.length} transactions`,
-      icon: <IndianRupee className="h-6 w-6" />
-    },
-    {
-      title: "Today's Sales",
-      value: `₹${todaySales.toFixed(2)}`,
-      change: `${transactions.filter(t => new Date(t.created_at).toDateString() === today).length} transactions today`,
-      icon: <TrendingUp className="h-6 w-6" />
-    },
-    {
-      title: "Total Customers",
-      value: customers.length.toString(),
-      change: "+New registrations",
-      icon: <Users className="h-6 w-6" />
-    },
-    {
-      title: "Active Coupons",
-      value: coupons.filter(c => c.is_active).length.toString(),
-      change: `${coupons.length} total coupons`,
-      icon: <Tag className="h-6 w-6" />
-    },
-    {
-      title: "Support Tickets",
-      value: tickets.length.toString(),
-      change: `${tickets.filter(t => t.status === 'pending').length} pending`,
-      icon: <Ticket className="h-6 w-6" />
-    }
-  ];
-
-  return (
-    <div className="w-full max-w-7xl mx-auto">
+  const todaySales = transactions.filter(transaction => new Date(transaction.created_at).toDateString() === today).reduce((total, transaction) => total + Number(transaction.total), 0);
+  const stats = [{
+    title: "Total Products",
+    value: products.length.toString(),
+    change: `Value: ₹${totalProductValue.toFixed(2)}`,
+    icon: <Package className="h-6 w-6" />
+  }, {
+    title: "Total Sales",
+    value: `₹${totalSales.toFixed(2)}`,
+    change: `${transactions.length} transactions`,
+    icon: <IndianRupee className="h-6 w-6" />
+  }, {
+    title: "Today's Sales",
+    value: `₹${todaySales.toFixed(2)}`,
+    change: `${transactions.filter(t => new Date(t.created_at).toDateString() === today).length} transactions today`,
+    icon: <TrendingUp className="h-6 w-6" />
+  }, {
+    title: "Total Customers",
+    value: customers.length.toString(),
+    change: "+New registrations",
+    icon: <Users className="h-6 w-6" />
+  }, {
+    title: "Active Coupons",
+    value: coupons.filter(c => c.is_active).length.toString(),
+    change: `${coupons.length} total coupons`,
+    icon: <Tag className="h-6 w-6" />
+  }, {
+    title: "Support Tickets",
+    value: tickets.length.toString(),
+    change: `${tickets.filter(t => t.status === 'pending').length} pending`,
+    icon: <Ticket className="h-6 w-6" />
+  }];
+  return <div className="w-full max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => navigate('/transactions')}
-            variant="outline"
-            className="hidden sm:flex"
-          >
-            <Receipt className="h-4 w-4 mr-2" />
-            View Transactions
-          </Button>
-          <Button 
-            onClick={handleSalesDashboardClick}
-            className="bg-green-600 hover:bg-green-700"
-          >
+          
+          <Button onClick={handleSalesDashboardClick} className="bg-green-600 hover:bg-green-700">
             <ShoppingCart className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Sales Dashboard</span>
             <span className="sm:hidden">Sales</span>
@@ -114,8 +90,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <Card key={index}>
+        {stats.map((stat, index) => <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {stat.title}
@@ -130,8 +105,7 @@ const Dashboard = () => {
                 {stat.change}
               </p>
             </CardContent>
-          </Card>
-        ))}
+          </Card>)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -179,35 +153,19 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col"
-                onClick={() => navigate('/products')}
-              >
+              <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/products')}>
                 <Package className="h-6 w-6 mb-2" />
                 <span>Manage Products</span>
               </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col"
-                onClick={() => navigate('/customers')}
-              >
+              <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/customers')}>
                 <Users className="h-6 w-6 mb-2" />
                 <span>Manage Customers</span>
               </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col"
-                onClick={handleSalesDashboardClick}
-              >
+              <Button variant="outline" className="h-20 flex-col" onClick={handleSalesDashboardClick}>
                 <ShoppingCart className="h-6 w-6 mb-2" />
                 <span>Start Sale</span>
               </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex-col"
-                onClick={() => navigate('/transactions')}
-              >
+              <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/transactions')}>
                 <Receipt className="h-6 w-6 mb-2" />
                 <span>View Transactions</span>
               </Button>
@@ -215,8 +173,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
