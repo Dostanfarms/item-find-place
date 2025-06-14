@@ -3,21 +3,17 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, ShoppingCart, User, Package } from 'lucide-react';
+import { Plus, ShoppingCart, Package } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useCustomers } from '@/hooks/useCustomers';
-import { useTransactions } from '@/hooks/useTransactions';
+import { useNavigate } from 'react-router-dom';
 
 const Sales = () => {
   const { toast } = useToast();
   const { products } = useProducts();
-  const { customers } = useCustomers();
-  const { addTransaction } = useTransactions();
+  const navigate = useNavigate();
   
   const [cart, setCart] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredProducts = products.filter(product =>
@@ -58,68 +54,31 @@ const Sales = () => {
     return cart.reduce((total, item) => total + (item.price_per_unit * item.quantity), 0);
   };
 
-  const handleCheckout = async () => {
+  const handleProceedToPayment = () => {
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
-        description: "Please add items to cart before checkout",
+        description: "Please add items to cart before proceeding to payment",
         variant: "destructive"
       });
       return;
     }
 
-    if (!selectedCustomer) {
-      toast({
-        title: "Customer required",
-        description: "Please select a customer for this transaction",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
-    if (!selectedCustomerData) {
-      toast({
-        title: "Customer not found",
-        description: "Please select a valid customer",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const transactionItems = cart.map(item => ({
+    // Prepare cart items for payment page
+    const cartItems = cart.map(item => ({
       id: item.id,
       name: item.name,
       price: item.price_per_unit,
       quantity: item.quantity
     }));
 
-    const subtotal = getTotalAmount();
-    const discount = 0;
-    const total = subtotal - discount;
-
-    const transaction = {
-      customer_name: selectedCustomerData.name,
-      customer_mobile: selectedCustomerData.mobile,
-      items: transactionItems,
-      subtotal,
-      discount,
-      total,
-      coupon_used: null,
-      payment_method: 'cash',
-      status: 'completed'
-    };
-
-    const result = await addTransaction(transaction);
-    
-    if (result?.success) {
-      toast({
-        title: "Transaction completed",
-        description: `Sale completed successfully. Total: ₹${total.toFixed(2)}`
-      });
-      setCart([]);
-      setSelectedCustomer('');
-    }
+    // Navigate to payment page with cart data
+    navigate('/payment', {
+      state: {
+        cartItems,
+        subtotal: getTotalAmount()
+      }
+    });
   };
 
   return (
@@ -153,7 +112,7 @@ const Sales = () => {
                     <CardContent className="p-4">
                       <h3 className="font-medium text-sm mb-1">{product.name}</h3>
                       <p className="text-xs text-muted-foreground mb-2">
-                        Stock: {product.quantity} {product.unit}
+                        Unit: {product.unit}
                       </p>
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm">₹{product.price_per_unit}</span>
@@ -183,24 +142,6 @@ const Sales = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
-              {/* Customer Selection */}
-              <div className="flex-none mb-4">
-                <Label htmlFor="customer">Customer</Label>
-                <select
-                  id="customer"
-                  className="w-full mt-1 p-2 border rounded-md"
-                  value={selectedCustomer}
-                  onChange={(e) => setSelectedCustomer(e.target.value)}
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Cart Items */}
               <div className="flex-1 overflow-auto mb-4">
                 {cart.length === 0 ? (
@@ -238,18 +179,18 @@ const Sales = () => {
                 )}
               </div>
 
-              {/* Total and Checkout */}
+              {/* Total and Proceed to Payment */}
               <div className="flex-none space-y-3">
                 <div className="flex justify-between items-center font-bold">
                   <span>Total:</span>
                   <span>₹{getTotalAmount().toFixed(2)}</span>
                 </div>
                 <Button 
-                  onClick={handleCheckout}
+                  onClick={handleProceedToPayment}
                   className="w-full"
-                  disabled={cart.length === 0 || !selectedCustomer}
+                  disabled={cart.length === 0}
                 >
-                  Complete Sale
+                  Proceed to Payment
                 </Button>
               </div>
             </CardContent>
