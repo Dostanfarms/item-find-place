@@ -9,7 +9,6 @@ export interface Product {
   unit: string;
   price_per_unit: number;
   category: string;
-  farmer_id?: string | null;
   barcode?: string;
   created_at: string;
   updated_at: string;
@@ -76,7 +75,6 @@ export const useProducts = () => {
       if (productData.unit !== undefined) updateData.unit = productData.unit;
       if (productData.price_per_unit !== undefined) updateData.price_per_unit = productData.price_per_unit;
       if (productData.category !== undefined) updateData.category = productData.category;
-      if (productData.farmer_id !== undefined) updateData.farmer_id = productData.farmer_id;
       if (productData.barcode !== undefined) updateData.barcode = productData.barcode;
 
       const { data, error } = await supabase

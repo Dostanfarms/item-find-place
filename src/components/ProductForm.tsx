@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,7 +86,6 @@ const ProductForm = ({ farmerId, onSubmit, onCancel, editProduct }: ProductFormP
       unit,
       price_per_unit: parsedPrice,
       category,
-      farmer_id: null,
       barcode: editProduct?.barcode || generateBarcode()
     };
     
@@ -102,7 +100,6 @@ const ProductForm = ({ farmerId, onSubmit, onCancel, editProduct }: ProductFormP
           unit: productData.unit,
           price_per_unit: productData.price_per_unit,
           category: productData.category,
-          farmer_id: productData.farmer_id,
           barcode: productData.barcode
         };
         
