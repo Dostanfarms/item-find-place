@@ -25,7 +25,7 @@ export const Sidebar = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <span className="text-lg font-bold">Dostanfarms Admin</span>
             </div>
-            {/* Single desktop toggle button - only shows when sidebar is expanded and on desktop */}
+            {/* Desktop toggle button - only shows when sidebar is expanded */}
             {state === 'expanded' && (
               <SidebarTrigger className="hidden md:flex bg-transparent hover:bg-gray-100 p-1 rounded-md">
                 <Menu className="h-5 w-5" />
