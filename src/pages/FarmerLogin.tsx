@@ -67,7 +67,7 @@ const FarmerLogin = () => {
       setIsLoading(false);
       toast({
         title: "OTP Sent",
-        description: `OTP sent to ${phone}. For testing, check console.`,
+        description: `OTP sent to ${phone}`,
       });
     }, 1500);
   };
@@ -95,6 +95,11 @@ const FarmerLogin = () => {
           name: foundFarmer.name,
           phone: foundFarmer.phone,
           email: foundFarmer.email,
+          address: foundFarmer.address,
+          state: foundFarmer.state,
+          district: foundFarmer.district,
+          village: foundFarmer.village,
+          profile_photo: foundFarmer.profile_photo,
           isLoggedIn: true
         }));
         
@@ -167,9 +172,6 @@ const FarmerLogin = () => {
                 <p className="text-xs text-muted-foreground">
                   Enter the 6-digit code sent to {phone}
                 </p>
-                <p className="text-xs text-blue-600">
-                  For testing: Check browser console for OTP
-                </p>
               </div>
               <Button 
                 type="submit" 
@@ -207,6 +209,18 @@ const FarmerLogin = () => {
             </form>
           )}
         </CardContent>
+        
+        {/* Show OTP at bottom for testing */}
+        {isOtpSent && generatedOtp && (
+          <CardFooter className="border-t pt-4">
+            <div className="w-full text-center">
+              <p className="text-sm text-muted-foreground mb-2">For testing purposes:</p>
+              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                <p className="text-sm font-medium text-blue-800">OTP: {generatedOtp}</p>
+              </div>
+            </div>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
