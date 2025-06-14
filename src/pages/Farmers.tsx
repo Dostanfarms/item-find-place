@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
-import { Search, Plus, User, Edit, Eye, Menu } from 'lucide-react';
+import { Search, Plus, User, Edit, Eye } from 'lucide-react';
 
 const Farmers = () => {
   const navigate = useNavigate();
@@ -65,49 +65,51 @@ const Farmers = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <div className="flex-shrink-0 p-6 border-b bg-white">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Farmers Management</h1>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search farmers..."
-                    className="pl-8 w-80"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) setSelectedFarmer(undefined);
-                }}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-agri-primary hover:bg-agri-secondary">
-                      <Plus className="mr-2 h-4 w-4" /> Add Farmer
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <FarmerForm 
-                      onSubmit={handleAddFarmer} 
-                      onCancel={() => {
-                        setIsDialogOpen(false);
-                        setSelectedFarmer(undefined);
-                      }}
-                      editFarmer={selectedFarmer}
+        <div className="flex-1 flex flex-col">
+          {/* Fixed Header */}
+          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Farmers Management</h1>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search farmers..."
+                      className="pl-8 w-80"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                  </DialogContent>
-                </Dialog>
+                  </div>
+                  <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (!open) setSelectedFarmer(undefined);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-agri-primary hover:bg-agri-secondary">
+                        <Plus className="mr-2 h-4 w-4" /> Add Farmer
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <FarmerForm 
+                        onSubmit={handleAddFarmer} 
+                        onCancel={() => {
+                          setIsDialogOpen(false);
+                          setSelectedFarmer(undefined);
+                        }}
+                        editFarmer={selectedFarmer}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 min-h-0">
+          <div className="flex-1 p-6">
             {filteredFarmers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
+              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-muted rounded-lg">
                 <User className="h-16 w-16 text-muted-foreground mb-6" />
                 {searchTerm ? (
                   <>
@@ -126,12 +128,12 @@ const Farmers = () => {
                 )}
               </div>
             ) : (
-              <Card className="h-full flex flex-col">
-                <CardHeader className="flex-shrink-0">
+              <Card>
+                <CardHeader>
                   <CardTitle className="text-xl">Registered Farmers</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 p-0 min-h-0">
-                  <div className="h-full overflow-auto">
+                <CardContent className="p-0">
+                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>

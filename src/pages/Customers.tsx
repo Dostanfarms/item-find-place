@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, Eye, Edit, Trash2, Menu } from 'lucide-react';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -63,23 +63,23 @@ const Customers = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <div className="flex-shrink-0 p-6 border-b bg-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        <div className="flex-1 flex flex-col">
+          {/* Fixed Header */}
+          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Customer Management</h1>
+                <Badge variant="secondary" className="text-base px-4 py-2">
+                  {customers.length} Total Customers
+                </Badge>
               </div>
-              <Badge variant="secondary" className="text-base px-4 py-2">
-                {customers.length} Total Customers
-              </Badge>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 min-h-0">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
+          <div className="flex-1 p-6">
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Registered Customers</CardTitle>
                   <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ const Customers = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 p-0 min-h-0">
+              <CardContent className="p-0">
                 {filteredCustomers.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-muted-foreground text-lg mb-2">
@@ -106,7 +106,7 @@ const Customers = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full overflow-auto">
+                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,8 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { Search, Plus, Package, Edit, Printer, Menu } from 'lucide-react';
+import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Barcode128 from 'react-barcode-generator';
 
 const Products = () => {
   const { toast } = useToast();
@@ -130,47 +129,49 @@ const Products = () => {
       <div className="min-h-screen w-full flex">
         <Sidebar />
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="flex-shrink-0 p-6 border-b bg-white">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Products Management</h1>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search products or barcodes..."
-                    className="pl-8 w-80"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) setSelectedProduct(undefined);
-                }}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-agri-primary hover:bg-agri-secondary">
-                      <Plus className="mr-2 h-4 w-4" /> Add Product
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <ProductForm 
-                      onCancel={() => {
-                        setIsDialogOpen(false);
-                        setSelectedProduct(undefined);
-                      }}
-                      editProduct={selectedProduct}
+          {/* Fixed Header */}
+          <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Products Management</h1>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products or barcodes..."
+                      className="pl-8 w-80"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                  </DialogContent>
-                </Dialog>
+                  </div>
+                  <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (!open) setSelectedProduct(undefined);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-agri-primary hover:bg-agri-secondary">
+                        <Plus className="mr-2 h-4 w-4" /> Add Product
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <ProductForm 
+                        onCancel={() => {
+                          setIsDialogOpen(false);
+                          setSelectedProduct(undefined);
+                        }}
+                        editProduct={selectedProduct}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-hidden">
+          <div className="flex-1 p-6">
             {filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
+              <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-muted rounded-lg">
                 <Package className="h-16 w-16 text-muted-foreground mb-6" />
                 {searchTerm ? (
                   <>
@@ -189,33 +190,33 @@ const Products = () => {
                 )}
               </div>
             ) : (
-              <Card className="h-full flex flex-col">
-                <CardHeader className="flex-shrink-0">
+              <Card>
+                <CardHeader>
                   <CardTitle className="text-xl">Product Inventory</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 p-0 overflow-hidden">
-                  <div className="w-full overflow-auto h-full">
+                <CardContent className="p-0">
+                  <div className="overflow-auto max-h-[calc(100vh-300px)]">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
-                          <TableHead className="min-w-[200px]">Product Name</TableHead>
-                          <TableHead className="min-w-[120px]">Category</TableHead>
-                          <TableHead className="min-w-[100px]">Quantity</TableHead>
-                          <TableHead className="min-w-[100px]">Price/Unit</TableHead>
-                          <TableHead className="min-w-[180px]">Barcode</TableHead>
-                          <TableHead className="min-w-[100px] text-right">Actions</TableHead>
+                          <TableHead className="w-[25%]">Product Name</TableHead>
+                          <TableHead className="w-[15%]">Category</TableHead>
+                          <TableHead className="w-[12%]">Quantity</TableHead>
+                          <TableHead className="w-[12%]">Price/Unit</TableHead>
+                          <TableHead className="w-[23%]">Barcode</TableHead>
+                          <TableHead className="w-[13%] text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => (
                           <TableRow key={product.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">
-                              <div className="max-w-[200px] truncate" title={product.name}>
+                              <div className="truncate" title={product.name}>
                                 {product.name}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="max-w-[120px] truncate" title={product.category}>
+                              <div className="truncate" title={product.category}>
                                 {product.category}
                               </div>
                             </TableCell>
@@ -228,7 +229,7 @@ const Products = () => {
                             <TableCell>
                               {product.barcode ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="text-xs max-w-[120px] truncate font-mono" title={product.barcode}>
+                                  <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
                                     {product.barcode}
                                   </div>
                                   <Button 
