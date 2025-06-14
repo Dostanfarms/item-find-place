@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useCoupons } from '@/hooks/useCoupons';
 import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
@@ -18,101 +20,57 @@ interface CartItem {
   quantity: number;
 }
 
-interface Coupon {
-  code: string;
-  discountType: 'percentage' | 'flat';
-  discountValue: number;
-  maxDiscountLimit?: number;
-  expiryDate: string;
-  targetType?: 'all' | 'customer' | 'employee';
-  targetUserId?: string;
-}
-
 const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addTransaction } = useTransactions();
+  const { coupons, loading: couponsLoading } = useCoupons();
   
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [selectedCoupon, setSelectedCoupon] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedCoupon, setSelectedCoupon] = useState('none');
   const [showUPIScanner, setShowUPIScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Get cart data from navigation state
   const cartItems: CartItem[] = location.state?.cartItems || [];
-  const originalTotal: number = location.state?.total || 0;
+  const originalSubtotal: number = location.state?.subtotal || 0;
 
-  useEffect(() => {
-    // Load active coupons from localStorage (from coupons management page)
-    const savedCoupons = localStorage.getItem('coupons');
-    if (savedCoupons) {
-      try {
-        const parsedCoupons = JSON.parse(savedCoupons);
-        // Filter only active coupons (not expired)
-        const activeCoupons = parsedCoupons.filter((coupon: Coupon) => {
-          const expiryDate = new Date(coupon.expiryDate);
-          return expiryDate > new Date();
-        });
-        setCoupons(activeCoupons);
-      } catch (error) {
-        console.error('Error loading coupons:', error);
-      }
-    }
-  }, []);
+  // Filter active coupons
+  const activeCoupons = coupons.filter(coupon => 
+    coupon.is_active && new Date(coupon.expiry_date) > new Date()
+  );
 
   useEffect(() => {
     // Show UPI scanner when UPI is selected
     setShowUPIScanner(paymentMethod === 'upi');
   }, [paymentMethod]);
 
-  const applyCoupon = () => {
-    if (!selectedCoupon) {
-      toast({
-        title: "No coupon selected",
-        description: "Please select a coupon to apply",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const coupon = coupons.find(c => c.code === selectedCoupon);
-    if (coupon) {
-      setAppliedCoupon(coupon);
-      toast({
-        title: "Coupon applied",
-        description: `${coupon.code} has been applied successfully`,
-      });
-    }
-  };
-
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setSelectedCoupon('');
-    toast({
-      title: "Coupon removed",
-      description: "Coupon has been removed from your order",
-    });
-  };
-
   const calculateDiscount = () => {
-    if (!appliedCoupon) return 0;
+    if (!selectedCoupon || selectedCoupon === 'none') return 0;
     
-    if (appliedCoupon.discountType === 'percentage') {
-      const discountAmount = (originalTotal * appliedCoupon.discountValue) / 100;
-      return appliedCoupon.maxDiscountLimit 
-        ? Math.min(discountAmount, appliedCoupon.maxDiscountLimit)
-        : discountAmount;
-    } else {
-      return Math.min(appliedCoupon.discountValue, originalTotal);
+    const coupon = activeCoupons.find(c => c.id === selectedCoupon);
+    if (!coupon) return 0;
+    
+    let discount = 0;
+    
+    if (coupon.discount_type === 'percentage') {
+      discount = (originalSubtotal * coupon.discount_value) / 100;
+    } else if (coupon.discount_type === 'flat') {
+      discount = coupon.discount_value;
     }
+    
+    // Apply max discount limit if set
+    if (coupon.max_discount_limit && discount > coupon.max_discount_limit) {
+      discount = coupon.max_discount_limit;
+    }
+    
+    return Math.min(discount, originalSubtotal); // Don't let discount exceed subtotal
   };
 
-  const finalTotal = originalTotal - calculateDiscount();
+  const finalTotal = originalSubtotal - calculateDiscount();
 
   const handlePayment = async () => {
     if (!customerName.trim()) {
@@ -145,15 +103,18 @@ const PaymentPage = () => {
     setIsProcessing(true);
 
     try {
+      const selectedCouponData = selectedCoupon && selectedCoupon !== 'none' ? 
+        activeCoupons.find(c => c.id === selectedCoupon) : null;
+
       // Create transaction data for Supabase
       const transactionData = {
         customer_name: customerName,
         customer_mobile: customerMobile,
         items: cartItems,
-        subtotal: originalTotal,
+        subtotal: originalSubtotal,
         discount: calculateDiscount(),
         total: finalTotal,
-        coupon_used: appliedCoupon?.code || null,
+        coupon_used: selectedCouponData?.code || null,
         payment_method: paymentMethod,
         status: 'completed'
       };
@@ -172,10 +133,10 @@ const PaymentPage = () => {
           customerName,
           customerMobile,
           items: cartItems,
-          subtotal: originalTotal,
+          subtotal: originalSubtotal,
           discount: calculateDiscount(),
           total: finalTotal,
-          couponUsed: appliedCoupon?.code || null,
+          couponUsed: selectedCouponData?.code || null,
           paymentMethod,
           timestamp: new Date().toISOString(),
           status: 'completed'
@@ -318,48 +279,51 @@ const PaymentPage = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Apply Coupon</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="h-5 w-5" />
+                  Apply Coupon
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-green-600" />
-                      <span className="font-medium">{appliedCoupon.code}</span>
-                      <Badge variant="secondary">
-                        {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`}
-                      </Badge>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={removeCoupon} disabled={isProcessing}>
-                      Remove
-                    </Button>
+                {couponsLoading ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">Loading coupons...</p>
                   </div>
-                ) : (
+                ) : activeCoupons.length > 0 ? (
                   <div className="space-y-3">
-                    {coupons.length > 0 ? (
-                      <>
-                        <Select value={selectedCoupon} onValueChange={setSelectedCoupon} disabled={isProcessing}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a coupon" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {coupons.map((coupon) => (
-                              <SelectItem key={coupon.code} value={coupon.code}>
-                                {coupon.code} - {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`} off
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button onClick={applyCoupon} variant="outline" className="w-full" disabled={isProcessing}>
-                          Apply Coupon
-                        </Button>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No active coupons available
-                      </p>
+                    <Select value={selectedCoupon} onValueChange={setSelectedCoupon} disabled={isProcessing}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a coupon" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No coupon</SelectItem>
+                        {activeCoupons.map((coupon) => (
+                          <SelectItem key={coupon.id} value={coupon.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{coupon.code}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedCoupon && selectedCoupon !== 'none' && (
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-green-600">
+                            Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No active coupons available
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -390,12 +354,12 @@ const PaymentPage = () => {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>₹{originalTotal.toFixed(2)}</span>
+                    <span>₹{originalSubtotal.toFixed(2)}</span>
                   </div>
                   
-                  {appliedCoupon && (
+                  {calculateDiscount() > 0 && (
                     <div className="flex justify-between text-green-600">
-                      <span>Discount ({appliedCoupon.code}):</span>
+                      <span>Discount:</span>
                       <span>-₹{calculateDiscount().toFixed(2)}</span>
                     </div>
                   )}
