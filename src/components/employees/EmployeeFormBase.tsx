@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Eye, EyeOff } from 'lucide-react';
 import { Role } from '@/utils/types';
 import { states, districts, villages, banks } from '@/utils/locationData';
@@ -24,6 +25,7 @@ export interface EmployeeFormData {
   accountNumber: string;
   bankName: string;
   ifscCode: string;
+  isActive: boolean;
 }
 
 interface EmployeeFormBaseProps {
@@ -195,6 +197,25 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Status Radio Buttons */}
+        <div className="space-y-3">
+          <Label>Employee Status</Label>
+          <RadioGroup 
+            value={formData.isActive ? 'active' : 'inactive'} 
+            onValueChange={(value) => onChange({ isActive: value === 'active' })}
+            className="flex gap-6"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="active" id="active" />
+              <Label htmlFor="active" className="text-green-600 font-medium">Active</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="inactive" id="inactive" />
+              <Label htmlFor="inactive" className="text-red-600 font-medium">Inactive</Label>
+            </div>
+          </RadioGroup>
         </div>
         
         {/* Bank Account Details */}

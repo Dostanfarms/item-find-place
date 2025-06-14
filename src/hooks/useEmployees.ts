@@ -19,6 +19,9 @@ export interface Employee {
   account_number?: string;
   bank_name?: string;
   ifsc_code?: string;
+  is_active?: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useEmployees = () => {
@@ -59,7 +62,10 @@ export const useEmployees = () => {
         account_holder_name: emp.account_holder_name,
         account_number: emp.account_number,
         bank_name: emp.bank_name,
-        ifsc_code: emp.ifsc_code
+        ifsc_code: emp.ifsc_code,
+        is_active: emp.is_active !== false,
+        created_at: emp.created_at,
+        updated_at: emp.updated_at
       })) || [];
 
       setEmployees(formattedEmployees);
@@ -75,7 +81,7 @@ export const useEmployees = () => {
     }
   };
 
-  const addEmployee = async (employeeData: Omit<Employee, 'id' | 'date_joined'>) => {
+  const addEmployee = async (employeeData: Omit<Employee, 'id' | 'date_joined' | 'created_at' | 'updated_at'>) => {
     try {
       const { data, error } = await supabase
         .from('employees')
@@ -92,7 +98,8 @@ export const useEmployees = () => {
           account_holder_name: employeeData.account_holder_name,
           account_number: employeeData.account_number,
           bank_name: employeeData.bank_name,
-          ifsc_code: employeeData.ifsc_code
+          ifsc_code: employeeData.ifsc_code,
+          is_active: employeeData.is_active !== false
         }])
         .select()
         .single();
@@ -127,23 +134,26 @@ export const useEmployees = () => {
 
   const updateEmployee = async (id: string, employeeData: Partial<Employee>) => {
     try {
+      const updateData: any = {};
+      
+      if (employeeData.name !== undefined) updateData.name = employeeData.name;
+      if (employeeData.email !== undefined) updateData.email = employeeData.email;
+      if (employeeData.phone !== undefined) updateData.phone = employeeData.phone;
+      if (employeeData.password !== undefined && employeeData.password !== '') updateData.password = employeeData.password;
+      if (employeeData.role !== undefined) updateData.role = employeeData.role;
+      if (employeeData.profile_photo !== undefined) updateData.profile_photo = employeeData.profile_photo;
+      if (employeeData.state !== undefined) updateData.state = employeeData.state;
+      if (employeeData.district !== undefined) updateData.district = employeeData.district;
+      if (employeeData.village !== undefined) updateData.village = employeeData.village;
+      if (employeeData.account_holder_name !== undefined) updateData.account_holder_name = employeeData.account_holder_name;
+      if (employeeData.account_number !== undefined) updateData.account_number = employeeData.account_number;
+      if (employeeData.bank_name !== undefined) updateData.bank_name = employeeData.bank_name;
+      if (employeeData.ifsc_code !== undefined) updateData.ifsc_code = employeeData.ifsc_code;
+      if (employeeData.is_active !== undefined) updateData.is_active = employeeData.is_active;
+
       const { data, error } = await supabase
         .from('employees')
-        .update({
-          name: employeeData.name,
-          email: employeeData.email,
-          phone: employeeData.phone,
-          password: employeeData.password,
-          role: employeeData.role,
-          profile_photo: employeeData.profile_photo,
-          state: employeeData.state,
-          district: employeeData.district,
-          village: employeeData.village,
-          account_holder_name: employeeData.account_holder_name,
-          account_number: employeeData.account_number,
-          bank_name: employeeData.bank_name,
-          ifsc_code: employeeData.ifsc_code
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -161,7 +171,7 @@ export const useEmployees = () => {
       await fetchEmployees(); // Refresh the list
       toast({
         title: "Success",
-        description: `${employeeData.name}'s information was successfully updated`
+        description: `Employee information was successfully updated`
       });
       
       return { success: true, data };
