@@ -19,30 +19,31 @@ const Coupons = () => {
   
   const [formData, setFormData] = useState({
     code: '',
-    description: '',
     discount_type: 'percentage',
     discount_value: '',
-    min_order_amount: '',
-    max_discount_amount: '',
-    usage_limit: '',
     expiry_date: '',
-    is_active: true
+    is_active: true,
+    max_discount_limit: '',
+    target_type: 'all',
+    target_user_id: ''
   });
 
   const filteredCoupons = coupons.filter(coupon =>
-    coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    coupon.description.toLowerCase().includes(searchTerm.toLowerCase())
+    coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const couponData = {
-      ...formData,
+      code: formData.code,
+      discount_type: formData.discount_type,
       discount_value: Number(formData.discount_value),
-      min_order_amount: formData.min_order_amount ? Number(formData.min_order_amount) : null,
-      max_discount_amount: formData.max_discount_amount ? Number(formData.max_discount_amount) : null,
-      usage_limit: formData.usage_limit ? Number(formData.usage_limit) : null,
+      expiry_date: formData.expiry_date,
+      is_active: formData.is_active,
+      max_discount_limit: formData.max_discount_limit ? Number(formData.max_discount_limit) : null,
+      target_type: formData.target_type,
+      target_user_id: formData.target_user_id || null
     };
 
     let result;
@@ -65,14 +66,13 @@ const Coupons = () => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
-      description: coupon.description,
       discount_type: coupon.discount_type,
       discount_value: coupon.discount_value.toString(),
-      min_order_amount: coupon.min_order_amount?.toString() || '',
-      max_discount_amount: coupon.max_discount_amount?.toString() || '',
-      usage_limit: coupon.usage_limit?.toString() || '',
       expiry_date: coupon.expiry_date ? new Date(coupon.expiry_date).toISOString().split('T')[0] : '',
-      is_active: coupon.is_active
+      is_active: coupon.is_active,
+      max_discount_limit: coupon.max_discount_limit?.toString() || '',
+      target_type: coupon.target_type,
+      target_user_id: coupon.target_user_id || ''
     });
     setIsDialogOpen(true);
   };
@@ -82,14 +82,13 @@ const Coupons = () => {
     setEditingCoupon(null);
     setFormData({
       code: '',
-      description: '',
       discount_type: 'percentage',
       discount_value: '',
-      min_order_amount: '',
-      max_discount_amount: '',
-      usage_limit: '',
       expiry_date: '',
-      is_active: true
+      is_active: true,
+      max_discount_limit: '',
+      target_type: 'all',
+      target_user_id: ''
     });
   };
 
@@ -107,14 +106,14 @@ const Coupons = () => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-muted-foreground text-lg">Loading coupons...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 flex flex-col p-6">
       <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold">Coupons Management</h1>
@@ -168,17 +167,6 @@ const Coupons = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="20% off on all orders"
-                    required
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="discount_value">
@@ -194,36 +182,38 @@ const Coupons = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="min_order_amount">Min Order Amount (₹)</Label>
+                    <Label htmlFor="max_discount_limit">Max Discount Amount (₹)</Label>
                     <Input
-                      id="min_order_amount"
+                      id="max_discount_limit"
                       type="number"
-                      value={formData.min_order_amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, min_order_amount: e.target.value }))}
-                      placeholder="500"
+                      value={formData.max_discount_limit}
+                      onChange={(e) => setFormData(prev => ({ ...prev, max_discount_limit: e.target.value }))}
+                      placeholder="100"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="max_discount_amount">Max Discount Amount (₹)</Label>
-                    <Input
-                      id="max_discount_amount"
-                      type="number"
-                      value={formData.max_discount_amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, max_discount_amount: e.target.value }))}
-                      placeholder="100"
-                    />
+                    <Label htmlFor="target_type">Target Type</Label>
+                    <select
+                      id="target_type"
+                      className="w-full p-2 border rounded-md"
+                      value={formData.target_type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, target_type: e.target.value }))}
+                    >
+                      <option value="all">All Users</option>
+                      <option value="customer">Customer</option>
+                      <option value="employee">Employee</option>
+                    </select>
                   </div>
                   <div>
-                    <Label htmlFor="usage_limit">Usage Limit</Label>
+                    <Label htmlFor="target_user_id">Target User ID (Optional)</Label>
                     <Input
-                      id="usage_limit"
-                      type="number"
-                      value={formData.usage_limit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, usage_limit: e.target.value }))}
-                      placeholder="100"
+                      id="target_user_id"
+                      value={formData.target_user_id}
+                      onChange={(e) => setFormData(prev => ({ ...prev, target_user_id: e.target.value }))}
+                      placeholder="User ID"
                     />
                   </div>
                 </div>
@@ -288,8 +278,6 @@ const Coupons = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{coupon.description}</p>
-                  
                   <div className="flex items-center gap-2 text-sm">
                     <Percent className="h-4 w-4 text-green-600" />
                     <span>
@@ -300,9 +288,9 @@ const Coupons = () => {
                     </span>
                   </div>
 
-                  {coupon.min_order_amount && (
+                  {coupon.max_discount_limit && (
                     <div className="text-sm text-muted-foreground">
-                      Min order: ₹{coupon.min_order_amount}
+                      Max discount: ₹{coupon.max_discount_limit}
                     </div>
                   )}
 

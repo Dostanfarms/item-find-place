@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -63,7 +62,7 @@ export const useEmployees = () => {
         account_number: emp.account_number,
         bank_name: emp.bank_name,
         ifsc_code: emp.ifsc_code,
-        is_active: emp.is_active !== false,
+        is_active: true, // Default to true since column doesn't exist yet
         created_at: emp.created_at,
         updated_at: emp.updated_at
       })) || [];
