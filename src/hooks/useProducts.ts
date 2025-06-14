@@ -54,8 +54,8 @@ export const useProducts = () => {
       }
 
       console.log('Product added successfully:', data);
-      // Refresh the products list
-      await fetchProducts();
+      // Immediately update the local state instead of refetching
+      setProducts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       return { success: true, data };
     } catch (error) {
       console.error('Error in addProduct:', error);
@@ -90,8 +90,12 @@ export const useProducts = () => {
       }
 
       console.log('Product updated successfully:', data);
-      // Refresh the products list
-      await fetchProducts();
+      // Immediately update the local state instead of refetching
+      setProducts(prev => 
+        prev.map(product => 
+          product.id === id ? data : product
+        ).sort((a, b) => a.name.localeCompare(b.name))
+      );
       return { success: true, data };
     } catch (error) {
       console.error('Error in updateProduct:', error);
