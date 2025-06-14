@@ -93,7 +93,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [user]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    console.log('Login attempt:', { email, password });
+    console.log('Login attempt with credentials:', { email, password });
     
     try {
       const timeoutPromise = new Promise((_, reject) =>
@@ -101,6 +101,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       );
 
       const loginPromise = (async () => {
+        console.log('Checking credentials in database...');
+        
+        // First, let's check if the employee exists at all
+        const { data: allEmployees, error: allError } = await supabase
+          .from('employees')
+          .select('*');
+        
+        console.log('All employees in database:', allEmployees);
+        
         // Check credentials against Supabase employees table
         const { data: employees, error } = await supabase
           .from('employees')
@@ -109,12 +118,29 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           .eq('password', password)
           .single();
 
+        console.log('Login query result:', { employees, error });
+
         if (error) {
           console.error('Login error:', error);
+          
+          // Check if user exists with different password
+          const { data: userCheck } = await supabase
+            .from('employees')
+            .select('email, is_active')
+            .eq('email', email)
+            .single();
+          
+          if (userCheck) {
+            console.log('User exists but password mismatch:', userCheck);
+            return { success: false, message: 'Invalid password' };
+          }
+          
           return { success: false, message: 'Invalid email or password' };
         }
 
         if (employees) {
+          console.log('Employee found:', employees);
+          
           // Check if employee account is active
           if (!employees.is_active) {
             console.log('Employee account is inactive:', employees.email);
@@ -131,6 +157,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
             email: employees.email,
             role: employees.role
           };
+          
+          console.log('Setting authenticated user:', authenticatedUser);
           setUser(authenticatedUser);
           return { success: true };
         }
@@ -146,27 +174,35 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
+    console.log('Logging out user');
     setUser(null);
   };
 
   const checkPermission = (resource: string, action: string): boolean => {
-    if (!user) return false;
+    if (!user) {
+      console.log('No user logged in for permission check');
+      return false;
+    }
     
-    console.log('Checking permission:', { resource, action, rolePermissions });
+    console.log('Checking permission:', { resource, action, user: user.name, role: user.role, rolePermissions });
     
     // Check database permissions first
     if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
       const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
       if (resourcePermission && Array.isArray(resourcePermission.actions)) {
-        return resourcePermission.actions.includes(action);
+        const hasPermission = resourcePermission.actions.includes(action);
+        console.log('Permission check result:', hasPermission);
+        return hasPermission;
       }
     }
 
     // Fallback to default admin permissions for admin role
     if (user.role === 'admin') {
+      console.log('Admin user - granting access');
       return true;
     }
 
+    console.log('Permission denied');
     return false;
   };
 

@@ -15,7 +15,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
+    console.log('ProtectedRoute check:', { currentUser, resource, action });
+    
     if (!currentUser) {
+      console.log('No current user, access denied');
       setHasAccess(false);
       return;
     }
@@ -26,6 +29,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
       return;
     }
 
+    console.log('Available roles from database:', roles);
+
     // Find the role data from the database
     const userRole = roles.find(role => 
       role.name.toLowerCase() === currentUser.role.toLowerCase()
@@ -33,9 +38,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
 
     if (!userRole) {
       console.log('Role not found in database:', currentUser.role);
+      // For admin users, grant access even if role not found in database
+      if (currentUser.role.toLowerCase() === 'admin') {
+        console.log('Admin user detected, granting access');
+        setHasAccess(true);
+        return;
+      }
       setHasAccess(false);
       return;
     }
+
+    console.log('Found user role in database:', userRole);
 
     // Check permissions
     let rolePermissions = userRole.permissions;
@@ -57,12 +70,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
     const hasPermission = resourcePermission?.actions?.includes(action) || false;
 
-    console.log('Permission check:', {
+    console.log('Permission check result:', {
       user: currentUser.name,
       role: currentUser.role,
       resource,
       action,
       permissions: rolePermissions,
+      resourcePermission,
       hasPermission
     });
 
@@ -76,6 +90,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
 
   if (hasAccess === null) {
     // Still loading permissions
+    console.log('Still loading permissions...');
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-muted-foreground text-lg">Checking permissions...</div>
