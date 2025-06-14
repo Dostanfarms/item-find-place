@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { Search, Plus, Package, Edit, Printer, Menu, BarChart3, DollarSign, Layers } from 'lucide-react';
+import { Search, Plus, Package, Edit, Printer, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Barcode128 from 'react-barcode-generator';
 
@@ -130,18 +130,15 @@ const Products = () => {
         <Sidebar />
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="flex-none p-6 border-b bg-white">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-              <div>
-                <h1 className="text-3xl font-bold">Products Management</h1>
-                <p className="text-muted-foreground">Manage your product inventory</p>
-              </div>
-              <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex-shrink-0 p-6 border-b bg-white">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">Products Management</h1>
+              <div className="flex items-center gap-4">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search products or barcodes..."
-                    className="pl-8 w-full md:w-[250px]"
+                    className="pl-8 w-80"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -172,28 +169,34 @@ const Products = () => {
           {/* Content */}
           <div className="flex-1 p-6 overflow-auto">
             {filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
-                <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-1">No products found</h3>
-                <p className="text-muted-foreground text-center">
-                  {searchTerm ? 'No products match your search criteria.' : 'Get started by adding your first product using the "Add Product" button.'}
-                </p>
+              <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
+                <Package className="h-16 w-16 text-muted-foreground mb-6" />
+                {searchTerm ? (
+                  <>
+                    <h3 className="text-xl font-medium mb-2">No products found</h3>
+                    <p className="text-muted-foreground text-center">
+                      No products match your search criteria. Try with a different name or barcode.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-medium mb-2">No products added yet</h3>
+                    <p className="text-muted-foreground text-center">
+                      Get started by adding your first product using the "Add Product" button.
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {filteredProducts.map((product) => (
-                  <Card key={product.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-bold truncate">
-                          {product.name}
-                        </CardTitle>
-                        <div className="text-xs bg-agri-primary text-white px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                          {product.category}
-                        </div>
-                      </div>
+                  <Card key={product.id} className="overflow-hidden h-fit">
+                    <CardHeader className="bg-muted pb-3">
+                      <CardTitle className="text-base truncate">
+                        {product.name}
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="pt-4 space-y-4">
                       {/* Barcode Display */}
                       {product.barcode && (
                         <div className="text-center p-3 bg-white rounded-lg border">
@@ -218,26 +221,25 @@ const Products = () => {
                           </Button>
                         </div>
                       )}
-
-                      <div className="flex items-center gap-2 text-sm">
-                        <Layers className="h-4 w-4 text-blue-600" />
-                        <span>Quantity: <strong>{product.quantity} {product.unit}</strong></span>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Quantity:</span>
+                          <span className="text-sm font-semibold">{product.quantity} {product.unit}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Price/Unit:</span>
+                          <span className="text-sm font-semibold">₹{product.price_per_unit}</span>
+                        </div>
                       </div>
-
-                      <div className="flex items-center gap-2 text-sm">
-                        <DollarSign className="h-4 w-4 text-green-600" />
-                        <span>Price: <strong>₹{product.price_per_unit}/{product.unit}</strong></span>
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                        <Button 
-                          size="sm"
-                          className="flex-1 bg-agri-primary hover:bg-agri-secondary text-sm" 
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" /> Edit Product
-                        </Button>
-                      </div>
+                      
+                      <Button 
+                        size="sm"
+                        className="w-full bg-agri-primary hover:bg-agri-secondary text-sm" 
+                        onClick={() => handleEditProduct(product)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" /> Edit Product
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
