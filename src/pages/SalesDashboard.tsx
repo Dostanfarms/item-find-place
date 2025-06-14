@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Sidebar from '@/components/Sidebar';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { Search, Package, ShoppingCart, Trash2, Receipt } from 'lucide-react';
+import { useCoupons } from '@/hooks/useCoupons';
+import { Search, Package, ShoppingCart, Trash2, Receipt, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,7 +18,9 @@ const SalesDashboardContent = () => {
   const { setOpenMobile } = useSidebar();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCoupon, setSelectedCoupon] = useState<string>('');
   const { products, loading } = useProducts();
+  const { coupons, loading: couponsLoading } = useCoupons();
   const [cart, setCart] = useState<Array<{product: Product, quantity: number}>>([]);
 
   // Close sidebar automatically when component mounts
@@ -29,6 +33,9 @@ const SalesDashboardContent = () => {
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Filter active coupons
+  const activeCoupons = coupons.filter(coupon => coupon.is_active && new Date(coupon.expiry_date) > new Date());
 
   const addToCart = (product: Product) => {
     console.log('Adding product to cart:', product);
@@ -67,12 +74,40 @@ const SalesDashboardContent = () => {
     setCart(updatedCart);
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + (item.product.price_per_unit * item.quantity), 0);
+  };
+
+  const calculateDiscount = () => {
+    if (!selectedCoupon) return 0;
+    
+    const coupon = activeCoupons.find(c => c.id === selectedCoupon);
+    if (!coupon) return 0;
+    
+    const subtotal = calculateSubtotal();
+    let discount = 0;
+    
+    if (coupon.discount_type === 'percentage') {
+      discount = (subtotal * coupon.discount_value) / 100;
+    } else if (coupon.discount_type === 'flat') {
+      discount = coupon.discount_value;
+    }
+    
+    // Apply max discount limit if set
+    if (coupon.max_discount_limit && discount > coupon.max_discount_limit) {
+      discount = coupon.max_discount_limit;
+    }
+    
+    return Math.min(discount, subtotal); // Don't let discount exceed subtotal
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() - calculateDiscount();
   };
 
   const clearCart = () => {
     setCart([]);
+    setSelectedCoupon('');
   };
 
   const handleCheckout = () => {
@@ -93,24 +128,36 @@ const SalesDashboardContent = () => {
       quantity: item.quantity
     }));
 
+    const subtotal = calculateSubtotal();
+    const discount = calculateDiscount();
     const total = calculateTotal();
+    
+    const selectedCouponData = selectedCoupon ? activeCoupons.find(c => c.id === selectedCoupon) : null;
 
     // Navigate to payment page with cart data
     navigate('/payment', {
       state: {
         cartItems,
-        total
+        subtotal,
+        discount,
+        total,
+        coupon: selectedCouponData ? {
+          id: selectedCouponData.id,
+          code: selectedCouponData.code,
+          discount_type: selectedCouponData.discount_type,
+          discount_value: selectedCouponData.discount_value
+        } : null
       }
     });
   };
 
-  if (loading) {
+  if (loading || couponsLoading) {
     return (
       <div className="min-h-screen flex w-full">
         <Sidebar />
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="text-center py-12">
-            <div className="text-muted-foreground text-lg">Loading products...</div>
+            <div className="text-muted-foreground text-lg">Loading...</div>
           </div>
         </main>
       </div>
@@ -194,7 +241,7 @@ const SalesDashboardContent = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.map((item, index) => (
                         <div key={`${item.product.id}-${index}`} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                           <div className="flex-1">
@@ -232,13 +279,53 @@ const SalesDashboardContent = () => {
                       ))}
                     </div>
                     
-                    <div className="border-t pt-4 space-y-3">
+                    {/* Coupon Section */}
+                    {activeCoupons.length > 0 && (
+                      <div className="border-t pt-4">
+                        <label className="text-sm font-medium mb-2 flex items-center gap-1">
+                          <Tag className="h-4 w-4" />
+                          Apply Coupon
+                        </label>
+                        <Select value={selectedCoupon} onValueChange={setSelectedCoupon}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a coupon" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No coupon</SelectItem>
+                            {activeCoupons.map((coupon) => (
+                              <SelectItem key={coupon.id} value={coupon.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{coupon.code}</span>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>₹{calculateSubtotal().toFixed(2)}</span>
+                      </div>
+                      
+                      {calculateDiscount() > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount:</span>
+                          <span>-₹{calculateDiscount().toFixed(2)}</span>
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
                         <span>₹{calculateTotal().toFixed(2)}</span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 mt-4">
                         <Button variant="outline" onClick={clearCart}>
                           Clear Cart
                         </Button>
