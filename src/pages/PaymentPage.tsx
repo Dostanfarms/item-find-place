@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCoupons } from '@/hooks/useCoupons';
-import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone } from 'lucide-react';
+import { useCustomers } from '@/hooks/useCustomers';
+import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CartItem {
@@ -26,6 +27,7 @@ const PaymentPage = () => {
   const { toast } = useToast();
   const { addTransaction } = useTransactions();
   const { coupons, loading: couponsLoading } = useCoupons();
+  const { loginCustomer } = useCustomers();
   
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -33,6 +35,8 @@ const PaymentPage = () => {
   const [selectedCoupon, setSelectedCoupon] = useState('none');
   const [showUPIScanner, setShowUPIScanner] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isCustomerVerified, setIsCustomerVerified] = useState(false);
 
   // Get cart data from navigation state
   const cartItems: CartItem[] = location.state?.cartItems || [];
@@ -47,6 +51,75 @@ const PaymentPage = () => {
     // Show UPI scanner when UPI is selected
     setShowUPIScanner(paymentMethod === 'upi');
   }, [paymentMethod]);
+
+  const handleVerifyMobile = async () => {
+    if (!customerMobile.trim()) {
+      toast({
+        title: "Mobile number required",
+        description: "Please enter a mobile number to verify",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (customerMobile.length !== 10) {
+      toast({
+        title: "Invalid mobile number",
+        description: "Please enter a valid 10-digit mobile number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+
+    try {
+      console.log('Verifying mobile number:', customerMobile);
+      const result = await loginCustomer(customerMobile);
+
+      if (result.success && result.customer) {
+        console.log('Customer found:', result.customer);
+        setCustomerName(result.customer.name);
+        setIsCustomerVerified(true);
+        toast({
+          title: "Customer verified",
+          description: `Welcome back, ${result.customer.name}!`,
+        });
+      } else {
+        console.log('Customer not found for mobile:', customerMobile);
+        setCustomerName('');
+        setIsCustomerVerified(false);
+        toast({
+          title: "Customer not found",
+          description: "No customer found with this mobile number. You can enter the name manually.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error verifying customer:', error);
+      setCustomerName('');
+      setIsCustomerVerified(false);
+      toast({
+        title: "Verification failed",
+        description: "Failed to verify customer. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleMobileChange = (value: string) => {
+    // Only allow numeric input and limit to 10 digits
+    const numericValue = value.replace(/\D/g, '').slice(0, 10);
+    setCustomerMobile(numericValue);
+    
+    // Reset verification status when mobile number changes
+    if (isCustomerVerified) {
+      setIsCustomerVerified(false);
+      setCustomerName('');
+    }
+  };
 
   const calculateDiscount = () => {
     if (!selectedCoupon || selectedCoupon === 'none') return 0;
@@ -184,7 +257,7 @@ const PaymentPage = () => {
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground mb-4">No items were found for checkout.</p>
-            <Button onClick={() => navigate('/sales-dashboard')}>
+            <Button onClick={() => navigate('/sales')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Sales
             </Button>
@@ -201,7 +274,7 @@ const PaymentPage = () => {
           <Button 
             variant="outline" 
             size="icon"
-            onClick={() => navigate('/sales-dashboard')}
+            onClick={() => navigate('/sales')}
             disabled={isProcessing}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -218,23 +291,49 @@ const PaymentPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
+                  <Label htmlFor="customerMobile">Mobile Number</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="customerMobile"
+                      value={customerMobile}
+                      onChange={(e) => handleMobileChange(e.target.value)}
+                      placeholder="Enter 10-digit mobile number"
+                      disabled={isProcessing}
+                      maxLength={10}
+                      className={isCustomerVerified ? "border-green-500" : ""}
+                    />
+                    <Button
+                      onClick={handleVerifyMobile}
+                      disabled={isVerifying || isProcessing || customerMobile.length !== 10}
+                      variant="outline"
+                      className="shrink-0"
+                    >
+                      {isVerifying ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Verify
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {isCustomerVerified && (
+                    <p className="text-sm text-green-600 mt-1">✓ Customer verified</p>
+                  )}
+                </div>
+                <div>
                   <Label htmlFor="customerName">Customer Name</Label>
                   <Input
                     id="customerName"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter customer name"
+                    placeholder={isCustomerVerified ? "Auto-filled from database" : "Enter customer name"}
                     disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="customerMobile">Mobile Number</Label>
-                  <Input
-                    id="customerMobile"
-                    value={customerMobile}
-                    onChange={(e) => setCustomerMobile(e.target.value)}
-                    placeholder="Enter mobile number"
-                    disabled={isProcessing}
+                    className={isCustomerVerified ? "border-green-500 bg-green-50" : ""}
                   />
                 </div>
               </CardContent>
