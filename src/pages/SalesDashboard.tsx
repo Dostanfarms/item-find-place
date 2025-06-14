@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,7 @@ const SalesDashboard = () => {
     return monthlyData;
   };
 
-  // Get today's category-wise sales based on actual products sold
+  // Get today's category-wise sales with proper discount calculation
   const getTodayCategorySales = () => {
     const today = new Date().toDateString();
     const todayTransactions = transactions.filter(t => new Date(t.created_at).toDateString() === today);
@@ -75,14 +76,24 @@ const SalesDashboard = () => {
     
     todayTransactions.forEach(transaction => {
       if (Array.isArray(transaction.items)) {
+        const transactionSubtotal = Number(transaction.subtotal);
+        const transactionDiscount = Number(transaction.discount);
+        const transactionTotal = Number(transaction.total);
+        
+        // Calculate discount ratio to apply proportionally
+        const discountRatio = transactionSubtotal > 0 ? (transactionSubtotal - transactionDiscount) / transactionSubtotal : 1;
+        
         transaction.items.forEach(item => {
           // Find the product by name to get its category
           const product = products.find(p => p.name === item.name);
           const category = product?.category || 'Uncategorized';
           
           const currentValue = categoryMap.get(category) || 0;
-          const itemTotal = Number(item.price) * Number(item.quantity);
-          categoryMap.set(category, currentValue + itemTotal);
+          const itemSubtotal = Number(item.price) * Number(item.quantity);
+          // Apply discount proportionally to this item
+          const itemTotalAfterDiscount = itemSubtotal * discountRatio;
+          
+          categoryMap.set(category, currentValue + itemTotalAfterDiscount);
         });
       }
     });
@@ -231,6 +242,12 @@ const SalesDashboard = () => {
                       <span className="text-sm font-medium">₹{category.value}</span>
                     </div>
                   ))}
+                  <div className="mt-4 pt-2 border-t">
+                    <div className="flex items-center justify-between font-semibold">
+                      <span>Total</span>
+                      <span>₹{todayCategoryData.reduce((sum, cat) => sum + cat.value, 0).toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
