@@ -107,7 +107,7 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Settle Payment</DialogTitle>
           <DialogDescription>
@@ -122,23 +122,51 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
             <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
           </div>
           
-          {/* Scrollable Content */}
-          <ScrollArea className="flex-1 pr-4">
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+            {/* Left Column - Farmer Info */}
             <div className="space-y-4">
               <FarmerDetailsSection farmer={farmer} />
               <BankDetailsSection farmer={farmer} />
-              <UnsettledProductsTable unsettledProducts={unsettledProducts} />
+              
+              {/* Compact Upload Section */}
+              <div className="border rounded-md p-3 bg-gray-50">
+                <h4 className="text-sm font-medium mb-2">Upload Transaction Proof:</h4>
+                <div className="flex items-center gap-3">
+                  <TransactionImageUpload 
+                    transactionImage={transactionImage}
+                    onImageChange={setTransactionImage}
+                  />
+                  <div className="flex-1">
+                    {!transactionImage ? (
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Upload transaction receipt
+                        </p>
+                        <p className="text-xs text-red-500">
+                          Required before settling
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-green-600">
+                        ✓ Transaction image uploaded
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </ScrollArea>
 
-          {/* Upload Section - Fixed at bottom */}
-          <TransactionImageUpload 
-            transactionImage={transactionImage}
-            onImageChange={setTransactionImage}
-          />
+            {/* Right Column - Products */}
+            <div className="flex flex-col min-h-0">
+              <ScrollArea className="flex-1">
+                <UnsettledProductsTable unsettledProducts={unsettledProducts} />
+              </ScrollArea>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter className="flex-shrink-0 mt-0 flex flex-col sm:flex-row gap-2 sm:justify-between">
+        <DialogFooter className="flex-shrink-0 mt-4 flex flex-col sm:flex-row gap-2 sm:justify-between">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
