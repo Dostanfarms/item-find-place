@@ -113,7 +113,7 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+        <ScrollArea className="flex-1 max-h-[50vh] pr-4">
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md">
               <span className="font-medium">Total Amount to Settle:</span>
@@ -169,38 +169,38 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
                 </div>
               </div>
             )}
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium">Upload Transaction Proof:</h4>
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
-                <PhotoUploadField
-                  value={transactionImage}
-                  onChange={setTransactionImage}
-                  name="transaction-image"
-                  className="w-24 h-24 mb-3"
-                />
-                {!transactionImage && (
-                  <div className="text-center">
-                    <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Upload transaction receipt or proof
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Required before settling payment
-                    </p>
-                  </div>
-                )}
-                {transactionImage && (
-                  <p className="text-xs text-green-600 mt-2">
-                    ✓ Transaction image uploaded
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
         </ScrollArea>
 
-        <DialogFooter className="flex-shrink-0 mt-4 flex flex-col sm:flex-row gap-2 sm:justify-between">
+        {/* Upload Section - Outside ScrollArea */}
+        <div className="flex-shrink-0 p-4 border-t bg-gray-50">
+          <h4 className="text-sm font-medium mb-3">Upload Transaction Proof:</h4>
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
+            <PhotoUploadField
+              value={transactionImage}
+              onChange={setTransactionImage}
+              name="transaction-image"
+              className="w-20 h-20 mb-2"
+            />
+            {!transactionImage ? (
+              <div className="text-center">
+                <Upload className="mx-auto h-6 w-6 text-gray-400 mb-1" />
+                <p className="text-xs text-muted-foreground">
+                  Upload transaction receipt
+                </p>
+                <p className="text-xs text-red-500 mt-1">
+                  Required before settling
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-green-600">
+                ✓ Transaction image uploaded
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="flex-shrink-0 mt-0 flex flex-col sm:flex-row gap-2 sm:justify-between">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
