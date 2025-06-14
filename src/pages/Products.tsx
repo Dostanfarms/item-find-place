@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import GeneralProductForm from '@/components/GeneralProductForm';
 
 const Products = () => {
   const { toast } = useToast();
@@ -144,7 +144,7 @@ const Products = () => {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
-                  <ProductForm 
+                  <GeneralProductForm 
                     onCancel={() => {
                       setIsDialogOpen(false);
                       setSelectedProduct(undefined);
