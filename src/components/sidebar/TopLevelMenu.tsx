@@ -34,21 +34,24 @@ const TopLevelMenu = () => {
       url: "/dashboard",
       icon: BarChart3,
       resource: "dashboard",
-      action: "view" as const
+      action: "view" as const,
+      tooltip: "Dashboard"
     },
     {
       title: "Customers",
       url: "/customers",
       icon: Users,
       resource: "customers",
-      action: "view" as const
+      action: "view" as const,
+      tooltip: "Customers"
     },
     {
       title: "Farmers",
       url: "/farmers",
       icon: UserCheck,
       resource: "farmers",
-      action: "view" as const
+      action: "view" as const,
+      tooltip: "Farmers"
     }
   ];
 
@@ -56,18 +59,13 @@ const TopLevelMenu = () => {
     checkPermission(item.resource, item.action)
   );
 
-  // Don't render anything when collapsed
-  if (state === 'collapsed') {
-    return null;
-  }
-
   return (
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
           {visibleMenuItems.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild tooltip={item.tooltip}>
                 <NavLink 
                   to={item.url} 
                   className={getNavClass(item.url)}

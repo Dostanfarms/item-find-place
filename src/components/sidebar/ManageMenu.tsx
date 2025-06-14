@@ -7,6 +7,9 @@ import {
   SidebarMenuItem, 
   SidebarMenu, 
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   useSidebar
 } from '@/components/ui/sidebar';
 import { 
@@ -45,55 +48,55 @@ const ManageMenu = () => {
   const manageItems = [
     {
       title: 'Sales Dashboard',
-      icon: <BarChart3 className="h-5 w-5" />,
+      icon: BarChart3,
       path: '/sales-dashboard',
       resource: 'sales'
     },
     {
       title: 'Products',
-      icon: <Package className="h-5 w-5" />,
+      icon: Package,
       path: '/products',
       resource: 'products'
     },
     {
       title: 'Transactions',
-      icon: <Receipt className="h-5 w-5" />,
+      icon: Receipt,
       path: '/transactions',
       resource: 'transactions'
     },
     {
       title: 'Coupons',
-      icon: <Gift className="h-5 w-5" />,
+      icon: Gift,
       path: '/coupons',
       resource: 'coupons'
     },
     {
       title: 'Categories',
-      icon: <Tag className="h-5 w-5" />,
+      icon: Tag,
       path: '/categories',
       resource: 'categories'
     },
     {
       title: 'Employees',
-      icon: <UserCog className="h-5 w-5" />,
+      icon: UserCog,
       path: '/employees',
       resource: 'employees'
     },
     {
       title: 'Tickets',
-      icon: <Ticket className="h-5 w-5" />,
+      icon: Ticket,
       path: '/tickets',
       resource: 'tickets'
     },
     {
       title: 'Roles',
-      icon: <Settings className="h-5 w-5" />,
+      icon: Settings,
       path: '/roles',
       resource: 'roles'
     },
     {
       title: 'Settlements',
-      icon: <DollarSign className="h-5 w-5" />,
+      icon: DollarSign,
       path: '/settlements',
       resource: 'settlements'
     }
@@ -105,41 +108,51 @@ const ManageMenu = () => {
     ? manageItems.filter(item => accessibleResources.includes(item.resource))
     : manageItems;
 
-  // Don't render anything when collapsed or no items
-  if (state === 'collapsed' || filteredManageItems.length === 0) {
+  // Don't render anything if no items or when collapsed
+  if (filteredManageItems.length === 0) {
     return null;
   }
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <Collapsible open={manageOpen} onOpenChange={setManageOpen} className="w-full">
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <Settings className="h-5 w-5" />
-                <span>Manage</span>
-              </div>
-              {manageOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pl-9 pt-2 space-y-1">
-            {filteredManageItems.map((item) => (
-              <Link 
-                key={item.path}
-                to={item.path} 
-                className={`flex items-center gap-3 py-2 px-3 rounded-md ${
-                  location.pathname === item.path ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-muted'
-                }`}
-              >
-                {item.icon}
-                <span className="text-sm">{item.title}</span>
-              </Link>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <SidebarGroup>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <Collapsible open={manageOpen} onOpenChange={setManageOpen} className="w-full">
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton 
+                  className="flex items-center justify-between w-full"
+                  tooltip="Manage"
+                >
+                  <div className="flex items-center gap-3">
+                    <Settings className="h-5 w-5" />
+                    <span>Manage</span>
+                  </div>
+                  {manageOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {filteredManageItems.map((item) => (
+                    <SidebarMenuSubItem key={item.path}>
+                      <SidebarMenuSubButton asChild>
+                        <Link 
+                          to={item.path}
+                          className={location.pathname === item.path ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 };
 

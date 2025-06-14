@@ -15,11 +15,6 @@ const UserSection = () => {
   const { currentUser, logout } = useAuth();
   const { state } = useSidebar();
 
-  // Don't render anything when collapsed
-  if (state === 'collapsed') {
-    return null;
-  }
-
   if (!currentUser) return null;
 
   return (
@@ -27,7 +22,10 @@ const UserSection = () => {
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="flex items-center gap-3 p-3">
+            <SidebarMenuButton 
+              className="flex items-center gap-3 p-3"
+              tooltip={currentUser.name}
+            >
               <User className="h-5 w-5" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{currentUser.name}</span>
@@ -36,7 +34,11 @@ const UserSection = () => {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={logout} className="flex items-center gap-3 p-3 text-red-600 hover:text-red-700 hover:bg-red-50">
+            <SidebarMenuButton 
+              onClick={logout} 
+              className="flex items-center gap-3 p-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+              tooltip="Sign Out"
+            >
               <LogOut className="h-5 w-5" />
               <span>Sign Out</span>
             </SidebarMenuButton>
