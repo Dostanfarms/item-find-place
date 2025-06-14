@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -103,6 +104,7 @@ const App = () => (
               <Route element={<ProtectedRoute resource="sales" action="view" />}>
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/order-receipt" element={<OrderReceiptPage />} />
               </Route>
               
               <Route element={<ProtectedRoute resource="sales-dashboard" action="view" />}>
@@ -145,7 +147,6 @@ const App = () => (
               <Route path="/customer-orders" element={<CustomerOrderHistory />} />
               <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/order-receipt" element={<OrderReceiptPage />} />
               <Route path="/order-tracking" element={<OrderTracking />} />
               <Route path="/order-history" element={<OrderHistory />} />
             </Route>
