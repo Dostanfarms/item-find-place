@@ -35,38 +35,14 @@ const ManageMenu = () => {
 
   // Open the manage menu if current location is under any manage item
   useEffect(() => {
-    const managePathsToCheck = ['/products', '/categories', '/coupons', '/tickets', '/sales-dashboard', '/settlements', '/transactions', '/employees', '/roles'];
+    const managePathsToCheck = ['/sales-dashboard', '/products', '/transactions', '/coupons', '/categories', '/employees', '/tickets', '/roles', '/settlements'];
     if (managePathsToCheck.some(path => location.pathname.startsWith(path))) {
       setManageOpen(true);
     }
   }, [location.pathname]);
 
-  // Items in the "Manage" section
+  // Items in the "Manage" section - reordered as requested
   const manageItems = [
-    {
-      title: 'Products',
-      icon: <Package className="h-5 w-5" />,
-      path: '/products',
-      resource: 'products'
-    },
-    {
-      title: 'Categories',
-      icon: <Tag className="h-5 w-5" />,
-      path: '/categories',
-      resource: 'categories'
-    },
-    {
-      title: 'Coupons',
-      icon: <Gift className="h-5 w-5" />,
-      path: '/coupons',
-      resource: 'coupons'
-    },
-    {
-      title: 'Tickets',
-      icon: <Ticket className="h-5 w-5" />,
-      path: '/tickets',
-      resource: 'tickets'
-    },
     {
       title: 'Sales Dashboard',
       icon: <BarChart3 className="h-5 w-5" />,
@@ -74,10 +50,10 @@ const ManageMenu = () => {
       resource: 'sales'
     },
     {
-      title: 'Settlements',
-      icon: <DollarSign className="h-5 w-5" />,
-      path: '/settlements',
-      resource: 'settlements'
+      title: 'Products',
+      icon: <Package className="h-5 w-5" />,
+      path: '/products',
+      resource: 'products'
     },
     {
       title: 'Transactions',
@@ -86,16 +62,40 @@ const ManageMenu = () => {
       resource: 'transactions'
     },
     {
+      title: 'Coupons',
+      icon: <Gift className="h-5 w-5" />,
+      path: '/coupons',
+      resource: 'coupons'
+    },
+    {
+      title: 'Categories',
+      icon: <Tag className="h-5 w-5" />,
+      path: '/categories',
+      resource: 'categories'
+    },
+    {
       title: 'Employees',
       icon: <UserCog className="h-5 w-5" />,
       path: '/employees',
       resource: 'employees'
     },
     {
+      title: 'Tickets',
+      icon: <Ticket className="h-5 w-5" />,
+      path: '/tickets',
+      resource: 'tickets'
+    },
+    {
       title: 'Roles',
       icon: <Settings className="h-5 w-5" />,
       path: '/roles',
       resource: 'roles'
+    },
+    {
+      title: 'Settlements',
+      icon: <DollarSign className="h-5 w-5" />,
+      path: '/settlements',
+      resource: 'settlements'
     }
   ];
 
