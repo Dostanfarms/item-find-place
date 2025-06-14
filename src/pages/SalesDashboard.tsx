@@ -67,7 +67,7 @@ const SalesDashboard = () => {
     return monthlyData;
   };
 
-  // Get today's category-wise sales
+  // Get today's category-wise sales based on actual products sold
   const getTodayCategorySales = () => {
     const today = new Date().toDateString();
     const todayTransactions = transactions.filter(t => new Date(t.created_at).toDateString() === today);
@@ -77,12 +77,13 @@ const SalesDashboard = () => {
     todayTransactions.forEach(transaction => {
       if (Array.isArray(transaction.items)) {
         transaction.items.forEach(item => {
-          // Find the product to get its category
+          // Find the product by name to get its category
           const product = products.find(p => p.name === item.name);
-          const category = product ? product.category : 'Others';
+          const category = product?.category || 'Uncategorized';
           
           const currentValue = categoryMap.get(category) || 0;
-          categoryMap.set(category, currentValue + (item.price * item.quantity));
+          const itemTotal = Number(item.price) * Number(item.quantity);
+          categoryMap.set(category, currentValue + itemTotal);
         });
       }
     });
