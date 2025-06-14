@@ -113,127 +113,149 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[45vh] pr-4">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md">
-              <span className="font-medium">Total Amount to Settle:</span>
-              <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-3">Farmer Details:</h4>
-              <div className="space-y-3 p-4 border rounded-md bg-gray-50">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground font-medium">Name:</span>
-                  <span className="font-medium">{farmer.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground font-medium">Phone:</span>
-                  <span>{farmer.phone}</span>
-                </div>
-                {farmer.email && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground font-medium">Email:</span>
-                    <span className="text-sm">{farmer.email}</span>
-                  </div>
-                )}
-                {farmer.address && (
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-muted-foreground font-medium">Address:</span>
-                    <span className="text-sm text-right max-w-[200px]">{farmer.address}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-3">Payment will be sent to:</h4>
-              <div className="space-y-3 p-4 border rounded-md bg-blue-50">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground font-medium">Account Holder:</span>
-                  <span className="font-medium">{farmer.name}</span>
-                </div>
-                {farmer.bank_name && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground font-medium">Bank:</span>
-                    <span>{farmer.bank_name}</span>
-                  </div>
-                )}
-                {farmer.account_number && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground font-medium">Account Number:</span>
-                    <span className="font-mono">{farmer.account_number}</span>
-                  </div>
-                )}
-                {farmer.ifsc_code && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground font-medium">IFSC Code:</span>
-                    <span className="font-mono">{farmer.ifsc_code}</span>
-                  </div>
-                )}
-                {(!farmer.bank_name || !farmer.account_number) && (
-                  <div className="text-center py-2">
-                    <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                      Incomplete bank details - Please verify with farmer
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {unsettledProducts.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-3">Unsettled Products ({unsettledProducts.length}):</h4>
-                <div className="border rounded-md max-h-40 overflow-y-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-muted border-b">
-                        <th className="text-left p-2 text-xs font-medium">Product</th>
-                        <th className="text-left p-2 text-xs font-medium">Date</th>
-                        <th className="text-right p-2 text-xs font-medium">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm">
-                      {unsettledProducts.map((product) => (
-                        <tr key={product.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 font-medium">{product.name}</td>
-                          <td className="p-2 text-gray-600">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
-                          <td className="text-right p-2 font-medium">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+        <div className="flex flex-col gap-4 flex-1 min-h-0">
+          {/* Total Amount - Fixed at top */}
+          <div className="flex justify-between items-center p-3 bg-agri-muted rounded-md flex-shrink-0">
+            <span className="font-medium">Total Amount to Settle:</span>
+            <span className="text-lg font-bold text-agri-primary">₹{unsettledAmount.toFixed(2)}</span>
           </div>
-        </ScrollArea>
-
-        {/* Upload Section - Outside ScrollArea */}
-        <div className="flex-shrink-0 p-4 border-t bg-gray-50">
-          <h4 className="text-sm font-medium mb-3">Upload Transaction Proof:</h4>
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
-            <PhotoUploadField
-              value={transactionImage}
-              onChange={setTransactionImage}
-              name="transaction-image"
-              className="w-20 h-20 mb-2"
-            />
-            {!transactionImage ? (
-              <div className="text-center">
-                <Upload className="mx-auto h-6 w-6 text-gray-400 mb-1" />
-                <p className="text-xs text-muted-foreground">
-                  Upload transaction receipt
-                </p>
-                <p className="text-xs text-red-500 mt-1">
-                  Required before settling
-                </p>
+          
+          {/* Scrollable Content */}
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-3">Farmer Details:</h4>
+                <div className="space-y-3 p-4 border rounded-md bg-gray-50">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Name:</span>
+                    <span className="font-medium">{farmer.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Phone:</span>
+                    <span>{farmer.phone}</span>
+                  </div>
+                  {farmer.email && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">Email:</span>
+                      <span className="text-sm">{farmer.email}</span>
+                    </div>
+                  )}
+                  {farmer.address && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm text-muted-foreground font-medium">Address:</span>
+                      <span className="text-sm text-right max-w-[200px]">{farmer.address}</span>
+                    </div>
+                  )}
+                  {farmer.village && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">Village:</span>
+                      <span className="text-sm">{farmer.village}</span>
+                    </div>
+                  )}
+                  {farmer.district && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">District:</span>
+                      <span className="text-sm">{farmer.district}</span>
+                    </div>
+                  )}
+                  {farmer.state && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">State:</span>
+                      <span className="text-sm">{farmer.state}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="text-xs text-green-600">
-                ✓ Transaction image uploaded
-              </p>
-            )}
+              
+              <div>
+                <h4 className="text-sm font-medium mb-3">Payment will be sent to:</h4>
+                <div className="space-y-3 p-4 border rounded-md bg-blue-50">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-medium">Account Holder:</span>
+                    <span className="font-medium">{farmer.name}</span>
+                  </div>
+                  {farmer.bank_name && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">Bank:</span>
+                      <span>{farmer.bank_name}</span>
+                    </div>
+                  )}
+                  {farmer.account_number && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">Account Number:</span>
+                      <span className="font-mono">{farmer.account_number}</span>
+                    </div>
+                  )}
+                  {farmer.ifsc_code && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground font-medium">IFSC Code:</span>
+                      <span className="font-mono">{farmer.ifsc_code}</span>
+                    </div>
+                  )}
+                  {(!farmer.bank_name || !farmer.account_number) && (
+                    <div className="text-center py-2">
+                      <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                        Incomplete bank details - Please verify with farmer
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {unsettledProducts.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Unsettled Products ({unsettledProducts.length}):</h4>
+                  <div className="border rounded-md max-h-40 overflow-y-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted border-b">
+                          <th className="text-left p-2 text-xs font-medium">Product</th>
+                          <th className="text-left p-2 text-xs font-medium">Date</th>
+                          <th className="text-right p-2 text-xs font-medium">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {unsettledProducts.map((product) => (
+                          <tr key={product.id} className="border-b hover:bg-gray-50">
+                            <td className="p-2 font-medium">{product.name}</td>
+                            <td className="p-2 text-gray-600">{format(new Date(product.created_at), 'MMM dd, yyyy')}</td>
+                            <td className="text-right p-2 font-medium">₹{(product.quantity * product.price_per_unit).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* Upload Section - Fixed at bottom */}
+          <div className="flex-shrink-0 p-4 border-t bg-gray-50">
+            <h4 className="text-sm font-medium mb-3">Upload Transaction Proof:</h4>
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
+              <PhotoUploadField
+                value={transactionImage}
+                onChange={setTransactionImage}
+                name="transaction-image"
+                className="w-20 h-20 mb-2"
+              />
+              {!transactionImage ? (
+                <div className="text-center">
+                  <Upload className="mx-auto h-6 w-6 text-gray-400 mb-1" />
+                  <p className="text-xs text-muted-foreground">
+                    Upload transaction receipt
+                  </p>
+                  <p className="text-xs text-red-500 mt-1">
+                    Required before settling
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-green-600">
+                  ✓ Transaction image uploaded
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
