@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextProps {
   user: User | null;
   currentUser: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkPermission: (resource: string, action: string) => boolean;
 }
@@ -92,7 +92,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [user]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     console.log('Login attempt:', { email, password });
     
     try {
@@ -107,16 +107,24 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           .select('*')
           .eq('email', email)
           .eq('password', password)
-          .eq('is_active', true)
           .single();
 
         if (error) {
           console.error('Login error:', error);
-          return false;
+          return { success: false, message: 'Invalid email or password' };
         }
 
         if (employees) {
-          console.log('Login successful for employee:', employees);
+          // Check if employee account is active
+          if (!employees.is_active) {
+            console.log('Employee account is inactive:', employees.email);
+            return { 
+              success: false, 
+              message: 'Your account has been deactivated. Please contact your administrator for assistance.' 
+            };
+          }
+
+          console.log('Login successful for active employee:', employees);
           const authenticatedUser: User = {
             id: employees.id,
             name: employees.name,
@@ -124,16 +132,16 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
             role: employees.role
           };
           setUser(authenticatedUser);
-          return true;
+          return { success: true };
         }
         
-        return false;
+        return { success: false, message: 'Invalid email or password' };
       })();
 
-      return await Promise.race([loginPromise, timeoutPromise]) as boolean;
+      return await Promise.race([loginPromise, timeoutPromise]) as { success: boolean; message?: string };
     } catch (error) {
       console.error('Error during login:', error);
-      return false;
+      return { success: false, message: 'An error occurred during login. Please try again.' };
     }
   };
 

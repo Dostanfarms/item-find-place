@@ -48,9 +48,9 @@ const EmployeeLogin = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
+      const result = await login(email, password);
 
-      if (success) {
+      if (result.success) {
         toast({
           title: "Login successful",
           description: "Welcome to your dashboard!",
@@ -63,7 +63,7 @@ const EmployeeLogin = () => {
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid email or password. Please check your credentials and try again.",
+          description: result.message || "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
