@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -52,7 +53,7 @@ const Farmers = () => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <Sidebar />
-          <main className="flex-1 p-4 overflow-y-auto">
+          <main className="flex-1 p-6 overflow-y-auto">
             <div className="text-center py-12">
               <div className="text-muted-foreground text-lg">Loading farmers...</div>
             </div>
@@ -66,7 +67,7 @@ const Farmers = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar />
-        <main className="flex-1 p-4 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="md:hidden">

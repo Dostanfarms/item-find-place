@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Eye, Edit, Trash2, Menu } from 'lucide-react';
@@ -51,7 +52,7 @@ const Customers = () => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <Sidebar />
-          <main className="flex-1 p-4 overflow-y-auto">
+          <main className="flex-1 p-6 overflow-y-auto">
             <div className="text-center py-12">
               <div className="text-muted-foreground text-lg">Loading customers...</div>
             </div>
@@ -65,7 +66,7 @@ const Customers = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar />
-        <main className="flex-1 p-4 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="md:hidden">
