@@ -131,16 +131,18 @@ const App = () => (
               <Route element={<ProtectedRoute resource="roles" action="view" />}>
                 <Route path="/roles" element={<Roles />} />
               </Route>
+              
+              {/* Farmer Details - accessible by employees */}
+              <Route element={<ProtectedRoute resource="farmers" action="view" />}>
+                <Route path="/farmer/:id" element={<FarmerDetails />} />
+              </Route>
             </Route>
             
-            {/* Farmer Routes */}
-            <Route element={<ProtectedRoute resource="farmers" action="view" />}>
-              <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-              <Route path="/farmer/:id" element={<FarmerDetails />} />
-              <Route path="/farmer-tickets" element={<FarmerTicketHistory />} />
-            </Route>
+            {/* Farmer Routes - No authentication wrapper needed since components handle their own auth */}
+            <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+            <Route path="/farmer-tickets" element={<FarmerTicketHistory />} />
             
-            {/* Customer Routes - Now using CustomerProtectedRoute */}
+            {/* Customer Routes - Using CustomerProtectedRoute */}
             <Route element={<CustomerProtectedRoute />}>
               <Route path="/customer-home" element={<CustomerHome />} />
               <Route path="/customer-products" element={<CustomerProducts />} />

@@ -6,12 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { mockFarmers } from '@/utils/mockData';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import TicketDialog from '@/components/ticket/TicketDialog';
-import { Ticket } from '@/utils/types';
-import { v4 as uuidv4 } from 'uuid';
+import { useFarmers } from '@/hooks/useFarmers';
+import { useToast } from '@/hooks/use-toast';
 
 const FarmerLogin = () => {
   const [phone, setPhone] = useState('');
@@ -19,7 +15,10 @@ const FarmerLogin = () => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
+  const [foundFarmer, setFoundFarmer] = useState<any>(null);
   const navigate = useNavigate();
+  const { farmers } = useFarmers();
+  const { toast } = useToast();
 
   // Validate phone number (10 digits, starts with 6-9)
   const validatePhone = (phone: string) => {
@@ -31,49 +30,86 @@ const FarmerLogin = () => {
     e.preventDefault();
     
     if (!validatePhone(phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number starting with 6-9",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsLoading(true);
     
     // Check if farmer exists with this phone number
-    const farmerExists = mockFarmers.some(farmer => farmer.phone === phone);
+    const farmer = farmers.find(f => f.phone === phone);
     
-    if (!farmerExists) {
+    if (!farmer) {
+      toast({
+        title: "Farmer not found",
+        description: "No farmer found with this phone number. Please check and try again.",
+        variant: "destructive"
+      });
       setIsLoading(false);
       return;
     }
+    
+    setFoundFarmer(farmer);
     
     // Generate a 6-digit OTP
     const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(randomOtp);
     
+    console.log('Generated OTP for testing:', randomOtp); // For testing purposes
+    
     // Simulate API delay for sending OTP
     setTimeout(() => {
       setIsOtpSent(true);
       setIsLoading(false);
+      toast({
+        title: "OTP Sent",
+        description: `OTP sent to ${phone}. For testing, check console.`,
+      });
     }, 1500);
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!otp || otp.length !== 6) {
+      toast({
+        title: "Invalid OTP",
+        description: "Please enter a valid 6-digit OTP",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     // Simulate API delay for verifying OTP
     setTimeout(() => {
-      if (otp === generatedOtp) {
-        const farmer = mockFarmers.find(farmer => farmer.phone === phone);
+      if (otp === generatedOtp && foundFarmer) {
+        // Store farmer login info
+        localStorage.setItem('currentFarmer', JSON.stringify({
+          id: foundFarmer.id,
+          name: foundFarmer.name,
+          phone: foundFarmer.phone,
+          email: foundFarmer.email,
+          isLoggedIn: true
+        }));
         
-        if (farmer) {
-          // Store farmer login info
-          localStorage.setItem('currentFarmer', JSON.stringify({
-            id: farmer.id,
-            name: farmer.name,
-            isLoggedIn: true
-          }));
-          
-          navigate(`/farmer-dashboard/${farmer.id}`);
-        }
+        toast({
+          title: "Login Successful",
+          description: `Welcome ${foundFarmer.name}!`,
+        });
+        
+        navigate('/farmer-dashboard');
+      } else {
+        toast({
+          title: "Invalid OTP",
+          description: "The OTP you entered is incorrect. Please try again.",
+          variant: "destructive"
+        });
       }
       
       setIsLoading(false);
@@ -131,6 +167,9 @@ const FarmerLogin = () => {
                 <p className="text-xs text-muted-foreground">
                   Enter the 6-digit code sent to {phone}
                 </p>
+                <p className="text-xs text-blue-600">
+                  For testing: Check browser console for OTP
+                </p>
               </div>
               <Button 
                 type="submit" 
@@ -143,7 +182,12 @@ const FarmerLogin = () => {
                 <Button 
                   variant="link" 
                   type="button" 
-                  onClick={() => setIsOtpSent(false)}
+                  onClick={() => {
+                    setIsOtpSent(false);
+                    setOtp('');
+                    setGeneratedOtp('');
+                    setFoundFarmer(null);
+                  }}
                   className="text-sm p-0"
                 >
                   Change phone number

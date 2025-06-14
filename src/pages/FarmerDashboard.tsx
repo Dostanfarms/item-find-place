@@ -1,15 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, Truck, BarChart3, Plus } from 'lucide-react';
+import { Package, User, LogOut, Truck, BarChart3, Plus, Ticket } from 'lucide-react';
+import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 
 const FarmerDashboard = () => {
   const navigate = useNavigate();
-  const { farmerId } = useParams();
   const [farmer, setFarmer] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const { products, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
 
   useEffect(() => {
     const currentFarmer = localStorage.getItem('currentFarmer');
@@ -17,35 +17,46 @@ const FarmerDashboard = () => {
       navigate('/farmer-login');
       return;
     }
-    const farmerData = JSON.parse(currentFarmer);
-    setFarmer(farmerData);
-
-    // Load products from localStorage
-    const loadProducts = () => {
-      const savedProducts = localStorage.getItem('products');
-      if (savedProducts) {
-        try {
-          const parsedProducts = JSON.parse(savedProducts);
-          // Filter products for this farmer
-          const farmerProducts = parsedProducts.filter((product: any) => product.farmerId === farmerData.id);
-          setProducts(farmerProducts);
-        } catch (error) {
-          console.error('Error loading products:', error);
-          setProducts([]);
-        }
+    
+    try {
+      const farmerData = JSON.parse(currentFarmer);
+      if (!farmerData || !farmerData.id) {
+        navigate('/farmer-login');
+        return;
       }
-    };
-
-    loadProducts();
-  }, [navigate, farmerId]);
+      
+      setFarmer(farmerData);
+      
+      // Fetch farmer products
+      fetchFarmerProducts(farmerData.id);
+    } catch (error) {
+      console.error('Error parsing farmer data:', error);
+      navigate('/farmer-login');
+    }
+  }, [navigate, fetchFarmerProducts]);
 
   const handleLogout = () => {
     localStorage.removeItem('currentFarmer');
     navigate('/farmer-login');
   };
 
+  const handleAddProduct = () => {
+    // Navigate to farmer details page where they can add products
+    if (farmer?.id) {
+      navigate(`/farmer/${farmer.id}`);
+    }
+  };
+
+  const handleViewTickets = () => {
+    navigate('/farmer-tickets');
+  };
+
   if (!farmer) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -78,12 +89,12 @@ const FarmerDashboard = () => {
                 <p className="font-medium">{farmer.phone}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Location</p>
-                <p className="font-medium">{farmer.village}, {farmer.district}</p>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{farmer.email || 'Not provided'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Products</p>
-                <p className="font-medium">{products.length} items</p>
+                <p className="font-medium">{products?.length || 0} items</p>
               </div>
             </div>
           </CardContent>
@@ -95,11 +106,11 @@ const FarmerDashboard = () => {
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                My Products ({products.length})
+                My Products ({products?.length || 0})
               </span>
               <Button 
                 size="sm"
-                onClick={() => navigate('/products')}
+                onClick={handleAddProduct}
                 className="bg-agri-primary hover:bg-agri-secondary"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -108,7 +119,11 @@ const FarmerDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {products.length === 0 ? (
+            {productsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Loading products...</p>
+              </div>
+            ) : products.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No products added yet</p>
@@ -123,8 +138,12 @@ const FarmerDashboard = () => {
                       <p className="text-sm text-muted-foreground">{product.category}</p>
                       <div className="mt-2 space-y-1">
                         <p className="text-sm"><span className="font-medium">Quantity:</span> {product.quantity} {product.unit}</p>
-                        <p className="text-sm"><span className="font-medium">Price:</span> ₹{product.pricePerUnit}/{product.unit}</p>
+                        <p className="text-sm"><span className="font-medium">Price:</span> ₹{product.price_per_unit}/{product.unit}</p>
+                        <p className="text-sm"><span className="font-medium">Total:</span> ₹{(product.quantity * product.price_per_unit).toFixed(2)}</p>
                       </div>
+                      {product.barcode && (
+                        <p className="text-xs text-muted-foreground mt-2">Barcode: {product.barcode}</p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -135,15 +154,33 @@ const FarmerDashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card 
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={handleAddProduct}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                My Deliveries
+                <Package className="h-5 w-5" />
+                Manage Products
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Track your product deliveries</p>
+              <p className="text-sm text-muted-foreground">Add and manage your products</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={handleViewTickets}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ticket className="h-5 w-5" />
+                Support Tickets
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">View and create support tickets</p>
             </CardContent>
           </Card>
 
@@ -156,18 +193,6 @@ const FarmerDashboard = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">View your sales analytics</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/products')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Manage Products
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Add and manage your products</p>
             </CardContent>
           </Card>
         </div>
