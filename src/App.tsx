@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -6,14 +7,14 @@ import Products from '@/pages/Products';
 import Sales from '@/pages/Sales';
 import Coupons from '@/pages/Coupons';
 import Customers from '@/pages/Customers';
-import OrderReceipt from '@/pages/OrderReceipt';
+import OrderReceiptPage from '@/pages/OrderReceiptPage';
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from '@/context/AuthContext';
 import PaymentPage from '@/pages/PaymentPage';
-import { CartProvider } from './contexts/CartContext';
+import { CartProvider } from '@/contexts/CartContext';
 
 const queryClient = new QueryClient()
 
@@ -32,7 +33,7 @@ function App() {
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/coupons" element={<Coupons />} />
                 <Route path="/customers" element={<Customers />} />
-                <Route path="/order-receipt" element={<OrderReceipt />} />
+                <Route path="/order-receipt" element={<OrderReceiptPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
               </Routes>
             </Router>

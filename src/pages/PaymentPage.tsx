@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCoupons } from '@/hooks/useCoupons';
-import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone } from 'lucide-react';
+import { ArrowLeft, CreditCard, ShoppingCart, Tag, Smartphone, User } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface CartItem {
