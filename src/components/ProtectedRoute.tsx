@@ -15,10 +15,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
-    console.log('ProtectedRoute check:', { currentUser, resource, action });
+    console.log('=== PROTECTED ROUTE CHECK ===');
+    console.log('Current user:', currentUser);
+    console.log('Required resource:', resource);
+    console.log('Required action:', action);
     
     if (!currentUser) {
-      console.log('No current user, access denied');
+      console.log('No current user - redirecting to login');
       setHasAccess(false);
       return;
     }
@@ -36,6 +39,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
       role.name.toLowerCase() === currentUser.role.toLowerCase()
     );
 
+    console.log('Found user role in database:', userRole);
+
     if (!userRole) {
       console.log('Role not found in database:', currentUser.role);
       // For admin users, grant access even if role not found in database
@@ -47,8 +52,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
       setHasAccess(false);
       return;
     }
-
-    console.log('Found user role in database:', userRole);
 
     // Check permissions
     let rolePermissions = userRole.permissions;
@@ -67,6 +70,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
       rolePermissions = [];
     }
 
+    console.log('Processed role permissions:', rolePermissions);
+
     const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
     const hasPermission = resourcePermission?.actions?.includes(action) || false;
 
@@ -75,7 +80,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
       role: currentUser.role,
       resource,
       action,
-      permissions: rolePermissions,
       resourcePermission,
       hasPermission
     });
@@ -83,13 +87,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     setHasAccess(hasPermission);
   }, [currentUser, roles, resource, action]);
 
+  // If no user, redirect to login
   if (!currentUser) {
     console.log('No current user, redirecting to employee login');
     return <Navigate to="/employee-login" replace />;
   }
 
+  // Still loading permissions
   if (hasAccess === null) {
-    // Still loading permissions
     console.log('Still loading permissions...');
     return (
       <div className="h-full flex items-center justify-center">
@@ -98,6 +103,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
     );
   }
 
+  // Access denied
   if (!hasAccess) {
     console.log('Access denied, redirecting to access-denied page');
     return <Navigate to="/access-denied" replace />;

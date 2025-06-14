@@ -34,25 +34,21 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   // Fetch role permissions from database
   const fetchRolePermissions = async (roleName: string) => {
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 2000)
-      );
-
-      const fetchPromise = supabase
+      console.log('Fetching permissions for role:', roleName);
+      
+      const { data, error } = await supabase
         .from('roles')
         .select('permissions')
         .eq('name', roleName)
         .eq('is_active', true)
         .single();
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
       if (error) {
         console.error('Error fetching role permissions:', error);
         return [];
       }
 
-      console.log('Fetched role permissions:', data);
+      console.log('Fetched role permissions from database:', data);
       
       let permissions = data?.permissions || [];
       
@@ -76,105 +72,92 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     if (user) {
+      console.log('User logged in, storing in localStorage:', user);
       localStorage.setItem('user', JSON.stringify(user));
       
-      const timeoutId = setTimeout(() => {
-        setRolePermissions([]);
-      }, 2000);
-
+      // Fetch role permissions
       fetchRolePermissions(user.role).then(permissions => {
-        clearTimeout(timeoutId);
+        console.log('Setting role permissions:', permissions);
         setRolePermissions(permissions);
       });
     } else {
+      console.log('No user, removing from localStorage');
       localStorage.removeItem('user');
       setRolePermissions([]);
     }
   }, [user]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    console.log('Login attempt with credentials:', { email, password });
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Email:', email);
+    console.log('Password:', password);
     
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Login timeout')), 3000)
-      );
+      // Check credentials against employees table
+      console.log('Querying employees table...');
+      const { data: employee, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .single();
 
-      const loginPromise = (async () => {
-        console.log('Checking credentials in database...');
+      console.log('Employee query result:', { employee, error });
+
+      if (error) {
+        console.error('Employee not found or password incorrect:', error);
         
-        // First, let's check if the employee exists at all
-        const { data: allEmployees, error: allError } = await supabase
+        // Check if employee exists with different password
+        const { data: existingEmployee } = await supabase
           .from('employees')
-          .select('*');
-        
-        console.log('All employees in database:', allEmployees);
-        
-        // Check credentials against Supabase employees table
-        const { data: employees, error } = await supabase
-          .from('employees')
-          .select('*')
+          .select('email, is_active')
           .eq('email', email)
-          .eq('password', password)
           .single();
-
-        console.log('Login query result:', { employees, error });
-
-        if (error) {
-          console.error('Login error:', error);
-          
-          // Check if user exists with different password
-          const { data: userCheck } = await supabase
-            .from('employees')
-            .select('email, is_active')
-            .eq('email', email)
-            .single();
-          
-          if (userCheck) {
-            console.log('User exists but password mismatch:', userCheck);
-            return { success: false, message: 'Invalid password' };
-          }
-          
-          return { success: false, message: 'Invalid email or password' };
-        }
-
-        if (employees) {
-          console.log('Employee found:', employees);
-          
-          // Check if employee account is active
-          if (!employees.is_active) {
-            console.log('Employee account is inactive:', employees.email);
-            return { 
-              success: false, 
-              message: 'Your account has been deactivated. Please contact your administrator for assistance.' 
-            };
-          }
-
-          console.log('Login successful for active employee:', employees);
-          const authenticatedUser: User = {
-            id: employees.id,
-            name: employees.name,
-            email: employees.email,
-            role: employees.role
-          };
-          
-          console.log('Setting authenticated user:', authenticatedUser);
-          setUser(authenticatedUser);
-          return { success: true };
+        
+        console.log('Existing employee check:', existingEmployee);
+        
+        if (existingEmployee) {
+          return { success: false, message: 'Invalid password' };
         }
         
         return { success: false, message: 'Invalid email or password' };
-      })();
+      }
 
-      return await Promise.race([loginPromise, timeoutPromise]) as { success: boolean; message?: string };
+      console.log('Employee found:', employee);
+
+      // Check if employee is active
+      if (!employee.is_active) {
+        console.log('Employee account is inactive');
+        return { 
+          success: false, 
+          message: 'Your account has been deactivated. Please contact your administrator for assistance.' 
+        };
+      }
+
+      console.log('Employee is active, creating user session');
+      
+      // Create user object
+      const authenticatedUser: User = {
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        role: employee.role
+      };
+      
+      console.log('Setting authenticated user:', authenticatedUser);
+      setUser(authenticatedUser);
+      
+      console.log('=== LOGIN SUCCESS ===');
+      return { success: true };
+      
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error('Login error:', error);
       return { success: false, message: 'An error occurred during login. Please try again.' };
     }
   };
 
   const logout = () => {
-    console.log('Logging out user');
+    console.log('=== LOGOUT ===');
     setUser(null);
   };
 
@@ -184,19 +167,24 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       return false;
     }
     
-    console.log('Checking permission:', { resource, action, user: user.name, role: user.role, rolePermissions });
+    console.log('=== PERMISSION CHECK ===');
+    console.log('Resource:', resource, 'Action:', action);
+    console.log('User:', user.name, 'Role:', user.role);
+    console.log('Available permissions:', rolePermissions);
     
-    // Check database permissions first
+    // Check database permissions
     if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
       const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
+      console.log('Found resource permission:', resourcePermission);
+      
       if (resourcePermission && Array.isArray(resourcePermission.actions)) {
         const hasPermission = resourcePermission.actions.includes(action);
-        console.log('Permission check result:', hasPermission);
+        console.log('Permission result:', hasPermission);
         return hasPermission;
       }
     }
 
-    // Fallback to default admin permissions for admin role
+    // Fallback: admin role gets all permissions
     if (user.role === 'admin') {
       console.log('Admin user - granting access');
       return true;
