@@ -63,7 +63,7 @@ const Customers = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <div className="flex-shrink-0 p-6 border-b bg-white">
             <div className="flex items-center justify-between">
@@ -77,9 +77,9 @@ const Customers = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
-            <Card className="h-full">
-              <CardHeader>
+          <div className="flex-1 p-6 min-h-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Registered Customers</CardTitle>
                   <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ const Customers = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="flex-1 p-0 min-h-0">
                 {filteredCustomers.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-muted-foreground text-lg mb-2">
@@ -106,37 +106,41 @@ const Customers = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="overflow-auto">
+                  <div className="h-full overflow-auto">
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
-                          <TableHead className="w-[200px]">Name</TableHead>
-                          <TableHead className="w-[250px]">Email</TableHead>
-                          <TableHead className="w-[150px]">Mobile</TableHead>
-                          <TableHead className="w-[300px]">Address</TableHead>
-                          <TableHead className="w-[150px]">Date Registered</TableHead>
-                          <TableHead className="text-right w-[150px]">Actions</TableHead>
+                          <TableHead className="w-[20%]">Name</TableHead>
+                          <TableHead className="w-[20%]">Email</TableHead>
+                          <TableHead className="w-[15%]">Mobile</TableHead>
+                          <TableHead className="w-[25%]">Address</TableHead>
+                          <TableHead className="w-[12%]">Date Registered</TableHead>
+                          <TableHead className="text-right w-[8%]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredCustomers.map((customer) => (
                           <TableRow key={customer.id}>
-                            <TableCell className="font-medium">{customer.name}</TableCell>
-                            <TableCell>{customer.email || 'Not provided'}</TableCell>
+                            <TableCell className="font-medium truncate" title={customer.name}>
+                              {customer.name}
+                            </TableCell>
+                            <TableCell className="truncate" title={customer.email || 'Not provided'}>
+                              {customer.email || 'Not provided'}
+                            </TableCell>
                             <TableCell>{customer.mobile}</TableCell>
-                            <TableCell className="max-w-xs truncate" title={customer.address}>
+                            <TableCell className="truncate" title={customer.address || 'Not provided'}>
                               {customer.address || 'Not provided'}
                             </TableCell>
                             <TableCell>{new Date(customer.date_joined || new Date()).toLocaleDateString()}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex gap-2 justify-end">
+                              <div className="flex gap-1 justify-end">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setViewingOrders(customer)}
                                   title="View Orders"
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3 w-3" />
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -144,7 +148,7 @@ const Customers = () => {
                                   onClick={() => setEditingCustomer(customer)}
                                   title="Edit Customer"
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Edit className="h-3 w-3" />
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -152,7 +156,7 @@ const Customers = () => {
                                   onClick={() => handleDeleteCustomer(customer.id)}
                                   title="Delete Customer"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
                             </TableCell>

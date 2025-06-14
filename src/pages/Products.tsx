@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ProductForm from '@/components/ProductForm';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { Search, Plus, Package, Edit, Printer, Menu } from 'lucide-react';
@@ -128,7 +129,7 @@ const Products = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <div className="flex-shrink-0 p-6 border-b bg-white">
             <div className="flex items-center justify-between">
@@ -167,7 +168,7 @@ const Products = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-6 min-h-0">
             {filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
                 <Package className="h-16 w-16 text-muted-foreground mb-6" />
@@ -188,62 +189,70 @@ const Products = () => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                {filteredProducts.map((product) => (
-                  <Card key={product.id} className="overflow-hidden h-fit">
-                    <CardHeader className="bg-muted pb-3">
-                      <CardTitle className="text-base truncate">
-                        {product.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      {/* Barcode Display */}
-                      {product.barcode && (
-                        <div className="text-center p-3 bg-white rounded-lg border">
-                          <div className="mb-2">
-                            <Barcode128 
-                              value={product.barcode}
-                              format="CODE128"
-                              width={0.8}
-                              height={20}
-                              displayValue={true}
-                              fontSize={6}
-                              margin={0}
-                            />
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => printBarcode(product)}
-                            className="w-full text-xs h-7"
-                          >
-                            <Printer className="h-3 w-3 mr-1" /> Print
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Quantity:</span>
-                          <span className="text-sm font-semibold">{product.quantity} {product.unit}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Price/Unit:</span>
-                          <span className="text-sm font-semibold">₹{product.price_per_unit}</span>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        size="sm"
-                        className="w-full bg-agri-primary hover:bg-agri-secondary text-sm" 
-                        onClick={() => handleEditProduct(product)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" /> Edit Product
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="text-xl">Product Inventory</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 p-0 min-h-0">
+                  <div className="h-full overflow-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-white z-10">
+                        <TableRow>
+                          <TableHead className="w-[25%]">Product Name</TableHead>
+                          <TableHead className="w-[15%]">Category</TableHead>
+                          <TableHead className="w-[12%]">Quantity</TableHead>
+                          <TableHead className="w-[12%]">Price/Unit</TableHead>
+                          <TableHead className="w-[20%]">Barcode</TableHead>
+                          <TableHead className="text-right w-[16%]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium truncate" title={product.name}>
+                              {product.name}
+                            </TableCell>
+                            <TableCell className="truncate" title={product.category}>
+                              {product.category}
+                            </TableCell>
+                            <TableCell>
+                              {product.quantity} {product.unit}
+                            </TableCell>
+                            <TableCell>₹{product.price_per_unit}</TableCell>
+                            <TableCell>
+                              {product.barcode && (
+                                <div className="flex items-center gap-2">
+                                  <div className="text-xs truncate max-w-[100px]" title={product.barcode}>
+                                    {product.barcode}
+                                  </div>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => printBarcode(product)}
+                                    className="h-6 px-2"
+                                  >
+                                    <Printer className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditProduct(product)}
+                                title="Edit Product"
+                              >
+                                <Edit className="h-3 w-3 mr-1" /> Edit
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>

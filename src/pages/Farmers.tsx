@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
@@ -64,7 +65,7 @@ const Farmers = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <div className="flex-shrink-0 p-6 border-b bg-white">
             <div className="flex items-center justify-between">
@@ -104,7 +105,7 @@ const Farmers = () => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-6 min-h-0">
             {filteredFarmers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg">
                 <User className="h-16 w-16 text-muted-foreground mb-6" />
@@ -125,56 +126,70 @@ const Farmers = () => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                {filteredFarmers.map((farmer) => (
-                  <Card key={farmer.id} className="overflow-hidden h-fit">
-                    <CardHeader className="bg-muted pb-3">
-                      <CardTitle className="text-base flex justify-between items-start">
-                        <span className="truncate">{farmer.name}</span>
-                        <span className="text-xs bg-agri-primary text-white px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                          ID: {farmer.id.slice(0, 8)}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4 space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Phone:</span>
-                          <span className="text-sm font-medium">{farmer.phone}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Bank:</span>
-                          <span className="text-sm truncate max-w-[120px]">{farmer.bank_name || 'Not provided'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Account:</span>
-                          <span className="text-sm">{farmer.account_number || 'Not provided'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Products:</span>
-                          <span className="text-sm font-medium">{farmer.products?.length || 0}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          className="flex-1 bg-agri-primary hover:bg-agri-secondary text-sm" 
-                          onClick={() => navigate(`/farmer/${farmer.id}`)}
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 text-sm"
-                          onClick={() => handleEditFarmer(farmer)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" /> Edit
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="text-xl">Registered Farmers</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 p-0 min-h-0">
+                  <div className="h-full overflow-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-white z-10">
+                        <TableRow>
+                          <TableHead className="w-[20%]">Name</TableHead>
+                          <TableHead className="w-[15%]">Phone</TableHead>
+                          <TableHead className="w-[20%]">Email</TableHead>
+                          <TableHead className="w-[20%]">Bank Name</TableHead>
+                          <TableHead className="w-[15%]">Account Number</TableHead>
+                          <TableHead className="w-[10%]">Products</TableHead>
+                          <TableHead className="text-right w-[15%]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredFarmers.map((farmer) => (
+                          <TableRow key={farmer.id}>
+                            <TableCell className="font-medium truncate" title={farmer.name}>
+                              {farmer.name}
+                            </TableCell>
+                            <TableCell>{farmer.phone}</TableCell>
+                            <TableCell className="truncate" title={farmer.email}>
+                              {farmer.email}
+                            </TableCell>
+                            <TableCell className="truncate" title={farmer.bank_name || 'Not provided'}>
+                              {farmer.bank_name || 'Not provided'}
+                            </TableCell>
+                            <TableCell className="truncate" title={farmer.account_number || 'Not provided'}>
+                              {farmer.account_number || 'Not provided'}
+                            </TableCell>
+                            <TableCell>
+                              {farmer.products?.length || 0}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-1 justify-end">
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/farmer/${farmer.id}`)}
+                                  title="View Details"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditFarmer(farmer)}
+                                  title="Edit Farmer"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
