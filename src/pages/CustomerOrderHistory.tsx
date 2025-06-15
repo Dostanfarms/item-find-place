@@ -4,21 +4,24 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Package, 
   ChevronLeft, 
-  Clock,
-  MapPin
+  Eye
 } from 'lucide-react';
 import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
 import CustomerHeader from '@/components/CustomerHeader';
+import OrderDetailsDialog from '@/components/OrderDetailsDialog';
 
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
-  const [itemMap, setItemMap] = useState<{ [orderId: string]: any[] }>({});
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<any[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
@@ -46,15 +49,7 @@ const CustomerOrderHistory = () => {
         }
 
         console.log('Orders fetched:', orders);
-        setOrders(orders);
-
-        // Fetch items for each order
-        const map: { [orderId: string]: any[] } = {};
-        for (const order of orders) {
-          const { items } = await fetchOrderItems(order.id);
-          map[order.id] = items;
-        }
-        setItemMap(map);
+        setOrders(orders || []);
       } catch (error) {
         console.error('Error loading orders:', error);
       } finally {
@@ -84,13 +79,25 @@ const CustomerOrderHistory = () => {
   const formatDate = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      return date.toLocaleDateString();
     } catch (error) {
       return 'Invalid Date';
     }
   };
 
+  const handleViewOrder = async (order: any) => {
+    try {
+      const { items } = await fetchOrderItems(order.id);
+      setSelectedOrder(order);
+      setSelectedOrderItems(items || []);
+      setDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching order items:', error);
+    }
+  };
+
   const handleLogout = () => {
+    localStorage.removeItem('currentCustomer');
     setCustomer(null);
     navigate('/customer-login');
   };
@@ -142,69 +149,70 @@ const CustomerOrderHistory = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {orders.map((order) => (
-                <Card key={order.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">Order #{order.id.slice(-8)}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(order.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={getStatusColor(order.status || 'pending')}>
-                          {order.status || 'pending'}
-                        </Badge>
-                        <p className="text-lg font-bold mt-1">₹{Number(order.total).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {/* Items */}
-                      <div>
-                        <h4 className="font-medium mb-2">Items:</h4>
-                        <div className="space-y-1">
-                          {(itemMap[order.id] || []).map((item, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span>{item.name} x{item.quantity}</span>
-                              <span>₹{(item.price_per_unit * item.quantity).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Payment Method */}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Payment Method:</span>
-                        <Badge variant="outline">
-                          {order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
-                        </Badge>
-                      </div>
-                      
-                      {/* Tracking Info */}
-                      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {(order.status || 'pending') === 'delivered' 
-                            ? 'Order has been delivered' 
-                            : 'Order is being processed'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Order History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono">
+                          #{order.id.slice(-8)}
+                        </TableCell>
+                        <TableCell>{formatDate(order.created_at)}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(order.status || 'pending')}>
+                            {order.status || 'pending'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          ₹{Number(order.total).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewOrder(order)}
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
+
+      {/* Order Details Dialog */}
+      <OrderDetailsDialog
+        order={selectedOrder}
+        items={selectedOrderItems}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };
