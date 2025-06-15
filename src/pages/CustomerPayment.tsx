@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCustomerCoupons } from '@/hooks/useCustomerCoupons';
 import { ArrowLeft, CreditCard, ShoppingCart, Tag, MapPin, Plus } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { fetchLocationFromPincode, debounce } from '@/utils/pincodeUtils';
 
 interface CartItem {
   id: string;
@@ -36,6 +37,7 @@ const CustomerPayment = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [selectedCoupon, setSelectedCoupon] = useState('none');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
 
   // Get customer data from localStorage
   useEffect(() => {
@@ -87,6 +89,50 @@ const CustomerPayment = () => {
     
     return false;
   });
+
+  // Debounced function to fetch location data for shipping address
+  const debouncedFetchLocation = useCallback(
+    debounce(async (pincodeValue: string) => {
+      if (pincodeValue.length === 6) {
+        setIsPincodeLoading(true);
+        const locationData = await fetchLocationFromPincode(pincodeValue);
+        
+        if (locationData) {
+          setShippingAddress(prev => ({
+            ...prev,
+            city: locationData.city,
+            state: locationData.state
+          }));
+          toast({
+            title: "Location Found",
+            description: `${locationData.city}, ${locationData.state}`
+          });
+        } else {
+          toast({
+            title: "Invalid Pincode",
+            description: "Could not find location for this pincode",
+            variant: "destructive"
+          });
+        }
+        setIsPincodeLoading(false);
+      }
+    }, 500),
+    []
+  );
+
+  const handlePincodeChange = (value: string) => {
+    const numericValue = value.replace(/\D/g, '').slice(0, 6);
+    setShippingAddress(prev => ({ 
+      ...prev, 
+      pincode: numericValue,
+      // Clear city and state when pincode changes
+      city: numericValue.length < 6 ? '' : prev.city,
+      state: numericValue.length < 6 ? '' : prev.state
+    }));
+    
+    // Fetch location data when pincode is 6 digits
+    debouncedFetchLocation(numericValue);
+  };
 
   const calculateDiscount = () => {
     if (!selectedCoupon || selectedCoupon === 'none') return 0;
@@ -269,13 +315,28 @@ const CustomerPayment = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
+                    <Label htmlFor="pincode">Pincode *</Label>
+                    <Input
+                      id="pincode"
+                      value={shippingAddress.pincode}
+                      onChange={(e) => handlePincodeChange(e.target.value)}
+                      placeholder="Enter pincode"
+                      disabled={isProcessing}
+                      maxLength={6}
+                    />
+                    {isPincodeLoading && (
+                      <p className="text-sm text-blue-600 mt-1">Fetching location...</p>
+                    )}
+                  </div>
+                  <div>
                     <Label htmlFor="city">City</Label>
                     <Input
                       id="city"
                       value={shippingAddress.city}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Enter city"
+                      placeholder="City"
                       disabled={isProcessing}
+                      className={shippingAddress.city ? "bg-green-50 border-green-300" : ""}
                     />
                   </div>
                   <div>
@@ -284,18 +345,9 @@ const CustomerPayment = () => {
                       id="state"
                       value={shippingAddress.state}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder="Enter state"
+                      placeholder="State"
                       disabled={isProcessing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="pincode">Pincode</Label>
-                    <Input
-                      id="pincode"
-                      value={shippingAddress.pincode}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, pincode: e.target.value }))}
-                      placeholder="Enter pincode"
-                      disabled={isProcessing}
+                      className={shippingAddress.state ? "bg-green-50 border-green-300" : ""}
                     />
                   </div>
                 </div>

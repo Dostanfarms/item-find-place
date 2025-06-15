@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomers } from '@/hooks/useCustomers';
+import { fetchLocationFromPincode, debounce } from '@/utils/pincodeUtils';
 
 interface CustomerForm {
   name: string;
@@ -22,6 +24,7 @@ const CustomerRegister = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otp, setOtp] = useState('');
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   
   const [customer, setCustomer] = useState<CustomerForm>({
     name: '',
@@ -31,10 +34,53 @@ const CustomerRegister = () => {
   
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCustomer(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Debounced function to fetch location data
+  const debouncedFetchLocation = useCallback(
+    debounce(async (pincodeValue: string) => {
+      if (pincodeValue.length === 6) {
+        setIsPincodeLoading(true);
+        const locationData = await fetchLocationFromPincode(pincodeValue);
+        
+        if (locationData) {
+          setCity(locationData.city);
+          setState(locationData.state);
+          toast({
+            title: "Location Found",
+            description: `${locationData.city}, ${locationData.state}`
+          });
+        } else {
+          toast({
+            title: "Invalid Pincode",
+            description: "Could not find location for this pincode",
+            variant: "destructive"
+          });
+        }
+        setIsPincodeLoading(false);
+      }
+    }, 500),
+    []
+  );
+
+  const handlePincodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setPincode(value);
+    
+    // Clear previous city and state when pincode changes
+    if (value.length < 6) {
+      setCity('');
+      setState('');
+    }
+    
+    // Fetch location data when pincode is 6 digits
+    debouncedFetchLocation(value);
   };
   
   const handleSendOtp = () => {
@@ -111,7 +157,7 @@ const CustomerRegister = () => {
         name: customer.name,
         mobile: customer.mobile,
         email: customer.email,
-        address,
+        address: `${address}, ${city}, ${state}`,
         pincode
       };
 
@@ -264,12 +310,42 @@ const CustomerRegister = () => {
               <Label htmlFor="pincode">Pincode</Label>
               <Input
                 id="pincode"
-                placeholder="Delivery area pincode"
+                placeholder="Enter 6-digit pincode"
                 value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
+                onChange={handlePincodeChange}
                 disabled={isLoading}
+                maxLength={6}
                 required
               />
+              {isPincodeLoading && (
+                <p className="text-sm text-blue-600">Fetching location...</p>
+              )}
+            </div>
+
+            {/* Auto-filled City and State */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={isLoading}
+                  className={city ? "bg-green-50 border-green-300" : ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  placeholder="State"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  disabled={isLoading}
+                  className={state ? "bg-green-50 border-green-300" : ""}
+                />
+              </div>
             </div>
             
             <Button 
