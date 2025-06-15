@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { IndianRupee, Receipt, X, Check } from 'lucide-react';
+import { IndianRupee, Receipt, X, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface FarmerPaymentDetailsModalProps {
@@ -26,9 +26,20 @@ const FarmerPaymentDetailsModal = ({
   onViewReceipt 
 }: FarmerPaymentDetailsModalProps) => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [expandedSettlements, setExpandedSettlements] = useState<Set<string>>(new Set());
   
   const unsettledProducts = products.filter(p => p.payment_status === 'unsettled');
   const settledProducts = products.filter(p => p.payment_status === 'settled');
+  
+  // Group settled products by settlement batch (using transaction_image as grouping key)
+  const settledGroups = settledProducts.reduce((groups, product) => {
+    const key = product.transaction_image || 'no-receipt';
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(product);
+    return groups;
+  }, {} as Record<string, any[]>);
   
   const totalAmount = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const settledAmount = settledProducts.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
@@ -41,16 +52,18 @@ const FarmerPaymentDetailsModal = ({
   
   const settlementReceipt = settledProducts.find(p => p.transaction_image)?.transaction_image;
 
-  const handleProductSelection = (productId: string, checked: boolean) => {
+  const handleProductSelection = (productId: string, checked: boolean | string) => {
+    const isChecked = checked === true;
     setSelectedProducts(prev => 
-      checked 
+      isChecked 
         ? [...prev, productId]
         : prev.filter(id => id !== productId)
     );
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
+  const handleSelectAll = (checked: boolean | string) => {
+    const isChecked = checked === true;
+    if (isChecked) {
       setSelectedProducts(unsettledProducts.map(p => p.id));
     } else {
       setSelectedProducts([]);
@@ -88,6 +101,16 @@ const FarmerPaymentDetailsModal = ({
     };
     
     onSettle(farmerSummary);
+  };
+
+  const toggleSettlementExpansion = (key: string) => {
+    const newExpanded = new Set(expandedSettlements);
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key);
+    } else {
+      newExpanded.add(key);
+    }
+    setExpandedSettlements(newExpanded);
   };
 
   return (
@@ -172,16 +195,7 @@ const FarmerPaymentDetailsModal = ({
                 className="bg-green-600 hover:bg-green-700"
               >
                 <IndianRupee className="h-4 w-4 mr-2" />
-                Settle All (₹{unsettledAmount.toFixed(2)})
-              </Button>
-            )}
-            {settlementReceipt && (
-              <Button 
-                variant="outline"
-                onClick={() => onViewReceipt(settlementReceipt)}
-              >
-                <Receipt className="h-4 w-4 mr-2" />
-                View Receipt
+                Settle Payment (₹{unsettledAmount.toFixed(2)})
               </Button>
             )}
           </div>
@@ -215,15 +229,14 @@ const FarmerPaymentDetailsModal = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
+                  {/* Unsettled Products */}
+                  {unsettledProducts.map((product) => (
                     <TableRow key={product.id} className="hover:bg-gray-50">
                       <TableCell>
-                        {product.payment_status === 'unsettled' && (
-                          <Checkbox 
-                            checked={selectedProducts.includes(product.id)}
-                            onCheckedChange={(checked) => handleProductSelection(product.id, checked)}
-                          />
-                        )}
+                        <Checkbox 
+                          checked={selectedProducts.includes(product.id)}
+                          onCheckedChange={(checked) => handleProductSelection(product.id, checked)}
+                        />
                       </TableCell>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell>{product.category}</TableCell>
@@ -234,35 +247,89 @@ const FarmerPaymentDetailsModal = ({
                         ₹{(product.quantity * product.price_per_unit).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {product.payment_status === 'settled' ? (
-                          product.transaction_image ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => onViewReceipt(product.transaction_image)}
-                            >
-                              <Receipt className="h-3 w-3 mr-1" />
-                              View Receipt
-                            </Button>
-                          ) : (
-                            <Badge variant="default" className="bg-green-600">
-                              Settled
-                            </Badge>
-                          )
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleSettleSingle(product)}
-                            className="bg-green-50 hover:bg-green-100"
-                          >
-                            <Check className="h-3 w-3 mr-1" />
-                            Settle
-                          </Button>
-                        )}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleSettleSingle(product)}
+                          className="bg-green-50 hover:bg-green-100"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Settle
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  
+                  {/* Settled Product Groups */}
+                  {Object.entries(settledGroups).map(([key, groupProducts]) => {
+                    const isExpanded = expandedSettlements.has(key);
+                    const groupTotal = groupProducts.reduce((sum, p) => sum + (p.quantity * p.price_per_unit), 0);
+                    const hasReceipt = key !== 'no-receipt';
+                    
+                    return (
+                      <React.Fragment key={key}>
+                        {/* Settlement Group Header */}
+                        <TableRow className="bg-green-50 hover:bg-green-100">
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleSettlementExpansion(key)}
+                              className="p-0 h-auto"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium" colSpan={5}>
+                            Settlement Group ({groupProducts.length} products)
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹{groupTotal.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {hasReceipt ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => onViewReceipt(key)}
+                              >
+                                <Receipt className="h-3 w-3 mr-1" />
+                                View Receipt
+                              </Button>
+                            ) : (
+                              <Badge variant="default" className="bg-green-600">
+                                Settled
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Expanded Settlement Details */}
+                        {isExpanded && groupProducts.map((product) => (
+                          <TableRow key={product.id} className="bg-green-25 hover:bg-green-50 border-l-4 border-l-green-200">
+                            <TableCell></TableCell>
+                            <TableCell className="font-medium pl-8">{product.name}</TableCell>
+                            <TableCell>{product.category}</TableCell>
+                            <TableCell>{format(new Date(product.created_at), 'MMM dd, yyyy')}</TableCell>
+                            <TableCell className="text-right">{product.quantity} {product.unit}</TableCell>
+                            <TableCell className="text-right">₹{product.price_per_unit.toFixed(2)}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              ₹{(product.quantity * product.price_per_unit).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="default" className="bg-green-600">
+                                Settled
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
