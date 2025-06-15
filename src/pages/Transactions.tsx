@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
 import { Search, Receipt, Calendar, IndianRupee, User, Eye } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 const Transactions = () => {
   const { transactions, loading } = useTransactions();
@@ -21,13 +21,17 @@ const Transactions = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
+  // Filter by search, status, and selected date
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customer_mobile.includes(searchTerm);
     const matchesStatus = filterStatus === 'all' || transaction.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesDate = !selectedDate ||
+      isSameDay(new Date(transaction.created_at), selectedDate);
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const getTotalAmount = () => {
@@ -98,6 +102,40 @@ const Transactions = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          {/* Date Picker for filtering */}
+          <div className="relative">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-[180px] justify-start text-left font-normal"
+                >
+                  <Calendar className="mr-2 h-4 w-4 opacity-50" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Date filter</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate ?? undefined}
+                  onSelect={(date) => setSelectedDate(date ?? null)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+                {selectedDate && (
+                  <div className="flex justify-end px-4 pb-2">
+                    <Button
+                      variant="link"
+                      className="text-xs text-muted-foreground p-0 h-auto min-h-0"
+                      onClick={() => setSelectedDate(null)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
           <select
             className="px-3 py-2 border rounded-md"
