@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -137,14 +136,14 @@ const OrdersManagement: React.FC = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Update Status</TableHead>
+                  {/* Removed Update Status column */}
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       No orders found.
                     </TableCell>
                   </TableRow>
@@ -160,24 +159,7 @@ const OrdersManagement: React.FC = () => {
                         <Badge variant="outline">{order.payment_method === "upi" || order.payment_method === "card" ? "Online" : "Cash"}</Badge>
                       </TableCell>
                       <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={order.status}
-                          disabled={!!updatingOrderId}
-                          onValueChange={(val) => handleStatusChange(order.id, val)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue>{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map(status => (
-                              <SelectItem value={status} key={status}>
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
+                      {/* Removed Update Status column */}
                       <TableCell>
                         <Button
                           variant="outline"
@@ -201,7 +183,7 @@ const OrdersManagement: React.FC = () => {
       </Card>
       <OrderDetailsDialog
         open={detailsOpen}
-        onOpenChange={(open) => setDetailsOpen(open)}
+        onOpenChange={setDetailsOpen}
         order={selectedOrder}
         onUpdateStatus={handleUpdateStatusInDialog}
         statusOptions={STATUS_OPTIONS}
