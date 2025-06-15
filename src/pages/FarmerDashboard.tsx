@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, BarChart3, Ticket } from 'lucide-react';
+import { Package, User, LogOut, BarChart3, Ticket, Edit } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -14,12 +14,14 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import TransactionHistory from '@/components/TransactionHistory';
+import EditProfileDialog from '@/components/farmer/EditProfileDialog';
 import { format } from 'date-fns';
 
 const FarmerDashboard = () => {
   const navigate = useNavigate();
   const [farmer, setFarmer] = useState<any>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
   const [showTicketsDialog, setShowTicketsDialog] = useState(false);
   const [dailyEarnings, setDailyEarnings] = useState([]);
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
@@ -175,8 +177,16 @@ const FarmerDashboard = () => {
     setShowProfileDialog(true);
   };
 
+  const handleEditProfileClick = () => {
+    setShowEditProfileDialog(true);
+  };
+
   const handleTicketsClick = () => {
     setShowTicketsDialog(true);
+  };
+
+  const handleProfileUpdate = (updatedFarmer: any) => {
+    setFarmer(updatedFarmer);
   };
 
   if (!farmer) {
@@ -212,7 +222,11 @@ const FarmerDashboard = () => {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuItem onClick={handleProfileClick}>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>View Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEditProfileClick}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Edit Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTicketsClick}>
                 <Ticket className="mr-2 h-4 w-4" />
@@ -340,6 +354,14 @@ const FarmerDashboard = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Profile Dialog */}
+        <EditProfileDialog
+          open={showEditProfileDialog}
+          onOpenChange={setShowEditProfileDialog}
+          farmer={farmer}
+          onProfileUpdate={handleProfileUpdate}
+        />
 
         {/* Tickets Dialog */}
         <Dialog open={showTicketsDialog} onOpenChange={setShowTicketsDialog}>
