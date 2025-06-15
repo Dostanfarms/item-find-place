@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -8,6 +9,7 @@ import { Minus, Plus, Trash2, X } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 
 const Cart: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     items, 
     totalPrice, 
@@ -18,6 +20,29 @@ const Cart: React.FC = () => {
     removeFromCart, 
     clearCart 
   } = useCart();
+
+  const handleProceedToCheckout = () => {
+    if (items.length === 0) return;
+    
+    // Convert cart items to format expected by payment page
+    const cartItems = items.map(item => ({
+      id: item.productId,
+      name: item.name,
+      price: item.pricePerUnit,
+      quantity: item.quantity
+    }));
+
+    // Navigate to payment page with cart data
+    navigate('/payment', {
+      state: {
+        cartItems,
+        subtotal: totalPrice
+      }
+    });
+    
+    // Close cart after navigation
+    setIsCartOpen(false);
+  };
 
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -88,7 +113,11 @@ const Cart: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Button className="w-full bg-green-600 hover:bg-green-700">
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={handleProceedToCheckout}
+                    disabled={items.length === 0}
+                  >
                     Proceed to Checkout
                   </Button>
                   <Button 
