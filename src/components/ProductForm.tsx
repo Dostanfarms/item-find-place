@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,25 +85,8 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
     
     setIsSubmitting(true);
     
-    // Get farmer mobile from localStorage
-    const currentFarmer = localStorage.getItem('currentFarmer');
-    let farmerMobile = '';
-    if (currentFarmer) {
-      try {
-        const farmerData = JSON.parse(currentFarmer);
-        farmerMobile = farmerData.phone || '';
-        console.log('Retrieved farmer mobile from localStorage:', farmerMobile);
-      } catch (error) {
-        console.error('Error parsing farmer data:', error);
-      }
-    }
-    
-    // If we don't have farmer mobile from localStorage, we should still proceed
-    // The backend will handle getting it from the farmers table
-    
     const productData = {
       farmer_id: farmerId,
-      farmer_mobile: farmerMobile,
       name: name.trim(),
       quantity: parsedQuantity,
       unit,
@@ -317,4 +298,3 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
 };
 
 export default ProductForm;
-

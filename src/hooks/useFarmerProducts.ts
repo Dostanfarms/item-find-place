@@ -59,7 +59,7 @@ export const useFarmerProducts = (farmerId?: string) => {
       const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: any) => ({
         id: dbProduct.id,
         farmer_id: dbProduct.farmer_id,
-        farmer_mobile: dbProduct.farmer_mobile || dbProduct.farmers?.phone,
+        farmer_mobile: dbProduct.farmers?.phone,
         name: dbProduct.name,
         quantity: Number(dbProduct.quantity),
         unit: dbProduct.unit,
@@ -83,18 +83,20 @@ export const useFarmerProducts = (farmerId?: string) => {
     try {
       console.log('Adding farmer product:', productData);
       
+      // Remove farmer_mobile from the data being inserted since the column doesn't exist in DB
+      const { farmer_mobile, ...dbProductData } = productData;
+      
       const { data, error } = await supabase
         .from('farmer_products')
         .insert([{
-          farmer_id: productData.farmer_id,
-          farmer_mobile: productData.farmer_mobile,
-          name: productData.name,
-          quantity: productData.quantity,
-          unit: productData.unit,
-          price_per_unit: productData.price_per_unit,
-          category: productData.category,
-          payment_status: productData.payment_status,
-          transaction_image: productData.transaction_image,
+          farmer_id: dbProductData.farmer_id,
+          name: dbProductData.name,
+          quantity: dbProductData.quantity,
+          unit: dbProductData.unit,
+          price_per_unit: dbProductData.price_per_unit,
+          category: dbProductData.category,
+          payment_status: dbProductData.payment_status,
+          transaction_image: dbProductData.transaction_image,
         }])
         .select()
         .single();
@@ -118,9 +120,12 @@ export const useFarmerProducts = (farmerId?: string) => {
     try {
       console.log('Updating farmer product:', id, updates);
       
+      // Remove farmer_mobile from updates since the column doesn't exist in DB
+      const { farmer_mobile, ...dbUpdates } = updates;
+      
       const { data, error } = await supabase
         .from('farmer_products')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
