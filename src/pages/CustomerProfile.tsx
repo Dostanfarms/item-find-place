@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Package, ArrowLeft, User, Home, MapPin, Mail, Phone } from 'lucide-react';
+import { Package, ArrowLeft, User, Home, MapPin, Mail, Phone, Navigation } from 'lucide-react';
 import PhotoUploadField from '@/components/PhotoUploadField';
 import { useCustomers } from '@/hooks/useCustomers';
 
@@ -34,6 +34,25 @@ const CustomerProfile = () => {
     pincode: '',
     profile_photo: ''
   });
+
+  // Parse address to extract components if it's stored as a combined string
+  const parseAddress = (fullAddress) => {
+    if (!fullAddress) return { street: '', landmark: '', city: '', state: '' };
+    
+    // If address is stored as "street, landmark, city, state" format
+    const parts = fullAddress.split(', ');
+    if (parts.length >= 4) {
+      return {
+        street: parts[0] || '',
+        landmark: parts[1] || '',
+        city: parts[2] || '',
+        state: parts[3] || ''
+      };
+    }
+    return { street: fullAddress, landmark: '', city: '', state: '' };
+  };
+
+  const addressComponents = parseAddress(customer.address);
   
   // Redirect if not logged in
   useEffect(() => {
@@ -154,13 +173,23 @@ const CustomerProfile = () => {
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-3">
-                    <Home className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Address</p>
-                      <p>{customer.address}</p>
+                  <div className="flex items-start gap-3">
+                    <Home className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Full Address</p>
+                      <p className="text-sm leading-relaxed">{customer.address}</p>
                     </div>
                   </div>
+
+                  {addressComponents.landmark && (
+                    <div className="flex items-center gap-3">
+                      <Navigation className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Landmark</p>
+                        <p>{addressComponents.landmark}</p>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -169,6 +198,26 @@ const CustomerProfile = () => {
                       <p>{customer.pincode}</p>
                     </div>
                   </div>
+
+                  {addressComponents.city && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">City</p>
+                        <p>{addressComponents.city}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {addressComponents.state && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">State</p>
+                        <p>{addressComponents.state}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <Button 
@@ -227,13 +276,14 @@ const CustomerProfile = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">Full Address</Label>
                   <Input
                     id="address"
                     name="address"
                     value={customer.address}
                     onChange={handleInputChange}
                     disabled={isLoading}
+                    placeholder="Street, Landmark, City, State"
                   />
                 </div>
                 
