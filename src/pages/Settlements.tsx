@@ -1,10 +1,12 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, IndianRupee } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, IndianRupee, Receipt } from 'lucide-react';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { useFarmers } from '@/hooks/useFarmers';
 import SettlementModal from '@/components/SettlementModal';
@@ -13,6 +15,7 @@ const Settlements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+  const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
   
   // Fetch all products (no farmerId provided to get all farmer products)
   const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
@@ -64,7 +67,8 @@ const Settlements = () => {
           settledAmount: 0,
           unsettledAmount: 0,
           products: [],
-          unsettledProducts: []
+          unsettledProducts: [],
+          settlementReceipt: null
         });
       }
       
@@ -74,6 +78,10 @@ const Settlements = () => {
       
       if (product.payment_status === 'settled') {
         summary.settledAmount += amount;
+        // Get the first transaction image from settled products as receipt
+        if (!summary.settlementReceipt && product.transaction_image) {
+          summary.settlementReceipt = product.transaction_image;
+        }
       } else {
         summary.unsettledAmount += amount;
         summary.unsettledProducts.push(product);
@@ -87,6 +95,10 @@ const Settlements = () => {
     console.log('Opening settlement modal for:', farmerSummary.farmer.name);
     setSelectedFarmer(farmerSummary);
     setIsSettlementModalOpen(true);
+  };
+
+  const handleViewReceipt = (receiptUrl: string) => {
+    setSelectedReceiptImage(receiptUrl);
   };
 
   const handleSettlementComplete = async () => {
@@ -191,7 +203,7 @@ const Settlements = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            {summary.unsettledAmount > 0 && (
+                            {summary.unsettledAmount > 0 ? (
                               <Button 
                                 variant="default"
                                 size="sm"
@@ -201,7 +213,17 @@ const Settlements = () => {
                                 <IndianRupee className="h-3 w-3 mr-1" />
                                 Settle
                               </Button>
-                            )}
+                            ) : summary.settlementReceipt ? (
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewReceipt(summary.settlementReceipt)}
+                                className="h-7 px-2"
+                              >
+                                <Receipt className="h-3 w-3 mr-1" />
+                                View Receipt
+                              </Button>
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -229,6 +251,27 @@ const Settlements = () => {
           farmerId={selectedFarmer.farmer.id}
         />
       )}
+
+      {/* Receipt Image Dialog */}
+      <Dialog open={!!selectedReceiptImage} onOpenChange={() => setSelectedReceiptImage(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Payment Receipt
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center">
+            {selectedReceiptImage && (
+              <img
+                src={selectedReceiptImage}
+                alt="Payment receipt"
+                className="max-w-full max-h-96 object-contain rounded-lg"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
