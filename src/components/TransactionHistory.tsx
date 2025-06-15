@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,9 +132,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               <div className="text-sm text-muted-foreground">
                                 {product.quantity} {product.unit} × ₹{product.price_per_unit}
                               </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {product.category}
-                              </Badge>
                             </div>
                             <div className="text-right">
                               <div className="font-medium">
