@@ -10,8 +10,7 @@ import TransactionHistory from '@/components/TransactionHistory';
 import SettlementModal from '@/components/SettlementModal';
 import { useFarmers } from '@/hooks/useFarmers';
 import { useFarmerProducts, FarmerProduct } from '@/hooks/useFarmerProducts';
-import { getDailyEarnings, getMonthlyEarnings } from '@/utils/mockData';
-import { Transaction } from '@/utils/types';
+import { Transaction, DailyEarning, MonthlyEarning } from '@/utils/types';
 import { ArrowLeft, Plus, DollarSign, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -24,10 +23,77 @@ const FarmerDetails = () => {
   const [farmer, setFarmer] = useState<any>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
-  const [dailyEarnings, setDailyEarnings] = useState([]);
-  const [monthlyEarnings, setMonthlyEarnings] = useState([]);
+  const [dailyEarnings, setDailyEarnings] = useState<DailyEarning[]>([]);
+  const [monthlyEarnings, setMonthlyEarnings] = useState<MonthlyEarning[]>([]);
+  const [settlementTransactions, setSettlementTransactions] = useState<Transaction[]>([]);
   const [unsettledAmount, setUnsettledAmount] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<FarmerProduct | undefined>(undefined);
+
+  // Calculate earnings from farmer products
+  const calculateEarnings = (products: FarmerProduct[]) => {
+    const settledProducts = products.filter(product => product.payment_status === 'settled');
+    
+    // Group by date for daily earnings
+    const dailyGroups = new Map<string, number>();
+    // Group by month for monthly earnings
+    const monthlyGroups = new Map<string, number>();
+    
+    settledProducts.forEach(product => {
+      const productDate = new Date(product.updated_at);
+      const dayKey = format(productDate, 'yyyy-MM-dd');
+      const monthKey = format(productDate, 'yyyy-MM');
+      const amount = product.quantity * product.price_per_unit;
+      
+      // Daily grouping
+      dailyGroups.set(dayKey, (dailyGroups.get(dayKey) || 0) + amount);
+      
+      // Monthly grouping
+      monthlyGroups.set(monthKey, (monthlyGroups.get(monthKey) || 0) + amount);
+    });
+    
+    // Convert to arrays and sort
+    const dailyEarningsData = Array.from(dailyGroups.entries())
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const monthlyEarningsData = Array.from(monthlyGroups.entries())
+      .map(([month, amount]) => ({ month, amount }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+    
+    return { dailyEarningsData, monthlyEarningsData };
+  };
+
+  // Calculate settlement transactions from farmer products
+  const calculateSettlementTransactions = (products: FarmerProduct[]) => {
+    const settledProducts = products.filter(product => product.payment_status === 'settled');
+    
+    // Group settled products by date to create settlement transactions
+    const settlementGroups = new Map<string, FarmerProduct[]>();
+    
+    settledProducts.forEach(product => {
+      const settlementDate = format(new Date(product.updated_at), 'yyyy-MM-dd');
+      if (!settlementGroups.has(settlementDate)) {
+        settlementGroups.set(settlementDate, []);
+      }
+      settlementGroups.get(settlementDate)!.push(product);
+    });
+    
+    // Create transactions from groups
+    const transactions = Array.from(settlementGroups.entries()).map(([date, products]) => {
+      const totalAmount = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+      return {
+        id: `settlement_${date}_${id}`,
+        amount: totalAmount,
+        date: new Date(date),
+        type: 'debit' as const,
+        description: `Payment settled for ${products.length} product(s)`,
+        farmerId: id || '',
+        settled: true
+      };
+    });
+    
+    return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+  };
 
   // Calculate unsettled amount from farmer products
   useEffect(() => {
@@ -36,8 +102,17 @@ const FarmerDetails = () => {
         .filter(product => product.payment_status === 'unsettled')
         .reduce((total, product) => total + (product.quantity * product.price_per_unit), 0);
       setUnsettledAmount(unsettled);
+      
+      // Calculate earnings and transactions
+      const { dailyEarningsData, monthlyEarningsData } = calculateEarnings(farmerProducts);
+      setDailyEarnings(dailyEarningsData);
+      setMonthlyEarnings(monthlyEarningsData);
+      
+      // Calculate settlement transactions
+      const transactions = calculateSettlementTransactions(farmerProducts);
+      setSettlementTransactions(transactions);
     }
-  }, [farmerProducts]);
+  }, [farmerProducts, id]);
 
   useEffect(() => {
     if (id && farmers.length > 0) {
@@ -47,17 +122,15 @@ const FarmerDetails = () => {
         const farmerWithDefaults = {
           ...foundFarmer,
           products: farmerProducts || [],
-          transactions: foundFarmer.transactions || []
+          transactions: settlementTransactions || []
         };
         setFarmer(farmerWithDefaults);
-        setDailyEarnings(getDailyEarnings(id));
-        setMonthlyEarnings(getMonthlyEarnings(id));
       } else {
         console.error('Farmer not found with ID:', id);
         navigate('/farmers');
       }
     }
-  }, [id, farmers, farmerProducts, navigate]);
+  }, [id, farmers, farmerProducts, settlementTransactions, navigate]);
   
   const handleEditProduct = (product: FarmerProduct) => {
     setSelectedProduct(product);
@@ -66,30 +139,6 @@ const FarmerDetails = () => {
   
   const handleSettlePayment = async () => {
     if (!farmer || !id) return;
-    
-    // Create a settlement transaction
-    const settlementTransaction: Transaction = {
-      id: `tr_${Date.now()}`,
-      amount: unsettledAmount,
-      date: new Date(),
-      type: 'debit',
-      description: 'Payment settled',
-      farmerId: farmer.id,
-      settled: true
-    };
-    
-    // Mark all unsettled transactions as settled
-    const updatedTransactions = farmer.transactions.map(t => 
-      t.type === 'credit' && !t.settled ? { ...t, settled: true } : t
-    );
-    
-    // Update farmer with new transaction and settled status
-    const updatedFarmer = {
-      ...farmer,
-      transactions: [...updatedTransactions, settlementTransaction]
-    };
-    
-    setFarmer(updatedFarmer);
     
     // Refresh farmer products to get updated data
     await fetchFarmerProducts(id);
@@ -218,8 +267,8 @@ const FarmerDetails = () => {
                 <p className="text-xl font-semibold">{farmerProducts?.length || 0}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Transactions</p>
-                <p className="text-xl font-semibold">{farmer.transactions?.length || 0}</p>
+                <p className="text-sm text-muted-foreground">Settlements</p>
+                <p className="text-xl font-semibold">{settlementTransactions?.length || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -230,7 +279,7 @@ const FarmerDetails = () => {
         <Tabs defaultValue="products">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="transactions">Settlement Transactions</TabsTrigger>
           </TabsList>
           
           <TabsContent value="products" className="pt-4">
@@ -307,12 +356,12 @@ const FarmerDetails = () => {
           <TabsContent value="transactions" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Transactions</CardTitle>
+                <CardTitle>Settlement Transactions</CardTitle>
               </CardHeader>
               <CardContent>
-                {farmer.transactions.length === 0 ? (
+                {settlementTransactions.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground">No transactions yet.</p>
+                    <p className="text-muted-foreground">No settlement transactions yet.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -327,41 +376,24 @@ const FarmerDetails = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {[...farmer.transactions]
-                          .sort((a, b) => b.date.getTime() - a.date.getTime())
-                          .map((transaction) => (
-                            <tr key={transaction.id} className="border-b">
-                              <td className="p-2">{format(transaction.date, 'MMM dd, yyyy')}</td>
-                              <td className="p-2">{transaction.description}</td>
-                              <td className="text-center p-2">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  transaction.type === 'credit' 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-red-100 text-red-700'
-                                }`}>
-                                  {transaction.type === 'credit' ? 'Credit' : 'Debit'}
-                                </span>
-                              </td>
-                              <td className="text-center p-2">
-                                {transaction.type === 'credit' && (
-                                  <span className={`px-2 py-1 rounded-full text-xs ${
-                                    transaction.settled 
-                                      ? 'bg-blue-100 text-blue-700' 
-                                      : 'bg-amber-100 text-amber-700'
-                                  }`}>
-                                    {transaction.settled ? 'Settled' : 'Pending'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className={`text-right p-2 font-medium ${
-                                transaction.type === 'credit' 
-                                  ? 'text-green-600' 
-                                  : 'text-red-600'
-                              }`}>
-                                {transaction.type === 'credit' ? '+' : '-'}
-                                ₹{transaction.amount.toFixed(2)}
-                              </td>
-                            </tr>
+                        {settlementTransactions.map((transaction) => (
+                          <tr key={transaction.id} className="border-b">
+                            <td className="p-2">{format(transaction.date, 'MMM dd, yyyy')}</td>
+                            <td className="p-2">{transaction.description}</td>
+                            <td className="text-center p-2">
+                              <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
+                                Payment
+                              </span>
+                            </td>
+                            <td className="text-center p-2">
+                              <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                                Settled
+                              </span>
+                            </td>
+                            <td className="text-right p-2 font-medium text-red-600">
+                              -₹{transaction.amount.toFixed(2)}
+                            </td>
+                          </tr>
                         ))}
                       </tbody>
                     </table>
@@ -374,7 +406,7 @@ const FarmerDetails = () => {
       </div>
       
       <TransactionHistory 
-        transactions={farmer.transactions} 
+        transactions={settlementTransactions} 
         dailyEarnings={dailyEarnings} 
         monthlyEarnings={monthlyEarnings} 
       />
