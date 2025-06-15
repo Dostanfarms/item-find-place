@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +22,7 @@ const Farmers = () => {
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | undefined>(undefined);
   
   const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
-  const { products: allProducts } = useFarmerProducts();
+  const { farmerProducts: allProducts } = useFarmerProducts();
   
   // Filter farmers based on search - now includes mobile number
   const filteredFarmers = farmers.filter(farmer => 
