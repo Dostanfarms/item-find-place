@@ -225,6 +225,7 @@ export type Database = {
           created_at: string
           farmer_id: string
           id: string
+          is_active: boolean
           name: string
           payment_status: string
           price_per_unit: number
@@ -238,6 +239,7 @@ export type Database = {
           created_at?: string
           farmer_id: string
           id?: string
+          is_active?: boolean
           name: string
           payment_status?: string
           price_per_unit: number
@@ -251,6 +253,7 @@ export type Database = {
           created_at?: string
           farmer_id?: string
           id?: string
+          is_active?: boolean
           name?: string
           payment_status?: string
           price_per_unit?: number
