@@ -41,6 +41,7 @@ const FarmerDashboard = () => {
         return;
       }
       
+      console.log('Setting farmer data:', farmerData);
       setFarmer(farmerData);
     } catch (error) {
       console.error('Error parsing farmer data:', error);
@@ -48,24 +49,20 @@ const FarmerDashboard = () => {
     }
   }, [navigate]);
 
-  // Fetch products only for the logged-in farmer
-  const { products, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts(farmer?.id);
+  // Fetch products ONLY for the logged-in farmer
+  const { products, loading: productsLoading } = useFarmerProducts(farmer?.id);
 
-  // Fetch farmer products when farmer is set
-  useEffect(() => {
-    if (farmer?.id) {
-      fetchFarmerProducts(farmer.id);
-    }
-  }, [farmer?.id, fetchFarmerProducts]);
-
-  // Calculate earnings from farmer products
+  // Calculate earnings from farmer products (only for this specific farmer)
   const calculateEarnings = (products) => {
+    // Ensure we're only calculating for the current farmer's products
+    const farmerProducts = products.filter(product => product.farmer_id === farmer?.id);
+    
     // Group by date for daily earnings
     const dailyGroups = new Map();
     // Group by month for monthly earnings
     const monthlyGroups = new Map();
     
-    products.forEach(product => {
+    farmerProducts.forEach(product => {
       const productDate = new Date(product.created_at);
       const dayKey = format(productDate, 'yyyy-MM-dd');
       const monthKey = format(productDate, 'yyyy-MM');
@@ -114,9 +111,11 @@ const FarmerDashboard = () => {
     return { dailyEarningsData, monthlyEarningsData };
   };
 
-  // Calculate settlement transactions from farmer products
+  // Calculate settlement transactions from farmer products (only for this specific farmer)
   const calculateSettlementTransactions = (products) => {
-    const settledProducts = products.filter(product => product.payment_status === 'settled');
+    // Ensure we're only calculating for the current farmer's products
+    const farmerProducts = products.filter(product => product.farmer_id === farmer?.id);
+    const settledProducts = farmerProducts.filter(product => product.payment_status === 'settled');
     
     // Group settled products by date to create settlement transactions
     const settlementGroups = new Map();
@@ -147,13 +146,15 @@ const FarmerDashboard = () => {
   };
 
   // Calculate totals for the specific farmer only
-  const totalEarnings = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
-  const settledAmount = products.filter(p => p.payment_status === 'settled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
-  const unsettledAmount = products.filter(p => p.payment_status === 'unsettled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const farmerSpecificProducts = products.filter(product => product.farmer_id === farmer?.id);
+  const totalEarnings = farmerSpecificProducts.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const settledAmount = farmerSpecificProducts.filter(p => p.payment_status === 'settled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const unsettledAmount = farmerSpecificProducts.filter(p => p.payment_status === 'unsettled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
 
   // Update earnings when products change
   useEffect(() => {
-    if (products && products.length > 0) {
+    if (products && products.length > 0 && farmer?.id) {
+      console.log('Calculating earnings for farmer:', farmer.id, 'with products:', products.length);
       const { dailyEarningsData, monthlyEarningsData } = calculateEarnings(products);
       setDailyEarnings(dailyEarningsData);
       setMonthlyEarnings(monthlyEarningsData);
@@ -261,7 +262,7 @@ const FarmerDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Products</p>
-                <p className="font-medium">{products?.length || 0} items</p>
+                <p className="font-medium">{farmerSpecificProducts?.length || 0} items</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Earnings</p>
@@ -302,7 +303,7 @@ const FarmerDashboard = () => {
           transactions={settlementTransactions} 
           dailyEarnings={dailyEarnings} 
           monthlyEarnings={monthlyEarnings}
-          products={products}
+          products={farmerSpecificProducts}
         />
 
         {/* Profile Dialog */}

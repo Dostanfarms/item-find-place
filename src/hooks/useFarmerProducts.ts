@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -28,8 +29,16 @@ export const useFarmerProducts = (farmerId?: string) => {
   const fetchFarmerProducts = useCallback(async (id?: string) => {
     try {
       setLoading(true);
-      console.log('Fetching farmer products...', id ? `for farmer: ${id}` : 'for all farmers');
+      console.log('Fetching farmer products for farmer:', id);
       
+      // If no farmer ID is provided, don't fetch anything
+      if (!id) {
+        console.log('No farmer ID provided, skipping fetch');
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('farmer_products')
         .select(`
@@ -38,12 +47,8 @@ export const useFarmerProducts = (farmerId?: string) => {
             phone
           )
         `)
+        .eq('farmer_id', id)  // Always filter by farmer_id when provided
         .order('created_at', { ascending: false });
-
-      // Only filter by farmer_id if one is provided
-      if (id) {
-        query = query.eq('farmer_id', id);
-      }
 
       const { data, error } = await query;
 
@@ -52,7 +57,7 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      console.log('Farmer products fetched successfully:', data);
+      console.log('Farmer products fetched successfully for farmer:', id, data);
       
       // Transform the data to match our interface
       const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: any) => ({
@@ -106,7 +111,7 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product added successfully:', data);
-      // Refresh the products list
+      // Refresh the products list for the specific farmer
       await fetchFarmerProducts(farmerId);
       return { success: true, data };
     } catch (error) {
@@ -132,7 +137,7 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product updated successfully:', data);
-      // Refresh the products list
+      // Refresh the products list for the specific farmer
       await fetchFarmerProducts(farmerId);
       return { success: true, data };
     } catch (error) {
@@ -142,7 +147,14 @@ export const useFarmerProducts = (farmerId?: string) => {
   };
 
   useEffect(() => {
-    fetchFarmerProducts(farmerId);
+    if (farmerId) {
+      console.log('Farmer ID changed, fetching products for:', farmerId);
+      fetchFarmerProducts(farmerId);
+    } else {
+      console.log('No farmer ID provided, clearing products');
+      setProducts([]);
+      setLoading(false);
+    }
   }, [fetchFarmerProducts, farmerId]);
 
   return {
