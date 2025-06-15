@@ -76,11 +76,11 @@ const CustomerHome = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem onClick={handleProfileClick}>
+                <DropdownMenuItem onClick={() => navigate('/customer-profile')}>
                   <User className="mr-2 h-4 w-4" />
                   <span>My Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleTicketsClick}>
+                <DropdownMenuItem onClick={() => navigate('/customer-tickets')}>
                   <Ticket className="mr-2 h-4 w-4" />
                   <span>Support Tickets</span>
                 </DropdownMenuItem>
@@ -89,7 +89,10 @@ const CustomerHome = () => {
                   <span>My Orders</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={() => {
+                  localStorage.removeItem('currentCustomer');
+                  navigate('/customer-login');
+                }}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
@@ -100,33 +103,35 @@ const CustomerHome = () => {
       </div>
 
       {/* Banner Slider */}
-      <div className="relative overflow-hidden">
-        <div 
-          className="flex transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${currentBanner * 100}%)` }}
-        >
-          {banners.map((banner, index) => (
-            <div key={index} className="w-full flex-shrink-0">
-              <img 
-                src={banner} 
-                alt={`Banner ${index + 1}`}
-                className="w-full h-64 object-cover"
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="relative overflow-hidden rounded-lg">
+          <div 
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentBanner * 100}%)` }}
+          >
+            {banners.map((banner, index) => (
+              <div key={index} className="w-full flex-shrink-0">
+                <img 
+                  src={banner} 
+                  alt={`Banner ${index + 1}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </div>
+            ))}
+          </div>
+          
+          {/* Banner indicators */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {banners.map((_, index) => (
+              <button
+                key={index}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === currentBanner ? 'bg-white' : 'bg-white/50'
+                }`}
+                onClick={() => setCurrentBanner(index)}
               />
-            </div>
-          ))}
-        </div>
-        
-        {/* Banner indicators */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {banners.map((_, index) => (
-            <button
-              key={index}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === currentBanner ? 'bg-white' : 'bg-white/50'
-              }`}
-              onClick={() => setCurrentBanner(index)}
-            />
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
