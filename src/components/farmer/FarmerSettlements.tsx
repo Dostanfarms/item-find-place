@@ -147,6 +147,7 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product Name</TableHead>
+                    <TableHead>Addition Date</TableHead>
                     <TableHead>Quantity</TableHead>
                     <TableHead>Price/Unit</TableHead>
                     <TableHead>Total Value</TableHead>
@@ -156,6 +157,9 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
                   {settlement.products.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>
+                        {format(new Date(product.created_at), 'MMM dd, yyyy')}
+                      </TableCell>
                       <TableCell>
                         {product.quantity} {product.unit}
                       </TableCell>
