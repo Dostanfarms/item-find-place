@@ -24,7 +24,8 @@ import {
   Ticket,
   Gift,
   DollarSign,
-  Tag
+  Tag,
+  Image
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/context/AuthContext';
@@ -38,13 +39,13 @@ const ManageMenu = () => {
 
   // Open the manage menu if current location is under any manage item
   useEffect(() => {
-    const managePathsToCheck = ['/sales-dashboard', '/products', '/transactions', '/coupons', '/categories', '/employees', '/tickets', '/roles', '/settlements'];
+    const managePathsToCheck = ['/sales-dashboard', '/products', '/transactions', '/coupons', '/categories', '/employees', '/tickets', '/roles', '/settlements', '/banners'];
     if (managePathsToCheck.some(path => location.pathname.startsWith(path))) {
       setManageOpen(true);
     }
   }, [location.pathname]);
 
-  // Items in the "Manage" section - reordered as requested
+  // Items in the "Manage" section - added Banners
   const manageItems = [
     {
       title: 'Sales Dashboard',
@@ -75,6 +76,12 @@ const ManageMenu = () => {
       icon: Tag,
       path: '/categories',
       resource: 'categories'
+    },
+    {
+      title: 'Banners',
+      icon: Image,
+      path: '/banners',
+      resource: 'banners'
     },
     {
       title: 'Employees',

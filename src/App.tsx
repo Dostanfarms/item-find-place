@@ -39,6 +39,7 @@ import Coupons from "./pages/Coupons";
 import Employees from "./pages/Employees";
 import Roles from "./pages/Roles";
 import Settlements from "./pages/Settlements";
+import Banners from "./pages/Banners";
 import EmployeeLogin from "./pages/EmployeeLogin";
 import EmployeeRegister from "./pages/EmployeeRegister";
 import AccessDenied from "./pages/AccessDenied";
@@ -123,6 +124,10 @@ const App = () => (
               
               <Route element={<ProtectedRoute resource="coupons" action="view" />}>
                 <Route path="/coupons" element={<Coupons />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute resource="banners" action="view" />}>
+                <Route path="/banners" element={<Banners />} />
               </Route>
               
               <Route element={<ProtectedRoute resource="employees" action="view" />}>
