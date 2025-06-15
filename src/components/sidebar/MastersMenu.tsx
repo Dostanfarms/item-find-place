@@ -28,7 +28,7 @@ import { getAccessibleResources } from '@/utils/employeeData';
 
 const MastersMenu = () => {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, hasPermission } = useAuth();
   const { state } = useSidebar();
   const [mastersOpen, setMastersOpen] = useState(false);
 
@@ -84,7 +84,8 @@ const MastersMenu = () => {
     ? mastersItems.filter(item => accessibleResources.includes(item.resource))
     : mastersItems;
 
-  if (filteredMastersItems.length === 0) {
+  // Check if user has permission to view the Masters section
+  if (!hasPermission('masters', 'view') || filteredMastersItems.length === 0) {
     return null;
   }
 

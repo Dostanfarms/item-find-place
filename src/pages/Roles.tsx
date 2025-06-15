@@ -55,7 +55,9 @@ const resources = [
   { id: 'employees', name: 'Employees' },
   { id: 'roles', name: 'Roles' },
   { id: 'tickets', name: 'Tickets' },
-  { id: 'orders', name: 'Orders' }
+  { id: 'orders', name: 'Orders' },
+  { id: 'manage', name: 'Manage' },
+  { id: 'masters', name: 'Masters' }
 ];
 
 const actions = [

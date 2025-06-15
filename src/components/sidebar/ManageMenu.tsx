@@ -27,7 +27,7 @@ import { getAccessibleResources } from '@/utils/employeeData';
 
 const ManageMenu = () => {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, hasPermission } = useAuth();
   const { state } = useSidebar();
   const [manageOpen, setManageOpen] = useState(false);
 
@@ -50,7 +50,7 @@ const ManageMenu = () => {
       title: 'Sales Dashboard',
       icon: BarChart3,
       path: '/sales-dashboard',
-      resource: 'sales'
+      resource: 'sales-dashboard'
     },
     {
       title: 'Transactions',
@@ -77,7 +77,8 @@ const ManageMenu = () => {
     ? manageItems.filter(item => accessibleResources.includes(item.resource))
     : manageItems;
 
-  if (filteredManageItems.length === 0) {
+  // Check if user has permission to view the Manage section
+  if (!hasPermission('manage', 'view') || filteredManageItems.length === 0) {
     return null;
   }
 
