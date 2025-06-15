@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Clock,
-  MapPin,
   Package,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 
 interface OrderDetailsDialogProps {
@@ -46,6 +46,84 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     } catch (error) {
       return 'Invalid Date';
+    }
+  };
+
+  const handlePrintInvoice = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Invoice - Order #${order.id.slice(-8)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .company-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+            .invoice-title { font-size: 18px; color: #666; }
+            .order-info { display: flex; justify-content: space-between; margin-bottom: 30px; }
+            .order-info div { flex: 1; }
+            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .items-table th { background-color: #f5f5f5; }
+            .total-section { text-align: right; margin-top: 20px; }
+            .total-amount { font-size: 18px; font-weight: bold; }
+            .footer { margin-top: 40px; text-align: center; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-name">DostanFarms</div>
+            <div class="invoice-title">Order Invoice</div>
+          </div>
+          
+          <div class="order-info">
+            <div>
+              <strong>Order ID:</strong> #${order.id.slice(-8)}<br>
+              <strong>Date:</strong> ${formatDate(order.created_at)}<br>
+              <strong>Status:</strong> ${order.status || 'pending'}
+            </div>
+            <div>
+              <strong>Payment Method:</strong> ${order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
+            </div>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>₹${item.price_per_unit}</td>
+                  <td>₹${(item.price_per_unit * item.quantity).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <div class="total-amount">Total: ₹${Number(order.total).toFixed(2)}</div>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for your order!</p>
+            <p>DostanFarms - Fresh from Farm to You</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
     }
   };
 
@@ -129,23 +207,16 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </CardContent>
           </Card>
 
-          {/* Tracking Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Order Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {(order.status || 'pending') === 'delivered' 
-                    ? 'Order has been delivered' 
-                    : 'Order is being processed'
-                  }
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Print Button */}
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={handlePrintInvoice}
+              className="flex items-center gap-2 bg-agri-primary hover:bg-agri-secondary"
+            >
+              <Printer className="h-4 w-4" />
+              Print Invoice
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
