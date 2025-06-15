@@ -88,9 +88,8 @@ const FarmerProductsTable = ({ products, loading }: FarmerProductsTableProps) =>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Price/Unit</TableHead>
                 <TableHead>Total Value</TableHead>
-                <TableHead>Mobile</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Payment Proof</TableHead>
+                <TableHead>Payment Receipt</TableHead>
                 <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
@@ -107,12 +106,6 @@ const FarmerProductsTable = ({ products, loading }: FarmerProductsTableProps) =>
                   <TableCell>₹{product.price_per_unit.toFixed(2)}</TableCell>
                   <TableCell className="font-medium">
                     ₹{(product.quantity * product.price_per_unit).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      <span className="text-sm">{product.farmer_mobile || 'N/A'}</span>
-                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge 

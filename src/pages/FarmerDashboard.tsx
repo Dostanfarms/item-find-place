@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import TransactionHistory from '@/components/TransactionHistory';
 import EditProfileDialog from '@/components/farmer/EditProfileDialog';
+import FarmerProductsTable from '@/components/FarmerProductsTable';
 import { format } from 'date-fns';
 
 const FarmerDashboard = () => {
@@ -295,13 +296,21 @@ const FarmerDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Earnings History - Only for this farmer with products data */}
-        <TransactionHistory 
-          transactions={settlementTransactions} 
-          dailyEarnings={dailyEarnings} 
-          monthlyEarnings={monthlyEarnings}
-          products={farmerSpecificProducts}
+        {/* Products Table with Transaction Receipts */}
+        <FarmerProductsTable 
+          products={farmerSpecificProducts} 
+          loading={productsLoading} 
         />
+
+        {/* Earnings History */}
+        <div className="mt-6">
+          <TransactionHistory 
+            transactions={settlementTransactions} 
+            dailyEarnings={dailyEarnings} 
+            monthlyEarnings={monthlyEarnings}
+            products={farmerSpecificProducts}
+          />
+        </div>
 
         {/* Profile Dialog with Edit Button */}
         <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
