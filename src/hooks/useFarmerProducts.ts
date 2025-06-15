@@ -41,11 +41,11 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      // Ensure is_active defaults to true if missing
+      // Ensure is_active defaults to true if missing and add proper type safety
       const typedData = (data || []).map(item => ({
         ...item,
         payment_status: item.payment_status as 'settled' | 'unsettled',
-        is_active: 'is_active' in item ? item.is_active : true,
+        is_active: item.is_active !== undefined ? item.is_active : true,
       })) as FarmerProduct[];
 
       setFarmerProducts(typedData);
@@ -73,11 +73,11 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product added successfully:', data);
-      // Ensure is_active defaults to true if missing
+      // Ensure is_active defaults to true if missing and add proper type safety
       const typedData = {
         ...data,
         payment_status: data.payment_status as 'settled' | 'unsettled',
-        is_active: 'is_active' in data ? data.is_active : true,
+        is_active: data.is_active !== undefined ? data.is_active : true,
       } as FarmerProduct;
 
       setFarmerProducts(prev =>
@@ -128,11 +128,11 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product updated successfully:', data);
-      // Ensure is_active defaults to true if missing
+      // Ensure is_active defaults to true if missing and add proper type safety
       const typedData = {
         ...data,
         payment_status: data.payment_status as 'settled' | 'unsettled',
-        is_active: 'is_active' in data ? data.is_active : true,
+        is_active: data.is_active !== undefined ? data.is_active : true,
       } as FarmerProduct;
 
       setFarmerProducts(prev =>
