@@ -10,6 +10,10 @@ const AccessDenied = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md text-center">
@@ -43,8 +47,8 @@ const AccessDenied = () => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Button onClick={() => navigate('/')}>
-            Return to Dashboard
+          <Button onClick={handleGoBack}>
+            Go Back
           </Button>
         </CardFooter>
       </Card>
