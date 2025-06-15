@@ -179,7 +179,8 @@ const FarmerDashboard = () => {
   };
 
   const handleEditProfileClick = () => {
-    setShowEditProfileDialog(true);
+    setShowProfileDialog(false); // Close view profile dialog
+    setShowEditProfileDialog(true); // Open edit profile dialog
   };
 
   const handleTicketsClick = () => {
@@ -224,10 +225,6 @@ const FarmerDashboard = () => {
               <DropdownMenuItem onClick={handleProfileClick}>
                 <User className="mr-2 h-4 w-4" />
                 <span>View Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEditProfileClick}>
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Edit Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTicketsClick}>
                 <Ticket className="mr-2 h-4 w-4" />
@@ -306,11 +303,22 @@ const FarmerDashboard = () => {
           products={farmerSpecificProducts}
         />
 
-        {/* Profile Dialog */}
+        {/* Profile Dialog with Edit Button */}
         <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Farmer Profile</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                Farmer Profile
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEditProfileClick}
+                  className="ml-4"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
