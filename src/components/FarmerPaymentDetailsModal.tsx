@@ -32,14 +32,14 @@ const FarmerPaymentDetailsModal = ({
   const settledProducts = products.filter(p => p.payment_status === 'settled');
   
   // Group settled products by settlement batch (using transaction_image as grouping key)
-  const settledGroups = settledProducts.reduce((groups, product) => {
+  const settledGroups: Record<string, any[]> = settledProducts.reduce((groups: Record<string, any[]>, product) => {
     const key = product.transaction_image || 'no-receipt';
     if (!groups[key]) {
       groups[key] = [];
     }
     groups[key].push(product);
     return groups;
-  }, {} as Record<string, any[]>);
+  }, {});
   
   const totalAmount = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const settledAmount = settledProducts.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
@@ -263,7 +263,7 @@ const FarmerPaymentDetailsModal = ({
                   {/* Settled Product Groups */}
                   {Object.entries(settledGroups).map(([key, groupProducts]) => {
                     const isExpanded = expandedSettlements.has(key);
-                    const groupTotal = groupProducts.reduce((sum, p) => sum + (p.quantity * p.price_per_unit), 0);
+                    const groupTotal = groupProducts.reduce((sum: number, p: any) => sum + (p.quantity * p.price_per_unit), 0);
                     const hasReceipt = key !== 'no-receipt';
                     
                     return (
@@ -309,7 +309,7 @@ const FarmerPaymentDetailsModal = ({
                         </TableRow>
                         
                         {/* Expanded Settlement Details */}
-                        {isExpanded && groupProducts.map((product) => (
+                        {isExpanded && groupProducts.map((product: any) => (
                           <TableRow key={product.id} className="bg-green-25 hover:bg-green-50 border-l-4 border-l-green-200">
                             <TableCell></TableCell>
                             <TableCell className="font-medium pl-8">{product.name}</TableCell>
