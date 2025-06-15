@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fetchAllOrders } from "@/api/orders";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Package, View as ViewIcon, search as SearchIcon, calendar as CalendarIcon, phone as PhoneIcon } from "lucide-react";
+import { Package, View as ViewIcon, Search as SearchIcon, Calendar as CalendarIcon, Phone as PhoneIcon } from "lucide-react";
 import OrderDetailsDialog from "@/components/OrderDetailsDialog";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -288,4 +287,3 @@ const OrdersManagement: React.FC = () => {
 };
 
 export default OrdersManagement;
-
