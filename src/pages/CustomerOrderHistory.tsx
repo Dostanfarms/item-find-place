@@ -13,6 +13,8 @@ import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
 import CustomerHeader from '@/components/CustomerHeader';
 import OrderDetailsDialog from '@/components/OrderDetailsDialog';
 
+const STATUS_OPTIONS = ["pending", "confirmed", "shipped", "delivered"];
+
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
@@ -210,6 +212,7 @@ const CustomerOrderHistory = () => {
         order={selectedOrder}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        statusOptions={STATUS_OPTIONS}
       />
     </div>
   );
