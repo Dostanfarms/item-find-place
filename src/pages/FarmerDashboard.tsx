@@ -289,11 +289,12 @@ const FarmerDashboard = () => {
           <FarmerProductsTable products={products} loading={productsLoading} />
         </div>
 
-        {/* Earnings History - Only for this farmer */}
+        {/* Earnings History - Only for this farmer with products data */}
         <TransactionHistory 
           transactions={settlementTransactions} 
           dailyEarnings={dailyEarnings} 
-          monthlyEarnings={monthlyEarnings} 
+          monthlyEarnings={monthlyEarnings}
+          products={products}
         />
 
         {/* Profile Dialog */}

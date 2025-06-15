@@ -4,18 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Transaction, DailyEarning, MonthlyEarning } from '@/utils/types';
 import { format } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { FarmerProduct } from '@/hooks/useFarmerProducts';
+import { Badge } from '@/components/ui/badge';
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
   dailyEarnings: (DailyEarning & { settledAmount?: number; unsettledAmount?: number })[];
   monthlyEarnings: (MonthlyEarning & { settledAmount?: number; unsettledAmount?: number })[];
+  products?: FarmerProduct[];
 }
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({ 
   transactions, 
   dailyEarnings, 
-  monthlyEarnings 
+  monthlyEarnings,
+  products = []
 }) => {
   const [tab, setTab] = useState('daily');
 
@@ -31,20 +34,64 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     return `${new Date(0, parseInt(month) - 1).toLocaleString('default', { month: 'long' })} ${year}`;
   };
 
-  // Format data for chart
-  const dailyChartData = dailyEarnings.map(item => ({
-    name: format(new Date(item.date), 'MMM dd'),
-    settled: item.settledAmount || 0,
-    unsettled: item.unsettledAmount || 0,
-    total: item.amount
-  }));
+  // Group products by date for daily view
+  const getDailyProductDetails = () => {
+    const dailyGroups = new Map();
+    
+    products.forEach(product => {
+      const productDate = format(new Date(product.created_at), 'yyyy-MM-dd');
+      if (!dailyGroups.has(productDate)) {
+        dailyGroups.set(productDate, []);
+      }
+      dailyGroups.get(productDate).push(product);
+    });
+    
+    return Array.from(dailyGroups.entries())
+      .map(([date, products]) => ({ date, products }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
 
-  const monthlyChartData = monthlyEarnings.map(item => ({
-    name: formatMonth(item.month).split(' ')[0], // Just the month name
-    settled: item.settledAmount || 0,
-    unsettled: item.unsettledAmount || 0,
-    total: item.amount
-  }));
+  // Group and merge products by month for monthly view
+  const getMonthlyProductSummary = () => {
+    const monthlyGroups = new Map();
+    
+    products.forEach(product => {
+      const monthKey = format(new Date(product.created_at), 'yyyy-MM');
+      if (!monthlyGroups.has(monthKey)) {
+        monthlyGroups.set(monthKey, new Map());
+      }
+      
+      const monthData = monthlyGroups.get(monthKey);
+      const productKey = `${product.name}_${product.payment_status}`;
+      
+      if (!monthData.has(productKey)) {
+        monthData.set(productKey, {
+          name: product.name,
+          category: product.category,
+          unit: product.unit,
+          payment_status: product.payment_status,
+          quantity: 0,
+          totalAmount: 0,
+          count: 0
+        });
+      }
+      
+      const existing = monthData.get(productKey);
+      existing.quantity += product.quantity;
+      existing.totalAmount += (product.quantity * product.price_per_unit);
+      existing.count += 1;
+    });
+    
+    return Array.from(monthlyGroups.entries())
+      .map(([month, productMap]) => ({
+        month,
+        products: Array.from(productMap.values())
+      }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+  };
+
+  const dailyProductDetails = getDailyProductDetails();
+  const monthlyProductSummary = getMonthlyProductSummary();
   
   return (
     <Card className="w-full">
@@ -59,113 +106,91 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
           </TabsList>
           
           <TabsContent value="daily" className="pt-4">
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={dailyChartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value, name) => {
-                      const label = name === 'settled' ? 'Settled' : name === 'unsettled' ? 'Unsettled' : 'Total';
-                      return [`₹${value}`, label];
-                    }}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Legend />
-                  <Bar dataKey="settled" name="Settled" fill="#2E7D32" />
-                  <Bar dataKey="unsettled" name="Unsettled" fill="#F57C00" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-6">
-              <h4 className="text-sm font-medium mb-2">Daily Transaction Details</h4>
-              <div className="border rounded-md max-h-60 overflow-y-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="text-left p-2">Date</th>
-                      <th className="text-right p-2">Settled (₹)</th>
-                      <th className="text-right p-2">Unsettled (₹)</th>
-                      <th className="text-right p-2">Total (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dailyEarnings.length > 0 ? (
-                      dailyEarnings.map((item, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
-                          <td className="text-left p-2">{formatDate(item.date)}</td>
-                          <td className="text-right p-2 text-green-600">₹{(item.settledAmount || 0).toFixed(2)}</td>
-                          <td className="text-right p-2 text-orange-600">₹{(item.unsettledAmount || 0).toFixed(2)}</td>
-                          <td className="text-right p-2 font-medium">₹{item.amount.toFixed(2)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="text-center p-4">No daily earnings data available</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Daily Product Details</h4>
+              <div className="border rounded-md max-h-96 overflow-y-auto">
+                {dailyProductDetails.length > 0 ? (
+                  dailyProductDetails.map((dayData, index) => (
+                    <div key={index} className="border-b last:border-b-0">
+                      <div className="bg-muted p-3 font-medium">
+                        {formatDate(dayData.date)}
+                      </div>
+                      <div className="p-2">
+                        {dayData.products.map((product, productIndex) => (
+                          <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                            <div className="flex-1">
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {product.quantity} {product.unit} × ₹{product.price_per_unit}
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {product.category}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">
+                                ₹{(product.quantity * product.price_per_unit).toFixed(2)}
+                              </div>
+                              <Badge 
+                                variant={product.payment_status === 'settled' ? 'default' : 'destructive'}
+                                className="text-xs"
+                              >
+                                {product.payment_status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4">No daily product data available</div>
+                )}
               </div>
             </div>
           </TabsContent>
           
           <TabsContent value="monthly" className="pt-4">
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={monthlyChartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value, name) => {
-                      const label = name === 'settled' ? 'Settled' : name === 'unsettled' ? 'Unsettled' : 'Total';
-                      return [`₹${value}`, label];
-                    }}
-                    labelFormatter={(label) => `Month: ${label}`}
-                  />
-                  <Legend />
-                  <Bar dataKey="settled" name="Settled" fill="#558B2F" />
-                  <Bar dataKey="unsettled" name="Unsettled" fill="#FF8F00" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-6">
-              <h4 className="text-sm font-medium mb-2">Monthly Transaction Details</h4>
-              <div className="border rounded-md max-h-60 overflow-y-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="text-left p-2">Month</th>
-                      <th className="text-right p-2">Settled (₹)</th>
-                      <th className="text-right p-2">Unsettled (₹)</th>
-                      <th className="text-right p-2">Total (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlyEarnings.length > 0 ? (
-                      monthlyEarnings.map((item, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
-                          <td className="text-left p-2">{formatMonth(item.month)}</td>
-                          <td className="text-right p-2 text-green-600">₹{(item.settledAmount || 0).toFixed(2)}</td>
-                          <td className="text-right p-2 text-orange-600">₹{(item.unsettledAmount || 0).toFixed(2)}</td>
-                          <td className="text-right p-2 font-medium">₹{item.amount.toFixed(2)}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="text-center p-4">No monthly earnings data available</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Monthly Product Summary</h4>
+              <div className="border rounded-md max-h-96 overflow-y-auto">
+                {monthlyProductSummary.length > 0 ? (
+                  monthlyProductSummary.map((monthData, index) => (
+                    <div key={index} className="border-b last:border-b-0">
+                      <div className="bg-muted p-3 font-medium">
+                        {formatMonth(monthData.month)}
+                      </div>
+                      <div className="p-2">
+                        {monthData.products.map((product, productIndex) => (
+                          <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                            <div className="flex-1">
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                Total: {product.quantity} {product.unit} | Transactions: {product.count}
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {product.category}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">
+                                ₹{product.totalAmount.toFixed(2)}
+                              </div>
+                              <Badge 
+                                variant={product.payment_status === 'settled' ? 'default' : 'destructive'}
+                                className="text-xs"
+                              >
+                                {product.payment_status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4">No monthly product data available</div>
+                )}
               </div>
             </div>
           </TabsContent>
