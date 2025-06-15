@@ -9,9 +9,14 @@ import { useTransactions } from '@/hooks/useTransactions';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
 import { Search, Receipt, Calendar, IndianRupee, User, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Transactions = () => {
   const { transactions, loading } = useTransactions();
+  const { hasPermission } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
@@ -45,9 +50,29 @@ const Transactions = () => {
   };
 
   const handleViewTransaction = (transaction: any) => {
+    if (!hasPermission('transactions', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to view transaction details",
+        variant: "destructive"
+      });
+      return;
+    }
     setSelectedTransaction(transaction);
     setIsDetailsDialogOpen(true);
   };
+
+  // Check if user has permission to view transactions
+  if (!hasPermission('transactions', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view transactions.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -193,16 +218,18 @@ const Transactions = () => {
                           {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewTransaction(transaction)}
-                            className="h-7 px-2"
-                            title="View Details"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            <span className="hidden sm:inline">View</span>
-                          </Button>
+                          <ProtectedAction resource="transactions" action="view">
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewTransaction(transaction)}
+                              className="h-7 px-2"
+                              title="View Details"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              <span className="hidden sm:inline">View</span>
+                            </Button>
+                          </ProtectedAction>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -215,11 +242,13 @@ const Transactions = () => {
       </div>
 
       {/* Transaction Details Dialog */}
-      <TransactionDetailsDialog
-        transaction={selectedTransaction}
-        open={isDetailsDialogOpen}
-        onOpenChange={setIsDetailsDialogOpen}
-      />
+      {hasPermission('transactions', 'view') && (
+        <TransactionDetailsDialog
+          transaction={selectedTransaction}
+          open={isDetailsDialogOpen}
+          onOpenChange={setIsDetailsDialogOpen}
+        />
+      )}
     </div>
   );
 };

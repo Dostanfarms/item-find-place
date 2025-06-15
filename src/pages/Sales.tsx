@@ -6,10 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Plus, ShoppingCart, Package } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useNavigate } from 'react-router-dom';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Sales = () => {
   const { products } = useProducts();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { toast } = useToast();
   
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +24,15 @@ const Sales = () => {
   );
 
   const addToCart = (product: any) => {
+    if (!hasPermission('sales', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create sales",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -33,10 +47,28 @@ const Sales = () => {
   };
 
   const removeFromCart = (productId: string) => {
+    if (!hasPermission('sales', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit sales",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setCart(prev => prev.filter(item => item.id !== productId));
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
+    if (!hasPermission('sales', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit sales",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
@@ -53,6 +85,15 @@ const Sales = () => {
   };
 
   const handleProceedToPayment = () => {
+    if (!hasPermission('sales', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create sales",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       return;
     }
@@ -73,6 +114,18 @@ const Sales = () => {
       }
     });
   };
+
+  // Check if user has permission to view sales
+  if (!hasPermission('sales', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view the sales dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col p-6">
@@ -109,13 +162,15 @@ const Sales = () => {
                       </p>
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm">₹{product.price_per_unit}</span>
-                        <Button 
-                          size="sm" 
-                          onClick={() => addToCart(product)}
-                          className="h-7 px-2"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+                        <ProtectedAction resource="sales" action="create">
+                          <Button 
+                            size="sm" 
+                            onClick={() => addToCart(product)}
+                            className="h-7 px-2"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </ProtectedAction>
                       </div>
                     </CardContent>
                   </Card>
@@ -148,23 +203,27 @@ const Sales = () => {
                           <p className="text-xs text-muted-foreground">₹{item.price_per_unit} each</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="h-6 w-6 p-0"
-                          >
-                            -
-                          </Button>
+                          <ProtectedAction resource="sales" action="edit">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="h-6 w-6 p-0"
+                            >
+                              -
+                            </Button>
+                          </ProtectedAction>
                           <span className="text-xs w-8 text-center">{item.quantity}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="h-6 w-6 p-0"
-                          >
-                            +
-                          </Button>
+                          <ProtectedAction resource="sales" action="edit">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="h-6 w-6 p-0"
+                            >
+                              +
+                            </Button>
+                          </ProtectedAction>
                         </div>
                       </div>
                     ))}
@@ -178,13 +237,15 @@ const Sales = () => {
                   <span>Total:</span>
                   <span>₹{getTotalAmount().toFixed(2)}</span>
                 </div>
-                <Button 
-                  onClick={handleProceedToPayment}
-                  className="w-full"
-                  disabled={cart.length === 0}
-                >
-                  Proceed to Payment
-                </Button>
+                <ProtectedAction resource="sales" action="create">
+                  <Button 
+                    onClick={handleProceedToPayment}
+                    className="w-full"
+                    disabled={cart.length === 0}
+                  >
+                    Proceed to Payment
+                  </Button>
+                </ProtectedAction>
               </div>
             </CardContent>
           </Card>

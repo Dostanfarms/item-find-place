@@ -9,9 +9,12 @@ import { useProducts, Product } from '@/hooks/useProducts';
 import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import GeneralProductForm from '@/components/GeneralProductForm';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
 
 const Products = () => {
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
@@ -24,11 +27,40 @@ const Products = () => {
   );
 
   const handleEditProduct = (product: Product) => {
+    if (!hasPermission('products', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit products",
+        variant: "destructive"
+      });
+      return;
+    }
     setSelectedProduct(product);
     setIsDialogOpen(true);
   };
 
+  const handleCreateProduct = () => {
+    if (!hasPermission('products', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create products",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsDialogOpen(true);
+  };
+
   const printBarcode = (product: Product) => {
+    if (!hasPermission('products', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to print barcodes",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.open();
@@ -109,6 +141,18 @@ const Products = () => {
     }
   };
 
+  // Check if user has permission to view products
+  if (!hasPermission('products', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view products.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -135,13 +179,17 @@ const Products = () => {
                 />
               </div>
               <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) setSelectedProduct(undefined);
+                if (!open) {
+                  setIsDialogOpen(false);
+                  setSelectedProduct(undefined);
+                }
               }}>
                 <DialogTrigger asChild>
-                  <Button className="bg-agri-primary hover:bg-agri-secondary">
-                    <Plus className="mr-2 h-4 w-4" /> Add Product
-                  </Button>
+                  <ProtectedAction resource="products" action="create">
+                    <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
+                      <Plus className="mr-2 h-4 w-4" /> Add Product
+                    </Button>
+                  </ProtectedAction>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                   <GeneralProductForm 
@@ -222,31 +270,35 @@ const Products = () => {
                               <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
                                 {product.barcode}
                               </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => printBarcode(product)}
-                                className="h-7 w-7 p-0 flex-shrink-0"
-                                title="Print Barcode"
-                              >
-                                <Printer className="h-3 w-3" />
-                              </Button>
+                              <ProtectedAction resource="products" action="view">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => printBarcode(product)}
+                                  className="h-7 w-7 p-0 flex-shrink-0"
+                                  title="Print Barcode"
+                                >
+                                  <Printer className="h-3 w-3" />
+                                </Button>
+                              </ProtectedAction>
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">No barcode</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditProduct(product)}
-                            className="h-7 px-2"
-                            title="Edit Product"
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </Button>
+                          <ProtectedAction resource="products" action="edit">
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditProduct(product)}
+                              className="h-7 px-2"
+                              title="Edit Product"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                          </ProtectedAction>
                         </TableCell>
                       </TableRow>
                     ))}

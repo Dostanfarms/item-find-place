@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import CustomerEditDialog from '@/components/customers/CustomerEditDialog';
 import CustomerOrdersDialog from '@/components/customers/CustomerOrdersDialog';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
 const Customers = () => {
   const {
     customers,
@@ -15,16 +20,44 @@ const Customers = () => {
     updateCustomer,
     deleteCustomer
   } = useCustomers();
+  const { hasPermission } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingOrders, setViewingOrders] = useState<Customer | null>(null);
 
   // Filter customers based on search term - now includes mobile number
-  const filteredCustomers = customers.filter(customer => customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()) || customer.mobile.includes(searchTerm));
+  const filteredCustomers = customers.filter(customer => 
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    customer.mobile.includes(searchTerm)
+  );
+
   const handleDeleteCustomer = async (customerId: string) => {
-    await deleteCustomer(customerId);
+    if (!hasPermission('customers', 'delete')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to delete customers",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      await deleteCustomer(customerId);
+    }
   };
+
   const handleEditCustomer = async (updatedCustomer: Customer) => {
+    if (!hasPermission('customers', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit customers",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Convert Customer to the format expected by updateCustomer
     const customerUpdate = {
       id: updatedCustomer.id,
@@ -39,11 +72,49 @@ const Customers = () => {
       setEditingCustomer(null);
     }
   };
+
+  const handleViewOrders = (customer: Customer) => {
+    if (!hasPermission('customers', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to view customer orders",
+        variant: "destructive"
+      });
+      return;
+    }
+    setViewingOrders(customer);
+  };
+
+  const handleEditClick = (customer: Customer) => {
+    if (!hasPermission('customers', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit customers",
+        variant: "destructive"
+      });
+      return;
+    }
+    setEditingCustomer(customer);
+  };
+
+  // Check if user has permission to view customers
+  if (!hasPermission('customers', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view customers.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-96">
         <div className="text-muted-foreground text-lg">Loading customers...</div>
       </div>;
   }
+
   return <div className="min-h-screen w-full flex flex-col bg-gray-50">
       {/* Fixed Header */}
       <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
@@ -110,15 +181,21 @@ const Customers = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            <Button variant="outline" size="sm" onClick={() => setViewingOrders(customer)} title="View Orders" className="h-7 w-7 p-0">
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setEditingCustomer(customer)} title="Edit Customer" className="h-7 w-7 p-0">
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteCustomer(customer.id)} title="Delete Customer" className="h-7 w-7 p-0">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <ProtectedAction resource="customers" action="view">
+                              <Button variant="outline" size="sm" onClick={() => handleViewOrders(customer)} title="View Orders" className="h-7 w-7 p-0">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </ProtectedAction>
+                            <ProtectedAction resource="customers" action="edit">
+                              <Button variant="outline" size="sm" onClick={() => handleEditClick(customer)} title="Edit Customer" className="h-7 w-7 p-0">
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </ProtectedAction>
+                            <ProtectedAction resource="customers" action="delete">
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteCustomer(customer.id)} title="Delete Customer" className="h-7 w-7 p-0">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </ProtectedAction>
                           </div>
                         </TableCell>
                       </TableRow>)}
@@ -130,10 +207,15 @@ const Customers = () => {
       </div>
 
       {/* Edit Customer Dialog */}
-      {editingCustomer && <CustomerEditDialog customer={editingCustomer} open={!!editingCustomer} onClose={() => setEditingCustomer(null)} onSave={handleEditCustomer} />}
+      {editingCustomer && hasPermission('customers', 'edit') && (
+        <CustomerEditDialog customer={editingCustomer} open={!!editingCustomer} onClose={() => setEditingCustomer(null)} onSave={handleEditCustomer} />
+      )}
 
       {/* View Orders Dialog */}
-      {viewingOrders && <CustomerOrdersDialog customer={viewingOrders} open={!!viewingOrders} onClose={() => setViewingOrders(null)} />}
+      {viewingOrders && hasPermission('customers', 'view') && (
+        <CustomerOrdersDialog customer={viewingOrders} open={!!viewingOrders} onClose={() => setViewingOrders(null)} />
+      )}
     </div>;
 };
+
 export default Customers;

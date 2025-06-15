@@ -7,14 +7,26 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
 
 const TicketsPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const { tickets, updateTicket, loading } = useTickets();
 
   const handleUpdateTicket = async (ticketId: string, updatedData: any) => {
+    if (!hasPermission('tickets', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit tickets",
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('Updating ticket from admin:', ticketId, updatedData);
     
     const result = await updateTicket(ticketId, updatedData);
@@ -26,6 +38,18 @@ const TicketsPage: React.FC = () => {
       });
     }
   };
+
+  // Check if user has permission to view tickets
+  if (!hasPermission('tickets', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view tickets.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 min-h-screen max-h-screen flex flex-col">
@@ -85,11 +109,13 @@ const TicketsPage: React.FC = () => {
       )}
       
       <ScrollArea className="flex-1 overflow-y-auto">
-        <TicketManagement 
-          tickets={tickets} 
-          onUpdateTicket={handleUpdateTicket}
-          loading={loading}
-        />
+        <ProtectedAction resource="tickets" action="view">
+          <TicketManagement 
+            tickets={tickets} 
+            onUpdateTicket={handleUpdateTicket}
+            loading={loading}
+          />
+        </ProtectedAction>
       </ScrollArea>
     </div>
   );

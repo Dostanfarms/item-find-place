@@ -10,9 +10,14 @@ import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { Search, Plus, User, Edit, Eye } from 'lucide-react';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Farmers = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | undefined>(undefined);
@@ -37,9 +42,25 @@ const Farmers = () => {
     
     if (selectedFarmer) {
       // Update existing farmer
+      if (!hasPermission('farmers', 'edit')) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to edit farmers",
+          variant: "destructive"
+        });
+        return;
+      }
       result = await updateFarmer(farmerData.id, farmerData);
     } else {
       // Add new farmer
+      if (!hasPermission('farmers', 'create')) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to create farmers",
+          variant: "destructive"
+        });
+        return;
+      }
       result = await addFarmer(farmerData);
     }
     
@@ -50,9 +71,53 @@ const Farmers = () => {
   };
 
   const handleEditFarmer = (farmer: Farmer) => {
+    if (!hasPermission('farmers', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit farmers",
+        variant: "destructive"
+      });
+      return;
+    }
     setSelectedFarmer(farmer);
     setIsDialogOpen(true);
   };
+
+  const handleViewFarmer = (farmer: Farmer) => {
+    if (!hasPermission('farmers', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to view farmer details",
+        variant: "destructive"
+      });
+      return;
+    }
+    navigate(`/farmer/${farmer.id}`);
+  };
+
+  const handleCreateFarmer = () => {
+    if (!hasPermission('farmers', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create farmers",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsDialogOpen(true);
+  };
+
+  // Check if user has permission to view farmers
+  if (!hasPermission('farmers', 'view')) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">You don't have permission to view farmers.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -80,13 +145,17 @@ const Farmers = () => {
                 />
               </div>
               <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) setSelectedFarmer(undefined);
+                if (!open) {
+                  setIsDialogOpen(false);
+                  setSelectedFarmer(undefined);
+                }
               }}>
                 <DialogTrigger asChild>
-                  <Button className="bg-agri-primary hover:bg-agri-secondary">
-                    <Plus className="mr-2 h-4 w-4" /> Add Farmer
-                  </Button>
+                  <ProtectedAction resource="farmers" action="create">
+                    <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateFarmer}>
+                      <Plus className="mr-2 h-4 w-4" /> Add Farmer
+                    </Button>
+                  </ProtectedAction>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                   <FarmerForm 
@@ -173,24 +242,28 @@ const Farmers = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/farmer/${farmer.id}`)}
-                              title="View Details"
-                              className="h-7 w-7 p-0"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditFarmer(farmer)}
-                              title="Edit Farmer"
-                              className="h-7 w-7 p-0"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
+                            <ProtectedAction resource="farmers" action="view">
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewFarmer(farmer)}
+                                title="View Details"
+                                className="h-7 w-7 p-0"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </ProtectedAction>
+                            <ProtectedAction resource="farmers" action="edit">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditFarmer(farmer)}
+                                title="Edit Farmer"
+                                className="h-7 w-7 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </ProtectedAction>
                           </div>
                         </TableCell>
                       </TableRow>
