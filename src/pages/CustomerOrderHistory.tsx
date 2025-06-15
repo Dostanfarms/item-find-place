@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -209,7 +208,6 @@ const CustomerOrderHistory = () => {
       {/* Order Details Dialog */}
       <OrderDetailsDialog
         order={selectedOrder}
-        items={selectedOrderItems}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
