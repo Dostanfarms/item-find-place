@@ -10,8 +10,8 @@ export interface Product {
   price_per_unit: number;
   category: string;
   barcode?: string;
-  image_url?: string; // This will store JSON array of image URLs
-  is_active?: boolean;
+  image_url?: string;
+  is_active: boolean; // now required
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +41,7 @@ export const useProducts = () => {
     }
   };
 
+  // Note: the form always sends is_active, so no changes needed here except for the type
   const addProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding product:', productData);
@@ -56,7 +57,6 @@ export const useProducts = () => {
       }
 
       console.log('Product added successfully:', data);
-      // Immediately update the local state instead of refetching
       setProducts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       return { success: true, data };
     } catch (error) {
@@ -68,10 +68,9 @@ export const useProducts = () => {
   const updateProduct = async (id: string, productData: Partial<Product>) => {
     try {
       console.log('Updating product:', id, productData);
-      
-      // Create update object with only the fields that can be updated
+
+      // Only update fields present in the productData object
       const updateData: any = {};
-      
       if (productData.name !== undefined) updateData.name = productData.name;
       if (productData.quantity !== undefined) updateData.quantity = productData.quantity;
       if (productData.unit !== undefined) updateData.unit = productData.unit;
@@ -94,11 +93,10 @@ export const useProducts = () => {
       }
 
       console.log('Product updated successfully:', data);
-      // Immediately update the local state instead of refetching
+
       setProducts(prev => 
-        prev.map(product => 
-          product.id === id ? data : product
-        ).sort((a, b) => a.name.localeCompare(b.name))
+        prev.map(product => product.id === id ? data : product)
+        .sort((a, b) => a.name.localeCompare(b.name))
       );
       return { success: true, data };
     } catch (error) {
