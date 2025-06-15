@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -127,6 +126,9 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     }
   };
 
+  // Check if order status allows printing
+  const canPrintInvoice = order?.status?.toLowerCase() === 'delivered' || order?.status?.toLowerCase() === 'completed';
+
   if (!order) return null;
 
   return (
@@ -207,16 +209,18 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </CardContent>
           </Card>
 
-          {/* Print Button */}
-          <div className="flex justify-center pt-4">
-            <Button 
-              onClick={handlePrintInvoice}
-              className="flex items-center gap-2 bg-agri-primary hover:bg-agri-secondary"
-            >
-              <Printer className="h-4 w-4" />
-              Print Invoice
-            </Button>
-          </div>
+          {/* Print Button - Only show when order is delivered/completed */}
+          {canPrintInvoice && (
+            <div className="flex justify-center pt-4">
+              <Button 
+                onClick={handlePrintInvoice}
+                className="flex items-center gap-2 bg-agri-primary hover:bg-agri-secondary"
+              >
+                <Printer className="h-4 w-4" />
+                Print Invoice
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
