@@ -234,7 +234,7 @@ const FarmerDashboard = () => {
                 <span>View Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSettlementsClick}>
-                <DollarSign className="mr-2 h-4 w-4" />
+                <IndianRupee className="mr-2 h-4 w-4" />
                 <span>My Settlements</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTicketsClick}>
@@ -390,7 +390,7 @@ const FarmerDashboard = () => {
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <IndianRupee className="h-5 w-5" />
                 My Settlements
               </DialogTitle>
             </DialogHeader>

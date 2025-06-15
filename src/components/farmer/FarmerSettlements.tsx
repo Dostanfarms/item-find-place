@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { FarmerProduct } from '@/hooks/useFarmerProducts';
-import { DollarSign, Eye, Image, Package } from 'lucide-react';
+import { IndianRupee, Eye, Image, Package } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface FarmerSettlementsProps {
@@ -64,7 +64,7 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <IndianRupee className="h-5 w-5" />
             My Settlements
           </CardTitle>
         </CardHeader>
@@ -82,13 +82,13 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <IndianRupee className="h-5 w-5" />
             My Settlements
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <IndianRupee className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">No settlements found</p>
           </div>
         </CardContent>
@@ -101,7 +101,7 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <IndianRupee className="h-5 w-5" />
             My Settlements ({settlementGroups.length})
           </CardTitle>
         </CardHeader>

@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, DollarSign } from 'lucide-react';
+import { Search, IndianRupee } from 'lucide-react';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { useFarmers } from '@/hooks/useFarmers';
 import SettlementModal from '@/components/SettlementModal';
@@ -133,7 +132,7 @@ const Settlements = () => {
       <div className="flex-1 p-4 md:p-6">
         {farmerSummaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-300px)] bg-white rounded-lg border">
-            <DollarSign className="h-16 w-16 text-muted-foreground mb-6" />
+            <IndianRupee className="h-16 w-16 text-muted-foreground mb-6" />
             {searchTerm ? (
               <>
                 <h3 className="text-xl font-medium mb-2">No farmers found</h3>
@@ -199,7 +198,7 @@ const Settlements = () => {
                                 onClick={() => handleSettlePayment(summary)}
                                 className="h-7 px-2 bg-green-600 hover:bg-green-700"
                               >
-                                <DollarSign className="h-3 w-3 mr-1" />
+                                <IndianRupee className="h-3 w-3 mr-1" />
                                 Settle
                               </Button>
                             )}
