@@ -103,7 +103,7 @@ const CustomerHome = () => {
       </div>
 
       {/* Banner Slider */}
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-4">
         <div className="relative overflow-hidden rounded-lg">
           <div 
             className="flex transition-transform duration-500 ease-in-out"
@@ -114,7 +114,7 @@ const CustomerHome = () => {
                 <img 
                   src={banner} 
                   alt={`Banner ${index + 1}`}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-55 object-cover rounded-lg"
                 />
               </div>
             ))}
@@ -136,7 +136,7 @@ const CustomerHome = () => {
       </div>
 
       {/* Main content area */}
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-4">
         {/* Content can be added here later */}
       </div>
     </div>
