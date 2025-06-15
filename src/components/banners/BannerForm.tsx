@@ -49,10 +49,12 @@ const BannerForm: React.FC<BannerFormProps> = ({ banner, onSuccess, onCancel }) 
   const onSubmit = async (data: BannerFormData) => {
     try {
       const bannerData = {
-        ...data,
+        name: data.name,
         image_url: data.image_url || undefined,
         video_url: data.video_url || undefined,
         redirect_url: data.redirect_url || undefined,
+        is_active: data.is_active,
+        display_order: data.display_order,
       };
 
       if (banner) {
