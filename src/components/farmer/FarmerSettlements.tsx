@@ -46,11 +46,14 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
     
     return Array.from(groups.entries()).map(([date, products]) => {
       const totalAmount = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+      // Get the first product's transaction image as the settlement receipt
+      const settlementReceipt = products.find(p => p.transaction_image)?.transaction_image;
       return {
         date,
         products,
         totalAmount,
-        productCount: products.length
+        productCount: products.length,
+        settlementReceipt
       };
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [settledProducts]);
@@ -117,13 +120,26 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
                     {settlement.productCount} product(s) settled
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">
-                    ₹{settlement.totalAmount.toFixed(2)}
-                  </p>
-                  <Badge variant="default" className="bg-green-600">
-                    Settled
-                  </Badge>
+                <div className="text-right flex items-center gap-4">
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      ₹{settlement.totalAmount.toFixed(2)}
+                    </p>
+                    <Badge variant="default" className="bg-green-600">
+                      Settled
+                    </Badge>
+                  </div>
+                  {settlement.settlementReceipt && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleImageClick(settlement.settlementReceipt!)}
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      View Receipt
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -131,11 +147,9 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product Name</TableHead>
-                    <TableHead>Category</TableHead>
                     <TableHead>Quantity</TableHead>
                     <TableHead>Price/Unit</TableHead>
                     <TableHead>Total Value</TableHead>
-                    <TableHead>Payment Receipt</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -143,29 +157,11 @@ const FarmerSettlements = ({ products, loading }: FarmerSettlementsProps) => {
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{product.category}</Badge>
-                      </TableCell>
-                      <TableCell>
                         {product.quantity} {product.unit}
                       </TableCell>
                       <TableCell>₹{product.price_per_unit.toFixed(2)}</TableCell>
                       <TableCell className="font-medium">
                         ₹{(product.quantity * product.price_per_unit).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        {product.transaction_image ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleImageClick(product.transaction_image!)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            View Receipt
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No receipt</span>
-                        )}
                       </TableCell>
                     </TableRow>
                   ))}
