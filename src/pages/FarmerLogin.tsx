@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff } from 'lucide-react';
+import { Package, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -125,6 +125,15 @@ const FarmerLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 flex flex-col items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute left-4 top-4 transition-transform duration-200 hover:scale-110" 
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back</span>
+          </Button>
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-6 w-6 text-agri-primary" />
             <span className="text-lg font-bold">DostanFarms</span>
