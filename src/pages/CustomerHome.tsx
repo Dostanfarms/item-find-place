@@ -72,7 +72,7 @@ const CustomerHome = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              
               Welcome, {customer.name}!
             </CardTitle>
           </CardHeader>
