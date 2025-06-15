@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
-import { Search, Receipt, Calendar, IndianRupee, User, Eye } from 'lucide-react';
+import { Search, Receipt, Calendar as CalendarIcon, IndianRupee, User, Eye } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
 
 const Transactions = () => {
   const { transactions, loading } = useTransactions();
@@ -111,12 +112,12 @@ const Transactions = () => {
                   variant={"outline"}
                   className="w-[180px] justify-start text-left font-normal"
                 >
-                  <Calendar className="mr-2 h-4 w-4 opacity-50" />
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                   {selectedDate ? format(selectedDate, "PPP") : <span>Date filter</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-auto p-0">
-                <Calendar
+                <DatePickerCalendar
                   mode="single"
                   selected={selectedDate ?? undefined}
                   onSelect={(date) => setSelectedDate(date ?? null)}
@@ -182,7 +183,7 @@ const Transactions = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Transaction</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
