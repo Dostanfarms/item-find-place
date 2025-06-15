@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +52,7 @@ const CustomerPayment = () => {
     const customerData = JSON.parse(currentCustomer);
     setCustomer(customerData);
     
-    // Pre-fill shipping address with customer data
+    // Auto-fill shipping address with customer data
     setShippingAddress({
       fullName: customerData.name || '',
       mobile: customerData.mobile || '',
@@ -61,6 +62,19 @@ const CustomerPayment = () => {
       state: '',
       pincode: customerData.pincode || ''
     });
+
+    // If pincode exists, fetch location data
+    if (customerData.pincode && customerData.pincode.length === 6) {
+      fetchLocationFromPincode(customerData.pincode).then(locationData => {
+        if (locationData) {
+          setShippingAddress(prev => ({
+            ...prev,
+            city: locationData.city,
+            state: locationData.state
+          }));
+        }
+      });
+    }
   }, [navigate]);
 
   // Fetch coupons for the customer using their mobile number
@@ -303,290 +317,286 @@ const CustomerPayment = () => {
           <h1 className="text-2xl font-bold">Checkout</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Shipping & Payment Details */}
-          <div className="space-y-6">
-            {/* Shipping Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Shipping Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fullName">Full Name *</Label>
-                    <Input
-                      id="fullName"
-                      value={shippingAddress.fullName}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, fullName: e.target.value }))}
-                      placeholder="Enter full name"
-                      disabled={isProcessing}
-                    />
+        <div className="space-y-6">
+          {/* Order Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Order Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {items.map((item, index) => (
+                  <div key={`${item.productId}-${index}`} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{item.name}</h4>
+                      <p className="text-sm text-muted-foreground">₹{item.pricePerUnit} × {item.quantity}</p>
+                    </div>
+                    <span className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</span>
                   </div>
-                  <div>
-                    <Label htmlFor="mobile">Mobile Number *</Label>
-                    <Input
-                      id="mobile"
-                      value={shippingAddress.mobile}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, mobile: e.target.value }))}
-                      placeholder="Enter mobile number"
-                      disabled={isProcessing}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="address">Address *</Label>
-                  <Input
-                    id="address"
-                    value={shippingAddress.address}
-                    onChange={(e) => setShippingAddress(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="Enter complete address"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="landmark">Landmark *</Label>
-                  <Input
-                    id="landmark"
-                    value={shippingAddress.landmark}
-                    onChange={(e) => setShippingAddress(prev => ({ ...prev, landmark: e.target.value }))}
-                    placeholder="Enter landmark (e.g., Near City Mall)"
-                    disabled={isProcessing}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="pincode">Pincode *</Label>
-                    <Input
-                      id="pincode"
-                      value={shippingAddress.pincode}
-                      onChange={(e) => handlePincodeChange(e.target.value)}
-                      placeholder="Enter pincode"
-                      disabled={isProcessing}
-                      maxLength={6}
-                    />
-                    {isPincodeLoading && (
-                      <p className="text-sm text-blue-600 mt-1">Fetching location...</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={shippingAddress.city}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="City (auto-filled)"
-                      disabled={isProcessing}
-                      className={shippingAddress.city ? "bg-green-50 border-green-300" : ""}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State *</Label>
-                    <Input
-                      id="state"
-                      value={shippingAddress.state}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder="State (auto-filled)"
-                      disabled={isProcessing}
-                      className={shippingAddress.state ? "bg-green-50 border-green-300" : ""}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
 
-            {/* Payment Methods */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PaymentMethods
-                  total={finalTotal}
-                  onPaymentMethodSelect={handlePaymentMethodSelect}
-                  onQRPaymentComplete={handleQRPaymentComplete}
-                  disabled={isProcessing}
-                />
-                {paymentMethod && (
-                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">
-                      ✓ Payment method selected: {paymentMethod.toUpperCase()}
-                    </p>
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>₹{totalPrice.toFixed(2)}</span>
+                </div>
+                
+                {calculateDiscount() > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coupon Discount:</span>
+                    <span>-₹{calculateDiscount().toFixed(2)}</span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                
+                <div className="flex justify-between">
+                  <span>Shipping:</span>
+                  <span className="text-green-600">Free</span>
+                </div>
+                
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>₹{finalTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Coupons */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
-                  Apply Coupon
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {couponsLoading ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">Loading available coupons...</p>
-                  </div>
-                ) : activeCoupons.length > 0 ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-green-600 font-medium">
-                      🎉 You have {activeCoupons.length} coupon{activeCoupons.length > 1 ? 's' : ''} available! 
-                      {activeCoupons.length > 1 && ' (Select one to apply)'}
-                    </p>
-                    
-                    {/* Show all available coupons */}
-                    <div className="space-y-3">
-                      <div className="grid gap-3">
+          {/* Coupons */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5" />
+                Apply Coupon
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {couponsLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">Loading available coupons...</p>
+                </div>
+              ) : activeCoupons.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-green-600 font-medium">
+                    🎉 You have {activeCoupons.length} coupon{activeCoupons.length > 1 ? 's' : ''} available! 
+                    {activeCoupons.length > 1 && ' (Select one to apply)'}
+                  </p>
+                  
+                  {/* Show all available coupons */}
+                  <div className="space-y-3">
+                    <div className="grid gap-3">
+                      <div 
+                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                          selectedCoupon === 'none' 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedCoupon('none')}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">No Coupon</span>
+                          <div className="flex items-center gap-2">
+                            {selectedCoupon === 'none' && (
+                              <Badge variant="default" className="bg-blue-500">Selected</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {activeCoupons.map((coupon) => (
                         <div 
+                          key={coupon.id}
                           className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                            selectedCoupon === 'none' 
-                              ? 'border-blue-500 bg-blue-50' 
+                            selectedCoupon === coupon.id 
+                              ? 'border-green-500 bg-green-50' 
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
-                          onClick={() => setSelectedCoupon('none')}
+                          onClick={() => setSelectedCoupon(coupon.id)}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">No Coupon</span>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-lg text-green-700">{coupon.code}</span>
                             <div className="flex items-center gap-2">
-                              {selectedCoupon === 'none' && (
-                                <Badge variant="default" className="bg-blue-500">Selected</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {coupon.discount_type === 'percentage' 
+                                  ? `${coupon.discount_value}% OFF` 
+                                  : `₹${coupon.discount_value} OFF`
+                                }
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {coupon.target_type}
+                              </Badge>
+                              {selectedCoupon === coupon.id && (
+                                <Badge variant="default" className="bg-green-500">Selected</Badge>
                               )}
                             </div>
                           </div>
-                        </div>
-                        
-                        {activeCoupons.map((coupon) => (
-                          <div 
-                            key={coupon.id}
-                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                              selectedCoupon === coupon.id 
-                                ? 'border-green-500 bg-green-50' 
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                            onClick={() => setSelectedCoupon(coupon.id)}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-lg text-green-700">{coupon.code}</span>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="text-xs">
-                                  {coupon.discount_type === 'percentage' 
-                                    ? `${coupon.discount_value}% OFF` 
-                                    : `₹${coupon.discount_value} OFF`
-                                  }
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  {coupon.target_type}
-                                </Badge>
-                                {selectedCoupon === coupon.id && (
-                                  <Badge variant="default" className="bg-green-500">Selected</Badge>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              {coupon.discount_type === 'percentage' 
-                                ? `Get ${coupon.discount_value}% discount on your order`
-                                : `Get ₹${coupon.discount_value} off your order`
-                              }
-                              {coupon.max_discount_limit && coupon.discount_type === 'percentage' && 
-                                ` (Max ₹${coupon.max_discount_limit})`
-                              }
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Valid until {new Date(coupon.expiry_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {selectedCoupon && selectedCoupon !== 'none' && (
-                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                          <div className="flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-green-600" />
-                            <span className="font-medium text-green-600">
-                              Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
-                            </span>
-                          </div>
-                          <p className="text-sm text-green-600 mt-1">
-                            You save ₹{calculateDiscount().toFixed(2)} on this order!
+                          <p className="text-sm text-gray-600">
+                            {coupon.discount_type === 'percentage' 
+                              ? `Get ${coupon.discount_value}% discount on your order`
+                              : `Get ₹${coupon.discount_value} off your order`
+                            }
+                            {coupon.max_discount_limit && coupon.discount_type === 'percentage' && 
+                              ` (Max ₹${coupon.max_discount_limit})`
+                            }
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Valid until {new Date(coupon.expiry_date).toLocaleDateString()}
                           </p>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">
-                      No active coupons available for your mobile number ({customer.mobile})
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Summary */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {items.map((item, index) => (
-                    <div key={`${item.productId}-${index}`} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">₹{item.pricePerUnit} × {item.quantity}</p>
+                    
+                    {selectedCoupon && selectedCoupon !== 'none' && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-green-600">
+                            Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-600 mt-1">
+                          You save ₹{calculateDiscount().toFixed(2)} on this order!
+                        </p>
                       </div>
-                      <span className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>₹{totalPrice.toFixed(2)}</span>
-                  </div>
-                  
-                  {calculateDiscount() > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Coupon Discount:</span>
-                      <span>-₹{calculateDiscount().toFixed(2)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between">
-                    <span>Shipping:</span>
-                    <span className="text-green-600">Free</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Total:</span>
-                    <span>₹{finalTotal.toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    No active coupons available for your mobile number ({customer.mobile})
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={handlePlaceOrder}
+          {/* Shipping Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Shipping Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    value={shippingAddress.fullName}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Enter full name"
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="mobile">Mobile Number *</Label>
+                  <Input
+                    id="mobile"
+                    value={shippingAddress.mobile}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, mobile: e.target.value }))}
+                    placeholder="Enter mobile number"
+                    disabled={isProcessing}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="address">Address *</Label>
+                <Input
+                  id="address"
+                  value={shippingAddress.address}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Enter complete address"
                   disabled={isProcessing}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {isProcessing ? 'Processing...' : 'Place Order'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                />
+              </div>
+              <div>
+                <Label htmlFor="landmark">Landmark *</Label>
+                <Input
+                  id="landmark"
+                  value={shippingAddress.landmark}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                  placeholder="Enter landmark (e.g., Near City Mall)"
+                  disabled={isProcessing}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="pincode">Pincode *</Label>
+                  <Input
+                    id="pincode"
+                    value={shippingAddress.pincode}
+                    onChange={(e) => handlePincodeChange(e.target.value)}
+                    placeholder="Enter pincode"
+                    disabled={isProcessing}
+                    maxLength={6}
+                  />
+                  {isPincodeLoading && (
+                    <p className="text-sm text-blue-600 mt-1">Fetching location...</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    value={shippingAddress.city}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="City (auto-filled)"
+                    disabled={isProcessing}
+                    className={shippingAddress.city ? "bg-green-50 border-green-300" : ""}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    value={shippingAddress.state}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                    placeholder="State (auto-filled)"
+                    disabled={isProcessing}
+                    className={shippingAddress.state ? "bg-green-50 border-green-300" : ""}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Methods */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PaymentMethods
+                total={finalTotal}
+                onPaymentMethodSelect={handlePaymentMethodSelect}
+                onQRPaymentComplete={handleQRPaymentComplete}
+                disabled={isProcessing}
+              />
+              {paymentMethod && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-600 font-medium">
+                    ✓ Payment method selected: {paymentMethod.toUpperCase()}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Place Order Button */}
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700"
+            onClick={handlePlaceOrder}
+            disabled={isProcessing}
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            {isProcessing ? 'Processing...' : 'Place Order'}
+          </Button>
         </div>
       </div>
     </div>
