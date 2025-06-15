@@ -6,16 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, IndianRupee, Receipt } from 'lucide-react';
+import { Search, IndianRupee, Receipt, Eye } from 'lucide-react';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { useFarmers } from '@/hooks/useFarmers';
 import SettlementModal from '@/components/SettlementModal';
+import FarmerPaymentDetailsModal from '@/components/FarmerPaymentDetailsModal';
 
 const Settlements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
+  const [selectedFarmerDetails, setSelectedFarmerDetails] = useState(null);
+  const [isFarmerDetailsOpen, setIsFarmerDetailsOpen] = useState(false);
   
   // Fetch all products (no farmerId provided to get all farmer products)
   const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
@@ -91,10 +94,17 @@ const Settlements = () => {
     return Array.from(summaries.values()).sort((a, b) => b.unsettledAmount - a.unsettledAmount);
   }, [filteredProducts, farmerMap]);
 
+  const handleViewFarmerDetails = (farmerSummary) => {
+    console.log('Opening farmer details for:', farmerSummary.farmer.name);
+    setSelectedFarmerDetails(farmerSummary);
+    setIsFarmerDetailsOpen(true);
+  };
+
   const handleSettlePayment = (farmerSummary) => {
     console.log('Opening settlement modal for:', farmerSummary.farmer.name);
     setSelectedFarmer(farmerSummary);
     setIsSettlementModalOpen(true);
+    setIsFarmerDetailsOpen(false);
   };
 
   const handleViewReceipt = (receiptUrl: string) => {
@@ -202,29 +212,15 @@ const Settlements = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end">
-                            {summary.unsettledAmount > 0 ? (
-                              <Button 
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleSettlePayment(summary)}
-                                className="h-7 px-2 bg-green-600 hover:bg-green-700"
-                              >
-                                <IndianRupee className="h-3 w-3 mr-1" />
-                                Settle
-                              </Button>
-                            ) : summary.settlementReceipt ? (
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewReceipt(summary.settlementReceipt)}
-                                className="h-7 px-2"
-                              >
-                                <Receipt className="h-3 w-3 mr-1" />
-                                View Receipt
-                              </Button>
-                            ) : null}
-                          </div>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewFarmerDetails(summary)}
+                            className="h-7 px-2"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -235,6 +231,21 @@ const Settlements = () => {
           </Card>
         )}
       </div>
+
+      {/* Farmer Details Modal */}
+      {selectedFarmerDetails && (
+        <FarmerPaymentDetailsModal
+          farmer={selectedFarmerDetails.farmer}
+          products={selectedFarmerDetails.products}
+          open={isFarmerDetailsOpen}
+          onClose={() => {
+            setIsFarmerDetailsOpen(false);
+            setSelectedFarmerDetails(null);
+          }}
+          onSettle={handleSettlePayment}
+          onViewReceipt={handleViewReceipt}
+        />
+      )}
 
       {/* Settlement Modal */}
       {selectedFarmer && (
