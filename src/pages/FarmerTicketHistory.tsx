@@ -78,7 +78,8 @@ const FarmerTicketHistory = () => {
     const completeTicketData = {
       ...ticketData,
       assigned_to: null,
-      resolution: null
+      resolution: null,
+      attachment_url: ticketData.attachment_url || null
     };
     
     const result = await addTicket(completeTicketData);
