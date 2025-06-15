@@ -27,7 +27,7 @@ import { getAccessibleResources } from '@/utils/employeeData';
 
 const ManageMenu = () => {
   const location = useLocation();
-  const { currentUser, hasPermission } = useAuth();
+  const { currentUser } = useAuth();
   const { state } = useSidebar();
   const [manageOpen, setManageOpen] = useState(false);
 
@@ -38,7 +38,7 @@ const ManageMenu = () => {
     }
   }, [location.pathname]);
 
-  // Items in the "Manage" section - removed Products, Coupons, Categories, Banners, Employees, Roles
+  // Items in the "Manage" section
   const manageItems = [
     {
       title: 'Orders',
@@ -77,8 +77,12 @@ const ManageMenu = () => {
     ? manageItems.filter(item => accessibleResources.includes(item.resource))
     : manageItems;
 
-  // Check if user has permission to view the Manage section
-  if (!hasPermission('manage', 'view') || filteredManageItems.length === 0) {
+  console.log('ManageMenu - Current user:', currentUser);
+  console.log('ManageMenu - Accessible resources:', accessibleResources);
+  console.log('ManageMenu - Filtered manage items:', filteredManageItems);
+
+  // Show the Manage section if user has access to any manage items
+  if (!currentUser || filteredManageItems.length === 0) {
     return null;
   }
 
