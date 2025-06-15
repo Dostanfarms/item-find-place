@@ -5,18 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Package, User, LogOut, Ticket } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useActiveBanners } from '@/hooks/useBanners';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<any>(null);
   const [currentBanner, setCurrentBanner] = useState(0);
-
-  const banners = [
-    'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=400&q=80',
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=400&q=80',
-    'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=400&q=80',
-    'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=400&q=80'
-  ];
+  const { data: banners, isLoading: bannersLoading } = useActiveBanners();
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
@@ -28,23 +23,18 @@ const CustomerHome = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [banners.length]);
+    if (banners && banners.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentBanner((prev) => (prev + 1) % banners.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [banners]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentCustomer');
-    navigate('/customer-login');
-  };
-
-  const handleProfileClick = () => {
-    navigate('/customer-profile');
-  };
-
-  const handleTicketsClick = () => {
-    navigate('/customer-tickets');
+  const handleBannerClick = (banner: any) => {
+    if (banner.redirect_url) {
+      window.open(banner.redirect_url, '_blank');
+    }
   };
 
   if (!customer) {
@@ -104,35 +94,62 @@ const CustomerHome = () => {
 
       {/* Banner Slider */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="relative overflow-hidden rounded-lg">
-          <div 
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentBanner * 100}%)` }}
-          >
-            {banners.map((banner, index) => (
-              <div key={index} className="w-full flex-shrink-0">
-                <img 
-                  src={banner} 
-                  alt={`Banner ${index + 1}`}
-                  className="w-full h-55 object-cover rounded-lg"
+        {bannersLoading ? (
+          <div className="relative overflow-hidden rounded-lg h-55 bg-gray-200 animate-pulse">
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-gray-500">Loading banners...</span>
+            </div>
+          </div>
+        ) : banners && banners.length > 0 ? (
+          <div className="relative overflow-hidden rounded-lg">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentBanner * 100}%)` }}
+            >
+              {banners.map((banner, index) => (
+                <div 
+                  key={banner.id} 
+                  className="w-full flex-shrink-0 cursor-pointer"
+                  onClick={() => handleBannerClick(banner)}
+                >
+                  {banner.image_url && (
+                    <img 
+                      src={banner.image_url} 
+                      alt={banner.name}
+                      className="w-full h-55 object-cover rounded-lg"
+                    />
+                  )}
+                  {banner.video_url && !banner.image_url && (
+                    <video 
+                      src={banner.video_url}
+                      className="w-full h-55 object-cover rounded-lg"
+                      autoPlay
+                      muted
+                      loop
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Banner indicators */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {banners.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentBanner ? 'bg-white' : 'bg-white/50'
+                  }`}
+                  onClick={() => setCurrentBanner(index)}
                 />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          
-          {/* Banner indicators */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentBanner ? 'bg-white' : 'bg-white/50'
-                }`}
-                onClick={() => setCurrentBanner(index)}
-              />
-            ))}
+        ) : (
+          <div className="relative overflow-hidden rounded-lg h-55 bg-gray-100 flex items-center justify-center">
+            <span className="text-gray-500">No banners available</span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Main content area */}

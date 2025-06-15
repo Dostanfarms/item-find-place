@@ -30,6 +30,22 @@ export const useBanners = () => {
   });
 };
 
+export const useActiveBanners = () => {
+  return useQuery({
+    queryKey: ['banners', 'active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return data as Banner[];
+    },
+  });
+};
+
 export const useCreateBanner = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
