@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Smartphone, CreditCard } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 
 interface PaymentMethodsProps {
   total: number;
@@ -123,55 +124,6 @@ const PaymentMethods = ({ total, onPaymentMethodSelect, disabled = false }: Paym
           </div>
           <span className="text-sm text-gray-500">UPI ID: {upiId}</span>
         </Button>
-      </div>
-
-      {/* Other Payment Methods */}
-      <div>
-        <h3 className="font-medium mb-3 flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Other Payment Options
-        </h3>
-        
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full h-12 flex items-center justify-between bg-white hover:bg-gray-50"
-            onClick={() => onPaymentMethodSelect('card')}
-            disabled={disabled}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">💳</span>
-              <span className="font-medium">Credit/Debit Cards</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">Visa, Mastercard</Badge>
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full h-12 flex items-center justify-between bg-white hover:bg-gray-50"
-            onClick={() => onPaymentMethodSelect('netbanking')}
-            disabled={disabled}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🏦</span>
-              <span className="font-medium">Net Banking</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">All Banks</Badge>
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full h-12 flex items-center justify-between bg-white hover:bg-gray-50"
-            onClick={() => onPaymentMethodSelect('cod')}
-            disabled={disabled}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">💵</span>
-              <span className="font-medium">Cash on Delivery</span>
-            </div>
-            <Badge variant="outline" className="text-xs">Pay at delivery</Badge>
-          </Button>
-        </div>
       </div>
     </div>
   );
