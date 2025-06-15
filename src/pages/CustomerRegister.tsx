@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, ArrowLeft } from 'lucide-react';
@@ -33,6 +32,7 @@ const CustomerRegister = () => {
   });
   
   const [address, setAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [pincode, setPincode] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -132,7 +132,7 @@ const CustomerRegister = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customer.name || !address || !pincode) {
+    if (!customer.name || !address || !landmark || !pincode || !city || !state) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -157,7 +157,7 @@ const CustomerRegister = () => {
         name: customer.name,
         mobile: customer.mobile,
         email: customer.email,
-        address: `${address}, ${city}, ${state}`,
+        address: `${address}, ${landmark}, ${city}, ${state}`,
         pincode
       };
 
@@ -220,7 +220,7 @@ const CustomerRegister = () => {
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
                 name="name"
@@ -233,7 +233,7 @@ const CustomerRegister = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="mobile">Mobile Number</Label>
+              <Label htmlFor="mobile">Mobile Number *</Label>
               <div className="flex gap-2">
                 <Input
                   id="mobile"
@@ -259,7 +259,7 @@ const CustomerRegister = () => {
             
             {otpSent && !otpVerified && (
               <div className="space-y-2">
-                <Label htmlFor="otp">OTP Verification</Label>
+                <Label htmlFor="otp">OTP Verification *</Label>
                 <div className="flex gap-2">
                   <Input
                     id="otp"
@@ -295,7 +295,7 @@ const CustomerRegister = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Address *</Label>
               <Input
                 id="address"
                 placeholder="Your full address"
@@ -305,9 +305,21 @@ const CustomerRegister = () => {
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="landmark">Landmark *</Label>
+              <Input
+                id="landmark"
+                placeholder="Nearby landmark"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
             
             <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode</Label>
+              <Label htmlFor="pincode">Pincode *</Label>
               <Input
                 id="pincode"
                 placeholder="Enter 6-digit pincode"
@@ -325,7 +337,7 @@ const CustomerRegister = () => {
             {/* Auto-filled City and State */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city">City *</Label>
                 <Input
                   id="city"
                   placeholder="City"
@@ -333,10 +345,11 @@ const CustomerRegister = () => {
                   onChange={(e) => setCity(e.target.value)}
                   disabled={isLoading}
                   className={city ? "bg-green-50 border-green-300" : ""}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="state">State *</Label>
                 <Input
                   id="state"
                   placeholder="State"
@@ -344,6 +357,7 @@ const CustomerRegister = () => {
                   onChange={(e) => setState(e.target.value)}
                   disabled={isLoading}
                   className={state ? "bg-green-50 border-green-300" : ""}
+                  required
                 />
               </div>
             </div>
