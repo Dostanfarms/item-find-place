@@ -41,12 +41,12 @@ const AppLanding = () => {
           </Card>
         </Link>
         
-        <Link to="/customer-login" className="w-full">
+        <Link to="/customer-home" className="w-full">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center p-6">
               <ShoppingBag className="h-8 w-8 mr-4 text-purple-600" />
               <div>
-                <h2 className="text-lg font-semibold">Customer Login</h2>
+                <h2 className="text-lg font-semibold">Shop Products</h2>
                 <p className="text-sm text-muted-foreground">Shop products & track orders</p>
               </div>
             </CardContent>
