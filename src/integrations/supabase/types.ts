@@ -353,6 +353,107 @@ export type Database = {
         }
         Relationships: []
       }
+      settlement_products: {
+        Row: {
+          created_at: string
+          farmer_product_id: string
+          id: string
+          price_per_unit: number
+          product_name: string
+          quantity: number
+          settlement_id: string
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          farmer_product_id: string
+          id?: string
+          price_per_unit: number
+          product_name: string
+          quantity: number
+          settlement_id: string
+          total_amount: number
+        }
+        Update: {
+          created_at?: string
+          farmer_product_id?: string
+          id?: string
+          price_per_unit?: number
+          product_name?: string
+          quantity?: number
+          settlement_id?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_products_farmer_product_id_fkey"
+            columns: ["farmer_product_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_products_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          farmer_id: string
+          id: string
+          notes: string | null
+          product_count: number
+          settled_amount: number
+          settlement_date: string
+          settlement_method: string | null
+          total_amount: number
+          transaction_image: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          farmer_id: string
+          id?: string
+          notes?: string | null
+          product_count?: number
+          settled_amount?: number
+          settlement_date?: string
+          settlement_method?: string | null
+          total_amount?: number
+          transaction_image?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          farmer_id?: string
+          id?: string
+          notes?: string | null
+          product_count?: number
+          settled_amount?: number
+          settlement_date?: string
+          settlement_method?: string | null
+          total_amount?: number
+          transaction_image?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           assigned_to: string | null

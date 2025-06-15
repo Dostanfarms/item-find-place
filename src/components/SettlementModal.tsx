@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { Farmer } from '@/utils/types';
 import { FarmerProduct, useFarmerProducts } from '@/hooks/useFarmerProducts';
+import { useSettlements } from '@/hooks/useSettlements';
 import { Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import TransactionImageUpload from '@/components/settlement/TransactionImageUpload';
@@ -36,6 +38,7 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
 }) => {
   const { toast } = useToast();
   const { fetchFarmerProducts } = useFarmerProducts();
+  const { createSettlement } = useSettlements();
   const [transactionImage, setTransactionImage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,6 +55,34 @@ const SettlementModal: React.FC<SettlementModalProps> = ({
     setIsSubmitting(true);
     
     try {
+      // Create settlement record in database
+      const settlementResult = await createSettlement({
+        farmer_id: farmer.id,
+        total_amount: unsettledAmount,
+        settled_amount: unsettledAmount,
+        product_count: unsettledProducts.length,
+        transaction_image: transactionImage,
+        settlement_method: 'manual',
+        notes: `Settlement for ${unsettledProducts.length} products`,
+        created_by: 'admin', // You can replace this with actual admin user info
+        products: unsettledProducts.map(product => ({
+          farmer_product_id: product.id,
+          product_name: product.name,
+          quantity: product.quantity,
+          price_per_unit: product.price_per_unit,
+          total_amount: product.quantity * product.price_per_unit,
+        }))
+      });
+
+      if (!settlementResult.success) {
+        toast({
+          title: "Error",
+          description: `Failed to create settlement record: ${settlementResult.error}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Update all unsettled products to settled with transaction image
       for (const product of unsettledProducts) {
         const { error } = await supabase
