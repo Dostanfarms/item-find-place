@@ -50,7 +50,20 @@ const CustomerPayment = () => {
       return;
     }
     const customerData = JSON.parse(currentCustomer);
+    console.log('Customer data loaded:', customerData);
     setCustomer(customerData);
+    
+    // Validate customer ID
+    if (!customerData.id || customerData.id.trim() === '') {
+      console.error('Customer ID is missing or empty');
+      toast({
+        title: "Error",
+        description: "Customer information is incomplete. Please log in again.",
+        variant: "destructive"
+      });
+      navigate('/customer-login');
+      return;
+    }
     
     // Auto-fill shipping address with customer data
     setShippingAddress({
@@ -75,7 +88,7 @@ const CustomerPayment = () => {
         }
       });
     }
-  }, [navigate]);
+  }, [navigate, toast]);
 
   // Fetch coupons for the customer using their mobile number
   const { coupons: userCoupons, loading: couponsLoading } = useCustomerCoupons(
@@ -198,6 +211,16 @@ const CustomerPayment = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (!customer || !customer.id || customer.id.trim() === '') {
+      toast({
+        title: "Error",
+        description: "Customer information is missing. Please log in again.",
+        variant: "destructive"
+      });
+      navigate('/customer-login');
+      return;
+    }
+
     if (!shippingAddress.fullName.trim() || !shippingAddress.mobile.trim() || !shippingAddress.address.trim() || !shippingAddress.landmark.trim()) {
       toast({
         title: "Missing Information",
@@ -231,8 +254,10 @@ const CustomerPayment = () => {
       const selectedCouponData = selectedCoupon && selectedCoupon !== 'none' ? 
         activeCoupons.find(c => c.id === selectedCoupon) : null;
 
+      console.log('Preparing order payload with customer ID:', customer.id);
+
       const orderPayload = {
-        customerId: customer.id,
+        customerId: customer.id, // Ensure this is the UUID from the customer object
         shippingAddress,
         paymentMethod,
         couponCode: selectedCouponData?.code || null,
@@ -241,6 +266,8 @@ const CustomerPayment = () => {
         total: finalTotal,
         items,
       };
+
+      console.log('Order payload prepared:', orderPayload);
 
       const result = await placeOrder(orderPayload);
 
@@ -256,6 +283,7 @@ const CustomerPayment = () => {
           state: { newOrderId: result.id }
         });
       } else {
+        console.error('Order placement failed:', result.error);
         toast({
           title: "Order Error",
           description: result.error || "Failed to place order.",
