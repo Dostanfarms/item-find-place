@@ -1,15 +1,10 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
-
-// Use the database types directly
-type DatabaseFarmerProduct = Database['public']['Tables']['farmer_products']['Row'];
 
 export interface FarmerProduct {
   id: string;
   farmer_id: string;
-  farmer_mobile?: string;
   name: string;
   quantity: number;
   unit: string;
@@ -17,33 +12,25 @@ export interface FarmerProduct {
   category: string;
   payment_status: 'settled' | 'unsettled';
   transaction_image?: string;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export const useFarmerProducts = (farmerId?: string) => {
-  const [products, setProducts] = useState<FarmerProduct[]>([]);
+export const useFarmerProducts = () => {
+  const [farmerProducts, setFarmerProducts] = useState<FarmerProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFarmerProducts = useCallback(async (id?: string) => {
+  const fetchFarmerProducts = async (farmerId?: string) => {
     try {
       setLoading(true);
-      console.log('Fetching farmer products for farmer:', id || 'all farmers');
-      
-      // Build the query - if no farmer ID provided, fetch all products
       let query = supabase
         .from('farmer_products')
-        .select(`
-          *,
-          farmers!farmer_products_farmer_id_fkey (
-            phone
-          )
-        `)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .order('name', { ascending: true });
 
-      // Only filter by farmer_id if one is provided
-      if (id) {
-        query = query.eq('farmer_id', id);
+      if (farmerId) {
+        query = query.eq('farmer_id', farmerId);
       }
 
       const { data, error } = await query;
@@ -53,51 +40,20 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      console.log('Farmer products fetched successfully:', data?.length || 0, 'products');
-      
-      // Transform the data to match our interface
-      const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: any) => ({
-        id: dbProduct.id,
-        farmer_id: dbProduct.farmer_id,
-        farmer_mobile: dbProduct.farmers?.phone,
-        name: dbProduct.name,
-        quantity: Number(dbProduct.quantity),
-        unit: dbProduct.unit,
-        price_per_unit: Number(dbProduct.price_per_unit),
-        category: dbProduct.category,
-        payment_status: dbProduct.payment_status as 'settled' | 'unsettled',
-        transaction_image: dbProduct.transaction_image || undefined,
-        created_at: dbProduct.created_at,
-        updated_at: dbProduct.updated_at,
-      }));
-      
-      setProducts(transformedProducts);
+      setFarmerProducts(data || []);
     } catch (error) {
       console.error('Error in fetchFarmerProducts:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const addFarmerProduct = async (productData: Omit<FarmerProduct, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding farmer product:', productData);
-      
-      // Remove farmer_mobile from the data being inserted since the column doesn't exist in DB
-      const { farmer_mobile, ...dbProductData } = productData;
-      
       const { data, error } = await supabase
         .from('farmer_products')
-        .insert([{
-          farmer_id: dbProductData.farmer_id,
-          name: dbProductData.name,
-          quantity: dbProductData.quantity,
-          unit: dbProductData.unit,
-          price_per_unit: dbProductData.price_per_unit,
-          category: dbProductData.category,
-          payment_status: dbProductData.payment_status,
-          transaction_image: dbProductData.transaction_image,
-        }])
+        .insert([productData])
         .select()
         .single();
 
@@ -107,8 +63,8 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product added successfully:', data);
-      // Refresh the products list for the specific farmer
-      await fetchFarmerProducts(farmerId);
+      // Immediately update the local state instead of refetching
+      setFarmerProducts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       return { success: true, data };
     } catch (error) {
       console.error('Error in addFarmerProduct:', error);
@@ -116,16 +72,25 @@ export const useFarmerProducts = (farmerId?: string) => {
     }
   };
 
-  const updateFarmerProduct = async (id: string, updates: Partial<FarmerProduct>) => {
+  const updateFarmerProduct = async (id: string, productData: Partial<FarmerProduct>) => {
     try {
-      console.log('Updating farmer product:', id, updates);
+      console.log('Updating farmer product:', id, productData);
       
-      // Remove farmer_mobile from updates since the column doesn't exist in DB
-      const { farmer_mobile, ...dbUpdates } = updates;
+      // Create update object with only the fields that can be updated
+      const updateData: any = {};
       
+      if (productData.name !== undefined) updateData.name = productData.name;
+      if (productData.quantity !== undefined) updateData.quantity = productData.quantity;
+      if (productData.unit !== undefined) updateData.unit = productData.unit;
+      if (productData.price_per_unit !== undefined) updateData.price_per_unit = productData.price_per_unit;
+      if (productData.category !== undefined) updateData.category = productData.category;
+      if (productData.payment_status !== undefined) updateData.payment_status = productData.payment_status;
+      if (productData.transaction_image !== undefined) updateData.transaction_image = productData.transaction_image;
+      if (productData.is_active !== undefined) updateData.is_active = productData.is_active;
+
       const { data, error } = await supabase
         .from('farmer_products')
-        .update(dbUpdates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -136,8 +101,12 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product updated successfully:', data);
-      // Refresh the products list for the specific farmer
-      await fetchFarmerProducts(farmerId);
+      // Immediately update the local state instead of refetching
+      setFarmerProducts(prev => 
+        prev.map(product => 
+          product.id === id ? data : product
+        ).sort((a, b) => a.name.localeCompare(b.name))
+      );
       return { success: true, data };
     } catch (error) {
       console.error('Error in updateFarmerProduct:', error);
@@ -146,12 +115,11 @@ export const useFarmerProducts = (farmerId?: string) => {
   };
 
   useEffect(() => {
-    console.log('Farmer ID changed, fetching products for:', farmerId || 'all farmers');
-    fetchFarmerProducts(farmerId);
-  }, [fetchFarmerProducts, farmerId]);
+    fetchFarmerProducts();
+  }, []);
 
   return {
-    products,
+    farmerProducts,
     loading,
     fetchFarmerProducts,
     addFarmerProduct,
