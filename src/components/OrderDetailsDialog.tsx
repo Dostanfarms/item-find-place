@@ -169,11 +169,11 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     if (!address) {
       return { address: "-", city: "-", state: "-" };
     }
-    const parts = address.split(",").map(p => p.trim());
+    const parts = address.split(",").map((p) => p.trim());
     return {
       address: parts[0] || "-",
       city: parts[1] || "-",
-      state: parts[2] || "-"
+      state: parts[2] || "-",
     };
   }
 
@@ -193,9 +193,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     );
   }
 
-  // Render print-friendly shipping - Show all shipping fields with clear labels
+  // Render print-friendly shipping - Show all shipping fields with clear labels, including landmark if available
   function renderPrintableShipping(order: Order | null, customer: CustomerInfo | null) {
-    // If order.shipping_address present, use that, else fall back to customer as fallback
     const addr = order?.shipping_address || {};
     const customerParts = extractAddressParts(customer?.address);
 
@@ -203,15 +202,14 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       `<div style="margin-bottom:8px; font-size:15px;">
         <div><b>Name:</b> ${addr.name ?? customer?.name ?? "-"}</div>
         <div><b>Mobile:</b> ${addr.mobile ?? customer?.mobile ?? "-"}</div>
-        <div><b>Address:</b> ${
-          addr.address ?? customerParts.address
-        }</div>
-        <div><b>City:</b> ${
-          addr.city ?? customerParts.city
-        }</div>
-        <div><b>State:</b> ${
-          addr.state ?? customerParts.state
-        }</div>
+        <div><b>Address:</b> ${addr.address ?? customerParts.address}</div>
+        ${
+          addr.landmark
+            ? `<div><b>Landmark:</b> ${addr.landmark}</div>`
+            : ""
+        }
+        <div><b>City:</b> ${addr.city ?? customerParts.city}</div>
+        <div><b>State:</b> ${addr.state ?? customerParts.state}</div>
         <div><b>Pincode:</b> ${addr.pincode ?? customer?.pincode ?? "-"}</div>
       </div>`
     );
