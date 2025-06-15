@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fetchAllOrders } from "@/api/orders";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Package, View as ViewIcon } from "lucide-react";
+import { Package, View as ViewIcon, search as SearchIcon, calendar as CalendarIcon, phone as PhoneIcon } from "lucide-react";
 import OrderDetailsDialog from "@/components/OrderDetailsDialog";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface Order {
   id: string;
@@ -17,6 +22,11 @@ interface Order {
   created_at: string;
   payment_method: string;
   total: number;
+}
+
+interface Customer {
+  id: string;
+  mobile: string;
 }
 
 const STATUS_OPTIONS = ["pending", "confirmed", "shipped", "delivered"];
@@ -33,28 +43,44 @@ const getStatusColor = (status: string) => {
 
 const OrdersManagement: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // --- New for filters
+  const [orderDate, setOrderDate] = useState<Date | undefined>();
+  const [mobileSearch, setMobileSearch] = useState("");
 
+  // Fetch all orders and related customers
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchOrdersAndCustomers = async () => {
       setLoading(true);
       const { orders: fetchedOrders, error } = await fetchAllOrders();
+      // Fetch all customers to match mobile numbers
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("id, mobile");
       if (error) {
         toast({
           title: "Error loading orders",
           description: error.message || "Could not load orders",
           variant: "destructive"
         });
+      } else if (customerError) {
+        toast({
+          title: "Error loading customers",
+          description: customerError.message || "Could not load customers",
+          variant: "destructive"
+        });
       } else {
         setOrders(fetchedOrders || []);
+        setCustomers(customerData || []);
       }
       setLoading(false);
     };
-    fetchOrders();
+    fetchOrdersAndCustomers();
   }, []);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -90,10 +116,28 @@ const OrdersManagement: React.FC = () => {
     await handleStatusChange(selectedOrder.id, newStatus);
   };
 
-  const filteredOrders =
-    statusFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === statusFilter);
+  // Get mobile number for customer_id
+  const getCustomerMobile = (customer_id: string) => {
+    return customers.find((c) => c.id === customer_id)?.mobile || "-";
+  };
+
+  // Apply Filters: by status, date, mobile search
+  const filteredOrders = orders.filter((order) => {
+    // Status filter
+    if (statusFilter !== "all" && order.status !== statusFilter) return false;
+    // Date filter
+    if (orderDate) {
+      const orderDateStr = new Date(order.created_at).toLocaleDateString();
+      const selectedDateStr = orderDate.toLocaleDateString();
+      if (orderDateStr !== selectedDateStr) return false;
+    }
+    // Mobile search filter
+    if (mobileSearch && mobileSearch.trim() !== "") {
+      const mobile = getCustomerMobile(order.customer_id);
+      if (!mobile.includes(mobileSearch.trim())) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="max-w-6xl mx-auto p-4">
@@ -104,13 +148,16 @@ const OrdersManagement: React.FC = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <CardTitle className="text-2xl font-bold">Order Management</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              {/* Status Filter */}
               <Select
                 value={statusFilter}
                 onValueChange={setStatusFilter}
               >
                 <SelectTrigger className="w-32">
-                  <SelectValue>{statusFilter === "all" ? "All Statuses" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}</SelectValue>
+                  <SelectValue>
+                    {statusFilter === "all" ? "All Statuses" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -121,6 +168,54 @@ const OrdersManagement: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Order Date Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-40 justify-start text-left"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                    {orderDate ? format(orderDate, "PPP") : <span>Pick Order Date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={orderDate}
+                    onSelect={setOrderDate}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                  {orderDate && (
+                    <div className="text-right mt-2">
+                      <Button size="sm" variant="ghost" onClick={() => setOrderDate(undefined)}>Clear</Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {/* Mobile Search */}
+              <div className="flex items-center gap-1 border rounded px-2 py-1 bg-white">
+                <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search Mobile"
+                  className="w-32 border-0 focus-visible:ring-0 text-base"
+                  value={mobileSearch}
+                  onChange={(e) => setMobileSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                {mobileSearch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 ml-2"
+                    title="Clear"
+                    onClick={() => setMobileSearch("")}
+                  >
+                    <span className="text-xs">✕</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -136,14 +231,14 @@ const OrdersManagement: React.FC = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Total</TableHead>
-                  {/* Removed Update Status column */}
+                  <TableHead>Mobile</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       No orders found.
                     </TableCell>
                   </TableRow>
@@ -159,7 +254,7 @@ const OrdersManagement: React.FC = () => {
                         <Badge variant="outline">{order.payment_method === "upi" || order.payment_method === "card" ? "Online" : "Cash"}</Badge>
                       </TableCell>
                       <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
-                      {/* Removed Update Status column */}
+                      <TableCell>{getCustomerMobile(order.customer_id)}</TableCell>
                       <TableCell>
                         <Button
                           variant="outline"
@@ -193,3 +288,4 @@ const OrdersManagement: React.FC = () => {
 };
 
 export default OrdersManagement;
+
