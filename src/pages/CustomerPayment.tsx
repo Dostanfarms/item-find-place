@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerCoupons } from '@/hooks/useCustomerCoupons';
-import { ArrowLeft, CreditCard, ShoppingCart, Tag, MapPin, Plus } from 'lucide-react';
+import { ArrowLeft, CreditCard, ShoppingCart, Tag, MapPin } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { fetchLocationFromPincode, debounce } from '@/utils/pincodeUtils';
+import PaymentMethods from '@/components/PaymentMethods';
 
 interface CartItem {
   id: string;
@@ -165,6 +166,17 @@ const CustomerPayment = () => {
   };
 
   const finalTotal = totalPrice - calculateDiscount();
+
+  const handlePaymentMethodSelect = (method: string, appUrl?: string) => {
+    setPaymentMethod(method);
+    
+    if (appUrl && method === 'upi') {
+      toast({
+        title: "UPI Payment",
+        description: "Complete the payment in your UPI app and return here to confirm"
+      });
+    }
+  };
 
   const handlePlaceOrder = async () => {
     if (!shippingAddress.fullName.trim() || !shippingAddress.mobile.trim() || !shippingAddress.address.trim() || !shippingAddress.landmark.trim()) {
@@ -381,23 +393,24 @@ const CustomerPayment = () => {
               </CardContent>
             </Card>
 
-            {/* Payment Method */}
+            {/* Payment Methods */}
             <Card>
               <CardHeader>
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={isProcessing}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cod">Cash on Delivery</SelectItem>
-                    <SelectItem value="card">Credit/Debit Card</SelectItem>
-                    <SelectItem value="upi">UPI</SelectItem>
-                    <SelectItem value="netbanking">Net Banking</SelectItem>
-                  </SelectContent>
-                </Select>
+                <PaymentMethods
+                  total={finalTotal}
+                  onPaymentMethodSelect={handlePaymentMethodSelect}
+                  disabled={isProcessing}
+                />
+                {paymentMethod && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-600 font-medium">
+                      ✓ Payment method selected: {paymentMethod.toUpperCase()}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
