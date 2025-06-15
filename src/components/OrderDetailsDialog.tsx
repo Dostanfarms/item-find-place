@@ -184,14 +184,14 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   function renderPrintableShipping(order: Order | null) {
     if (!order?.shipping_address) return '<div style="color:#888;">No shipping address available.</div>';
     const addr = order.shipping_address;
+    // Proper alignment and consistent field labels, matching the given reference
     return (
-      `<div style="margin-bottom:8px;">
-        <div><strong>Name:</strong> ${addr.name || "-"}</div>
-        <div><strong>Address:</strong> ${addr.address || "-"}</div>
-        <div><strong>City:</strong> ${addr.city || "-"}</div>
-        <div><strong>State:</strong> ${addr.state || "-"}</div>
-        <div><strong>Pincode:</strong> ${addr.pincode || "-"}</div>
-        <div><strong>Mobile:</strong> ${addr.mobile || "-"}</div>
+      `<div style="margin-bottom:8px; font-size:15px;">
+        ${addr.address ? `<div><b>Address:</b> ${addr.address}</div>` : ""}
+        ${addr.city ? `<div><b>City:</b> ${addr.city}</div>` : ""}
+        ${addr.state ? `<div><b>State:</b> ${addr.state}</div>` : ""}
+        ${addr.pincode ? `<div><b>Pincode:</b> ${addr.pincode}</div>` : ""}
+        ${addr.mobile ? `<div><b>Mobile:</b> ${addr.mobile}</div>` : ""}
       </div>`
     );
   }
