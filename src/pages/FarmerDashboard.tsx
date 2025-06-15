@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, BarChart3, Settings, Ticket } from 'lucide-react';
+import { Package, User, LogOut, BarChart3, Ticket } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -14,15 +14,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
-import { useTransactions } from '@/hooks/useTransactions';
+import TransactionHistory from '@/components/TransactionHistory';
+import { format } from 'date-fns';
 
 const FarmerDashboard = () => {
   const navigate = useNavigate();
   const [farmer, setFarmer] = useState<any>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showTicketsDialog, setShowTicketsDialog] = useState(false);
+  const [dailyEarnings, setDailyEarnings] = useState([]);
+  const [monthlyEarnings, setMonthlyEarnings] = useState([]);
+  const [settlementTransactions, setSettlementTransactions] = useState([]);
   const { products, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
-  const { transactions, loading: transactionsLoading } = useTransactions();
 
   useEffect(() => {
     const currentFarmer = localStorage.getItem('currentFarmer');
@@ -48,6 +51,111 @@ const FarmerDashboard = () => {
     }
   }, [navigate, fetchFarmerProducts]);
 
+  // Calculate earnings from farmer products
+  const calculateEarnings = (products) => {
+    // Group by date for daily earnings
+    const dailyGroups = new Map();
+    // Group by month for monthly earnings
+    const monthlyGroups = new Map();
+    
+    products.forEach(product => {
+      const productDate = new Date(product.created_at);
+      const dayKey = format(productDate, 'yyyy-MM-dd');
+      const monthKey = format(productDate, 'yyyy-MM');
+      const amount = product.quantity * product.price_per_unit;
+      
+      // Initialize if not exists
+      if (!dailyGroups.has(dayKey)) {
+        dailyGroups.set(dayKey, { settled: 0, unsettled: 0 });
+      }
+      if (!monthlyGroups.has(monthKey)) {
+        monthlyGroups.set(monthKey, { settled: 0, unsettled: 0 });
+      }
+      
+      // Add to appropriate category
+      const dailyData = dailyGroups.get(dayKey);
+      const monthlyData = monthlyGroups.get(monthKey);
+      
+      if (product.payment_status === 'settled') {
+        dailyData.settled += amount;
+        monthlyData.settled += amount;
+      } else {
+        dailyData.unsettled += amount;
+        monthlyData.unsettled += amount;
+      }
+    });
+    
+    // Convert to arrays and sort
+    const dailyEarningsData = Array.from(dailyGroups.entries())
+      .map(([date, amounts]) => ({ 
+        date, 
+        amount: amounts.settled + amounts.unsettled,
+        settledAmount: amounts.settled,
+        unsettledAmount: amounts.unsettled
+      }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const monthlyEarningsData = Array.from(monthlyGroups.entries())
+      .map(([month, amounts]) => ({ 
+        month, 
+        amount: amounts.settled + amounts.unsettled,
+        settledAmount: amounts.settled,
+        unsettledAmount: amounts.unsettled
+      }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+    
+    return { dailyEarningsData, monthlyEarningsData };
+  };
+
+  // Calculate settlement transactions from farmer products
+  const calculateSettlementTransactions = (products) => {
+    const settledProducts = products.filter(product => product.payment_status === 'settled');
+    
+    // Group settled products by date to create settlement transactions
+    const settlementGroups = new Map();
+    
+    settledProducts.forEach(product => {
+      const settlementDate = format(new Date(product.updated_at), 'yyyy-MM-dd');
+      if (!settlementGroups.has(settlementDate)) {
+        settlementGroups.set(settlementDate, []);
+      }
+      settlementGroups.get(settlementDate).push(product);
+    });
+    
+    // Create transactions from groups
+    const transactions = Array.from(settlementGroups.entries()).map(([date, products]) => {
+      const totalAmount = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+      return {
+        id: `settlement_${date}_${farmer?.id}`,
+        amount: totalAmount,
+        date: new Date(date),
+        type: 'debit',
+        description: `Payment settled for ${products.length} product(s)`,
+        farmerId: farmer?.id || '',
+        settled: true
+      };
+    });
+    
+    return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+  };
+
+  // Calculate totals
+  const totalEarnings = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const settledAmount = products.filter(p => p.payment_status === 'settled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const unsettledAmount = products.filter(p => p.payment_status === 'unsettled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+
+  // Update earnings when products change
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const { dailyEarningsData, monthlyEarningsData } = calculateEarnings(products);
+      setDailyEarnings(dailyEarningsData);
+      setMonthlyEarnings(monthlyEarningsData);
+      
+      const transactions = calculateSettlementTransactions(products);
+      setSettlementTransactions(transactions);
+    }
+  }, [products, farmer]);
+
   const handleLogout = () => {
     localStorage.removeItem('currentFarmer');
     navigate('/farmer-login');
@@ -61,25 +169,6 @@ const FarmerDashboard = () => {
     setShowTicketsDialog(true);
   };
 
-  // Calculate sales report data
-  const farmerSalesData = React.useMemo(() => {
-    if (!farmer || !transactions) return { totalSales: 0, totalRevenue: 0, transactions: [] };
-    
-    const farmerTransactions = transactions.filter(transaction => 
-      transaction.items.some(item => 
-        products.some(product => product.name === item.name)
-      )
-    );
-    
-    const totalRevenue = farmerTransactions.reduce((sum, transaction) => sum + transaction.total, 0);
-    
-    return {
-      totalSales: farmerTransactions.length,
-      totalRevenue,
-      transactions: farmerTransactions
-    };
-  }, [farmer, transactions, products]);
-
   if (!farmer) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
@@ -90,7 +179,7 @@ const FarmerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-muted/30 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -151,107 +240,45 @@ const FarmerDashboard = () => {
                 <p className="font-medium">{products?.length || 0} items</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="font-medium">₹{farmerSalesData.totalRevenue.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Total Earnings</p>
+                <p className="font-medium">₹{totalEarnings.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sales Report Section */}
+        {/* Earnings Summary */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Sales Report
+              Earnings Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {transactionsLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Loading sales data...</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">Total Earnings</p>
+                <p className="text-2xl font-bold text-blue-600">₹{totalEarnings.toFixed(2)}</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Total Sales</p>
-                    <p className="text-2xl font-bold">{farmerSalesData.totalSales}</p>
-                  </div>
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">₹{farmerSalesData.totalRevenue.toFixed(2)}</p>
-                  </div>
-                </div>
-                
-                {farmerSalesData.transactions.length > 0 ? (
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Recent Transactions</h4>
-                    <div className="max-h-48 overflow-y-auto space-y-2">
-                      {farmerSalesData.transactions.slice(0, 5).map((transaction) => (
-                        <div key={transaction.id} className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                          <div>
-                            <p className="font-medium">{transaction.customer_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(transaction.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <p className="font-bold">₹{transaction.total.toFixed(2)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <p>No sales transactions yet</p>
-                  </div>
-                )}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">Settled Amount</p>
+                <p className="text-2xl font-bold text-green-600">₹{settledAmount.toFixed(2)}</p>
               </div>
-            )}
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">Unsettled Amount</p>
+                <p className="text-2xl font-bold text-orange-600">₹{unsettledAmount.toFixed(2)}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* My Products Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              My Products ({products?.length || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {productsLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Loading products...</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No products added yet</p>
-                <p className="text-sm">Contact admin to add products</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {products.map((product) => (
-                  <Card key={product.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4">
-                      <h3 className="font-medium">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">{product.category}</p>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm"><span className="font-medium">Quantity:</span> {product.quantity} {product.unit}</p>
-                        <p className="text-sm"><span className="font-medium">Price:</span> ₹{product.price_per_unit}/{product.unit}</p>
-                        <p className="text-sm"><span className="font-medium">Total:</span> ₹{(product.quantity * product.price_per_unit).toFixed(2)}</p>
-                      </div>
-                      {product.barcode && (
-                        <p className="text-xs text-muted-foreground mt-2">Barcode: {product.barcode}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Earnings History */}
+        <TransactionHistory 
+          transactions={settlementTransactions} 
+          dailyEarnings={dailyEarnings} 
+          monthlyEarnings={monthlyEarnings} 
+        />
 
         {/* Profile Dialog */}
         <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
