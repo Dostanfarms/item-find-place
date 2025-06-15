@@ -145,7 +145,7 @@ const App = () => (
             
             {/* Farmer Routes - No authentication wrapper needed since components handle their own auth */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-            <Route path="/farmer-tickets" element={<FarmerTicketHistory />} />
+            <Route path="/farmer-tickets/:id" element={<FarmerTicketHistory />} />
             
             {/* Customer Routes - Using CustomerProtectedRoute */}
             <Route element={<CustomerProtectedRoute />}>
