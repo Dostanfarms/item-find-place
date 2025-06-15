@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import TransactionHistory from '@/components/TransactionHistory';
 import { format } from 'date-fns';
+import FarmerProductsTable from '@/components/FarmerProductsTable';
 
 const FarmerDashboard = () => {
   const navigate = useNavigate();
@@ -282,6 +283,11 @@ const FarmerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Products Table - Show farmer's products with mobile numbers */}
+        <div className="mb-6">
+          <FarmerProductsTable products={products} loading={productsLoading} />
+        </div>
 
         {/* Earnings History - Only for this farmer */}
         <TransactionHistory 

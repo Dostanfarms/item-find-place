@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -9,6 +8,7 @@ type DatabaseFarmerProduct = Database['public']['Tables']['farmer_products']['Ro
 export interface FarmerProduct {
   id: string;
   farmer_id: string;
+  farmer_mobile?: string;
   name: string;
   quantity: number;
   unit: string;
@@ -32,7 +32,12 @@ export const useFarmerProducts = (farmerId?: string) => {
       
       let query = supabase
         .from('farmer_products')
-        .select('*')
+        .select(`
+          *,
+          farmers!farmer_products_farmer_id_fkey (
+            phone
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Only filter by farmer_id if one is provided
@@ -50,9 +55,10 @@ export const useFarmerProducts = (farmerId?: string) => {
       console.log('Farmer products fetched successfully:', data);
       
       // Transform the data to match our interface
-      const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: DatabaseFarmerProduct) => ({
+      const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: any) => ({
         id: dbProduct.id,
         farmer_id: dbProduct.farmer_id,
+        farmer_mobile: dbProduct.farmer_mobile || dbProduct.farmers?.phone,
         name: dbProduct.name,
         quantity: Number(dbProduct.quantity),
         unit: dbProduct.unit,
@@ -81,6 +87,7 @@ export const useFarmerProducts = (farmerId?: string) => {
         .from('farmer_products')
         .insert([{
           farmer_id: productData.farmer_id,
+          farmer_mobile: productData.farmer_mobile,
           name: productData.name,
           quantity: productData.quantity,
           unit: productData.unit,

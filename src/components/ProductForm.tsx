@@ -90,8 +90,21 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
     
     setIsSubmitting(true);
     
+    // Get farmer mobile from localStorage
+    const currentFarmer = localStorage.getItem('currentFarmer');
+    let farmerMobile = '';
+    if (currentFarmer) {
+      try {
+        const farmerData = JSON.parse(currentFarmer);
+        farmerMobile = farmerData.phone || '';
+      } catch (error) {
+        console.error('Error parsing farmer data:', error);
+      }
+    }
+    
     const productData = {
       farmer_id: farmerId,
+      farmer_mobile: farmerMobile,
       name: name.trim(),
       quantity: parsedQuantity,
       unit,
