@@ -86,7 +86,7 @@ const CustomerProfile = () => {
           </Button>
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-agri-primary" />
-            <span className="text-lg font-bold">AgriPay</span>
+            <span className="text-lg font-bold">DostanFarms</span>
           </div>
         </div>
       </header>
