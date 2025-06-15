@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Ticket } from '@/utils/types';
+import { useTickets } from '@/hooks/useTickets';
 import TicketDialog from '@/components/ticket/TicketDialog';
 import { Package, ChevronLeft, LogOut, Menu } from 'lucide-react';
 
@@ -13,8 +14,9 @@ const FarmerTicketHistory = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const { tickets, addTicket, loading } = useTickets();
   const [farmer, setFarmer] = useState<any>(null);
+  const [farmerTickets, setFarmerTickets] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -43,18 +45,15 @@ const FarmerTicketHistory = () => {
     
     // Set farmer data
     setFarmer(currentFarmer);
-    
-    // Load tickets
-    const savedTickets = localStorage.getItem('tickets');
-    if (savedTickets) {
-      const allTickets = JSON.parse(savedTickets);
-      // Filter tickets for current farmer only
-      const farmerTickets = allTickets.filter(
-        (ticket: Ticket) => ticket.userId === currentFarmer.id
-      );
-      setTickets(farmerTickets);
-    }
   }, [id, navigate, toast]);
+
+  // Filter tickets for current farmer
+  useEffect(() => {
+    if (farmer && tickets.length >= 0) {
+      const filteredTickets = tickets.filter(ticket => ticket.user_id === farmer.id);
+      setFarmerTickets(filteredTickets);
+    }
+  }, [farmer, tickets]);
 
   const handleLogout = () => {
     localStorage.removeItem('currentFarmer');
@@ -65,7 +64,7 @@ const FarmerTicketHistory = () => {
     navigate('/farmer-login');
   };
   
-  const handleTicketSubmit = (ticketData: {
+  const handleTicketSubmit = async (ticketData: {
     user_id: string;
     user_type: string;
     user_name: string;
@@ -74,39 +73,18 @@ const FarmerTicketHistory = () => {
     status: string;
     attachment_url?: string;
   }) => {
-    // Map snake_case properties to camelCase for Ticket type
-    const newTicket: Ticket = {
-      id: `${Date.now()}`,
-      userId: ticketData.user_id,
-      userType: ticketData.user_type as 'farmer' | 'customer',
-      userName: ticketData.user_name,
-      userContact: ticketData.user_contact,
-      message: ticketData.message,
-      status: ticketData.status as 'pending' | 'in-review' | 'closed',
-      dateCreated: new Date(),
-      lastUpdated: new Date(),
-      attachmentUrl: ticketData.attachment_url
-    };
+    console.log('Submitting farmer ticket:', ticketData);
+    const result = await addTicket(ticketData);
     
-    // Add to existing tickets
-    const savedTickets = localStorage.getItem('tickets');
-    const allTickets = savedTickets ? JSON.parse(savedTickets) : [];
-    const updatedTickets = [...allTickets, newTicket];
-    
-    // Save to localStorage
-    localStorage.setItem('tickets', JSON.stringify(updatedTickets));
-    
-    // Update local state
-    setTickets(prev => [...prev, newTicket]);
-    
-    toast({
-      title: "Ticket Submitted",
-      description: "Your support ticket has been submitted.",
-      variant: "default",
-    });
+    if (result.success) {
+      toast({
+        title: "Ticket Submitted",
+        description: "Your support ticket has been submitted.",
+      });
+    }
   };
 
-  const getStatusBadge = (status: Ticket['status']) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-100">Pending</Badge>;
@@ -138,12 +116,12 @@ const FarmerTicketHistory = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => navigate(`/farmer-dashboard/${id}`)}
+              onClick={() => navigate('/farmer-dashboard')}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <Package className="h-6 w-6 text-agri-primary" />
-            <span className="text-lg font-bold hidden sm:inline">AgriPay Farmer Portal</span>
+            <span className="text-lg font-bold hidden sm:inline">DostanFarms</span>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -173,7 +151,7 @@ const FarmerTicketHistory = () => {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2 border-b pb-4">
                 <Package className="h-6 w-6 text-agri-primary" />
-                <span className="text-lg font-bold">AgriPay Farmer</span>
+                <span className="text-lg font-bold">DostanFarms</span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -187,7 +165,7 @@ const FarmerTicketHistory = () => {
                 variant="ghost"
                 className="flex items-center justify-start gap-2"
                 onClick={() => {
-                  navigate(`/farmer-dashboard/${id}`);
+                  navigate('/farmer-dashboard');
                   setMenuOpen(false);
                 }}
               >
@@ -223,7 +201,13 @@ const FarmerTicketHistory = () => {
           />
         </div>
         
-        {tickets.length === 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center p-6">
+              <p className="text-muted-foreground">Loading tickets...</p>
+            </CardContent>
+          </Card>
+        ) : farmerTickets.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center p-6">
               <p className="text-muted-foreground text-center mb-4">You haven't raised any support tickets yet.</p>
@@ -239,7 +223,7 @@ const FarmerTicketHistory = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {tickets.map((ticket) => (
+            {farmerTickets.map((ticket) => (
               <Card key={ticket.id}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
@@ -250,17 +234,31 @@ const FarmerTicketHistory = () => {
                     <div className="flex flex-col items-end">
                       {getStatusBadge(ticket.status)}
                       <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(ticket.dateCreated), 'MMM dd, yyyy')}
+                        {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm">{ticket.message}</p>
+                  <p className="text-sm mb-3">{ticket.message}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground">
+                    <div>
+                      <span className="font-medium">Created:</span> {format(new Date(ticket.created_at), 'PPp')}
+                    </div>
+                    <div>
+                      <span className="font-medium">Last Updated:</span> {format(new Date(ticket.updated_at), 'PPp')}
+                    </div>
+                    {ticket.assigned_to && (
+                      <div>
+                        <span className="font-medium">Assigned to:</span> {ticket.assigned_to}
+                      </div>
+                    )}
+                  </div>
                   
                   {ticket.resolution && (
                     <div className="mt-4 border-t pt-4">
-                      <p className="text-sm font-medium">Resolution:</p>
+                      <p className="text-sm font-medium mb-2">Resolution:</p>
                       <p className="text-sm text-muted-foreground">{ticket.resolution}</p>
                     </div>
                   )}

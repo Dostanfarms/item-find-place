@@ -22,7 +22,6 @@ const FarmerDashboard = () => {
   const [farmer, setFarmer] = useState<any>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
-  const [showTicketsDialog, setShowTicketsDialog] = useState(false);
   const [dailyEarnings, setDailyEarnings] = useState([]);
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [settlementTransactions, setSettlementTransactions] = useState([]);
@@ -184,7 +183,8 @@ const FarmerDashboard = () => {
   };
 
   const handleTicketsClick = () => {
-    setShowTicketsDialog(true);
+    // Navigate to farmer ticket history page with farmer ID
+    navigate(`/farmer-tickets/${farmer.id}`);
   };
 
   const handleProfileUpdate = (updatedFarmer: any) => {
@@ -228,7 +228,7 @@ const FarmerDashboard = () => {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTicketsClick}>
                 <Ticket className="mr-2 h-4 w-4" />
-                <span>Tickets</span>
+                <span>Support Tickets</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
@@ -371,40 +371,6 @@ const FarmerDashboard = () => {
           farmer={farmer}
           onProfileUpdate={handleProfileUpdate}
         />
-
-        {/* Tickets Dialog */}
-        <Dialog open={showTicketsDialog} onOpenChange={setShowTicketsDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Support Tickets</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={() => navigate('/farmer-tickets')}
-                  className="bg-agri-primary hover:bg-agri-secondary"
-                >
-                  View Ticket History
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    setShowTicketsDialog(false);
-                    navigate('/farmer-tickets');
-                  }}
-                >
-                  Raise New Ticket
-                </Button>
-              </div>
-              <div className="text-center py-8 text-muted-foreground">
-                <Ticket className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Click the buttons above to manage your support tickets</p>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
