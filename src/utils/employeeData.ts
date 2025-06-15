@@ -1,4 +1,3 @@
-
 export interface Permission {
   resource: string;
   actions: string[];
@@ -91,6 +90,14 @@ export const predefinedRoles: Role[] = [
       { resource: 'coupons', actions: ['view'] },
       { resource: 'orders', actions: ['view'] },
       { resource: 'manage', actions: ['view'] }
+    ]
+  },
+  {
+    name: 'employee',
+    permissions: [
+      { resource: 'manage', actions: ['view'] },
+      { resource: 'masters', actions: ['view'] },
+      // Add more resources as needed for employees!
     ]
   }
 ];
