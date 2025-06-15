@@ -55,7 +55,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       
       return [...prevItems, newItem];
     });
-    setIsCartOpen(true);
+    // Removed setIsCartOpen(true) - don't auto-open cart when adding items
   };
 
   const removeFromCart = (productId: string) => {
