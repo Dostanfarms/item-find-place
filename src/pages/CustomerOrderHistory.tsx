@@ -10,12 +10,10 @@ import {
   ChevronLeft, 
   Eye
 } from 'lucide-react';
-import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
+import { fetchCustomerOrders } from '@/api/orders';
 import CustomerHeader from '@/components/CustomerHeader';
-import OrderDetailsDialog from '@/components/OrderDetailsDialog';
+import OrderSummaryDialog from '@/components/OrderSummaryDialog';
 import { useToast } from '@/hooks/use-toast';
-
-const STATUS_OPTIONS = ["pending", "confirmed", "shipped", "delivered"];
 
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
@@ -24,7 +22,6 @@ const CustomerOrderHistory = () => {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [selectedOrderItems, setSelectedOrderItems] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -90,19 +87,8 @@ const CustomerOrderHistory = () => {
   };
 
   const handleViewOrder = async (order: any) => {
-    try {
-      const { items } = await fetchOrderItems(order.id);
-      setSelectedOrder(order);
-      setSelectedOrderItems(items || []);
-      setDialogOpen(true);
-    } catch (error) {
-      console.error('Error fetching order items:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load order details",
-        variant: "destructive"
-      });
-    }
+    setSelectedOrder(order);
+    setDialogOpen(true);
   };
 
   const handleLogout = () => {
@@ -215,12 +201,11 @@ const CustomerOrderHistory = () => {
         </div>
       </div>
 
-      {/* Order Details Dialog */}
-      <OrderDetailsDialog
+      {/* Order Summary Dialog */}
+      <OrderSummaryDialog
         order={selectedOrder}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        statusOptions={STATUS_OPTIONS}
       />
     </div>
   );
