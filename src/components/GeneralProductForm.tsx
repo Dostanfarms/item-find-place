@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { Barcode, AlertCircle } from 'lucide-react';
@@ -26,6 +28,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   const [unit, setUnit] = useState(editProduct?.unit || 'kg');
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [category, setCategory] = useState(editProduct?.category || '');
+  const [isActive, setIsActive] = useState(editProduct?.is_active ?? true);
   const [images, setImages] = useState<string[]>(() => {
     if (!editProduct?.image_url) return [];
     try {
@@ -110,7 +113,8 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
       price_per_unit: parsedPrice,
       category,
       barcode: editProduct?.barcode || generateBarcode(),
-      image_url: imageData
+      image_url: imageData,
+      is_active: isActive
     };
     
     console.log('Submitting general product data:', productData);
@@ -131,6 +135,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
           setQuantity('1');
           setPricePerUnit('');
           setImages([]);
+          setIsActive(true);
           const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
@@ -173,139 +178,156 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   return (
     <Card>
       <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="product-name">Product Name*</Label>
-            <Input
-              id="product-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter product name"
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <MultipleImageUpload
-              value={images}
-              onChange={setImages}
-              disabled={isSubmitting}
-              maxImages={4}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Category*</Label>
-            <Select 
-              value={category} 
-              onValueChange={setCategory} 
-              disabled={isSubmitting || categoriesLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
+        <ScrollArea className="h-[80vh] pr-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity*</Label>
+              <Label htmlFor="product-name">Product Name*</Label>
               <Input
-                id="quantity"
-                type="number"
-                min="1"
-                step="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="e.g. 1, 2, 3"
+                id="product-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter product name"
                 required
                 disabled={isSubmitting}
               />
             </div>
+
+            <div className="space-y-2">
+              <MultipleImageUpload
+                value={images}
+                onChange={setImages}
+                disabled={isSubmitting}
+                maxImages={4}
+              />
+            </div>
             
             <div className="space-y-2">
-              <Label htmlFor="unit">Unit*</Label>
-              <Select value={unit} onValueChange={setUnit} disabled={isSubmitting}>
+              <Label htmlFor="category">Category*</Label>
+              <Select 
+                value={category} 
+                onValueChange={setCategory} 
+                disabled={isSubmitting || categoriesLoading}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
+                  <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="kg">Kilogram (kg)</SelectItem>
-                  <SelectItem value="g">Gram (g)</SelectItem>
-                  <SelectItem value="l">Liter (l)</SelectItem>
-                  <SelectItem value="ml">Milliliter (ml)</SelectItem>
-                  <SelectItem value="pcs">Pieces (pcs)</SelectItem>
-                  <SelectItem value="box">Box</SelectItem>
-                  <SelectItem value="piece">Piece</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="active-status">Product Status</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="active-status"
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="active-status" className="text-sm">
+                  {isActive ? 'Active' : 'Inactive'}
+                </Label>
+              </div>
+            </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="price">Price per Unit (₹)*</Label>
-              <Input 
-                id="price"
-                type="number" 
-                min="0"
-                step="0.01"
-                value={pricePerUnit}
-                onChange={(e) => setPricePerUnit(e.target.value)}
-                placeholder="0.00"
-                required
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity*</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="e.g. 1, 2, 3"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unit*</Label>
+                <Select value={unit} onValueChange={setUnit} disabled={isSubmitting}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">Kilogram (kg)</SelectItem>
+                    <SelectItem value="g">Gram (g)</SelectItem>
+                    <SelectItem value="l">Liter (l)</SelectItem>
+                    <SelectItem value="ml">Milliliter (ml)</SelectItem>
+                    <SelectItem value="pcs">Pieces (pcs)</SelectItem>
+                    <SelectItem value="box">Box</SelectItem>
+                    <SelectItem value="piece">Piece</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="price">Price per Unit (₹)*</Label>
+                <Input 
+                  id="price"
+                  type="number" 
+                  min="0"
+                  step="0.01"
+                  value={pricePerUnit}
+                  onChange={(e) => setPricePerUnit(e.target.value)}
+                  placeholder="0.00"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Total Price Display */}
+            {totalPrice > 0 && (
+              <div className="bg-muted/50 p-4 rounded-lg border">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Total Price:</span>
+                  <span className="text-lg font-bold text-agri-primary">₹{totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {quantity} {unit} × ₹{pricePerUnit} per {unit}
+                </div>
+              </div>
+            )}
+
+            {editProduct?.barcode && (
+              <div className="space-y-2">
+                <Label>Barcode</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                  <Barcode className="h-4 w-4" />
+                  <span className="font-mono text-sm">{editProduct.barcode}</span>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-2 justify-end pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onCancel}
                 disabled={isSubmitting}
-              />
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-agri-primary hover:bg-agri-secondary"
+                disabled={isSubmitting || categoriesLoading || categories.length === 0}
+              >
+                {isSubmitting ? 'Saving...' : editProduct ? 'Update' : 'Add'} Product
+              </Button>
             </div>
-          </div>
-
-          {/* Total Price Display */}
-          {totalPrice > 0 && (
-            <div className="bg-muted/50 p-4 rounded-lg border">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-muted-foreground">Total Price:</span>
-                <span className="text-lg font-bold text-agri-primary">₹{totalPrice.toFixed(2)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {quantity} {unit} × ₹{pricePerUnit} per {unit}
-              </div>
-            </div>
-          )}
-
-          {editProduct?.barcode && (
-            <div className="space-y-2">
-              <Label>Barcode</Label>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded">
-                <Barcode className="h-4 w-4" />
-                <span className="font-mono text-sm">{editProduct.barcode}</span>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex gap-2 justify-end pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-agri-primary hover:bg-agri-secondary"
-              disabled={isSubmitting || categoriesLoading || categories.length === 0}
-            >
-              {isSubmitting ? 'Saving...' : editProduct ? 'Update' : 'Add'} Product
-            </Button>
-          </div>
-        </form>
+          </form>
+        </ScrollArea>
       </CardContent>
     </Card>
   );

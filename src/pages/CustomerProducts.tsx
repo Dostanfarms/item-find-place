@@ -22,9 +22,12 @@ const CustomerProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [customer, setCustomer] = useState<any>(null);
   
-  const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
+  // Filter out inactive products
+  const activeProducts = products.filter(product => product.is_active !== false);
   
-  const filteredProducts = products.filter(product => {
+  const categories = ['all', ...Array.from(new Set(activeProducts.map(p => p.category)))];
+  
+  const filteredProducts = activeProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory && product.quantity > 0;

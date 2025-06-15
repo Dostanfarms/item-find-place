@@ -11,6 +11,7 @@ export interface Product {
   category: string;
   barcode?: string;
   image_url?: string; // This will store JSON array of image URLs
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +79,7 @@ export const useProducts = () => {
       if (productData.category !== undefined) updateData.category = productData.category;
       if (productData.barcode !== undefined) updateData.barcode = productData.barcode;
       if (productData.image_url !== undefined) updateData.image_url = productData.image_url;
+      if (productData.is_active !== undefined) updateData.is_active = productData.is_active;
 
       const { data, error } = await supabase
         .from('products')

@@ -19,7 +19,10 @@ const Sales = () => {
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredProducts = products.filter(product =>
+  // Filter out inactive products
+  const activeProducts = products.filter(product => product.is_active !== false);
+
+  const filteredProducts = activeProducts.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

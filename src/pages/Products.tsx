@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, Product } from '@/hooks/useProducts';
@@ -241,6 +242,7 @@ const Products = () => {
                       <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Quantity</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
+                      <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
                       <TableHead className="min-w-[140px] font-semibold">Barcode</TableHead>
                       <TableHead className="min-w-[100px] text-right font-semibold">Actions</TableHead>
                     </TableRow>
@@ -263,6 +265,14 @@ const Products = () => {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           ₹{product.price_per_unit}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={product.is_active !== false ? "default" : "secondary"}
+                            className={product.is_active !== false ? "bg-green-500" : "bg-gray-500"}
+                          >
+                            {product.is_active !== false ? "Active" : "Inactive"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {product.barcode ? (
