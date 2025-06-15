@@ -152,50 +152,6 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredTransactions.length}</div>
-            <p className="text-xs text-green-600">
-              {transactions.length} total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            <IndianRupee className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{getTotalAmount().toFixed(2)}</div>
-            <p className="text-xs text-green-600">
-              From {filteredTransactions.length} transactions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Transaction</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{filteredTransactions.length > 0 ? (getTotalAmount() / filteredTransactions.length).toFixed(2) : '0.00'}
-            </div>
-            <p className="text-xs text-green-600">
-              Average value
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Transactions Table */}
       <div className="flex-1 overflow-auto">
         {filteredTransactions.length === 0 ? (
