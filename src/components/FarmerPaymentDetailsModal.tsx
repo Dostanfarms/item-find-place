@@ -247,21 +247,17 @@ const FarmerPaymentDetailsModal = ({
                     
                     return (
                       <React.Fragment key={key}>
-                        {/* Settlement Group Header */}
-                        <TableRow className="bg-green-50 hover:bg-green-100">
+                        {/* Settlement Group Header - Now clickable entire row */}
+                        <TableRow 
+                          className="bg-green-50 hover:bg-green-100 cursor-pointer"
+                          onClick={() => toggleSettlementExpansion(key)}
+                        >
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleSettlementExpansion(key)}
-                              className="p-0 h-auto"
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </Button>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
                           </TableCell>
                           <TableCell className="font-medium" colSpan={5}>
                             Settlement Group ({groupProducts.length} products)
@@ -274,7 +270,10 @@ const FarmerPaymentDetailsModal = ({
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => onViewReceipt(key)}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click when clicking button
+                                  onViewReceipt(key);
+                                }}
                               >
                                 <Receipt className="h-3 w-3 mr-1" />
                                 View Receipt
