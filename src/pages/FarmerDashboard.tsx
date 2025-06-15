@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +24,6 @@ const FarmerDashboard = () => {
   const [dailyEarnings, setDailyEarnings] = useState([]);
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [settlementTransactions, setSettlementTransactions] = useState([]);
-  const { products, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
 
   useEffect(() => {
     const currentFarmer = localStorage.getItem('currentFarmer');
@@ -42,14 +40,21 @@ const FarmerDashboard = () => {
       }
       
       setFarmer(farmerData);
-      
-      // Fetch farmer products
-      fetchFarmerProducts(farmerData.id);
     } catch (error) {
       console.error('Error parsing farmer data:', error);
       navigate('/farmer-login');
     }
-  }, [navigate, fetchFarmerProducts]);
+  }, [navigate]);
+
+  // Fetch products only for the logged-in farmer
+  const { products, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts(farmer?.id);
+
+  // Fetch farmer products when farmer is set
+  useEffect(() => {
+    if (farmer?.id) {
+      fetchFarmerProducts(farmer.id);
+    }
+  }, [farmer?.id, fetchFarmerProducts]);
 
   // Calculate earnings from farmer products
   const calculateEarnings = (products) => {
@@ -139,7 +144,7 @@ const FarmerDashboard = () => {
     return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
   };
 
-  // Calculate totals
+  // Calculate totals for the specific farmer only
   const totalEarnings = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const settledAmount = products.filter(p => p.payment_status === 'settled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const unsettledAmount = products.filter(p => p.payment_status === 'unsettled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
@@ -153,6 +158,11 @@ const FarmerDashboard = () => {
       
       const transactions = calculateSettlementTransactions(products);
       setSettlementTransactions(transactions);
+    } else {
+      // Reset to empty arrays when no products
+      setDailyEarnings([]);
+      setMonthlyEarnings([]);
+      setSettlementTransactions([]);
     }
   }, [products, farmer]);
 
@@ -273,7 +283,7 @@ const FarmerDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Earnings History */}
+        {/* Earnings History - Only for this farmer */}
         <TransactionHistory 
           transactions={settlementTransactions} 
           dailyEarnings={dailyEarnings} 
