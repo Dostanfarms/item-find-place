@@ -1,21 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarMenuItem, 
-  SidebarMenu, 
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenuItem,
+  SidebarMenu,
   SidebarMenuButton,
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   useSidebar
 } from '@/components/ui/sidebar';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Receipt, 
+import {
+  ChevronDown,
+  ChevronUp,
+  Receipt,
   Settings,
   UserCog,
   Package,
@@ -37,16 +37,21 @@ const ManageMenu = () => {
   const { state } = useSidebar();
   const [manageOpen, setManageOpen] = useState(false);
 
-  // Open the manage menu if current location is under any manage item
   useEffect(() => {
-    const managePathsToCheck = ['/sales-dashboard', '/products', '/transactions', '/coupons', '/categories', '/employees', '/tickets', '/roles', '/settlements', '/banners'];
+    const managePathsToCheck = ['/sales-dashboard', '/orders', '/products', '/transactions', '/coupons', '/categories', '/employees', '/tickets', '/roles', '/settlements', '/banners'];
     if (managePathsToCheck.some(path => location.pathname.startsWith(path))) {
       setManageOpen(true);
     }
   }, [location.pathname]);
 
-  // Items in the "Manage" section - added Banners
+  // Items in the "Manage" section - added Orders
   const manageItems = [
+    {
+      title: 'Orders',
+      icon: Package,
+      path: '/orders',
+      resource: 'orders'
+    },
     {
       title: 'Sales Dashboard',
       icon: BarChart3,
@@ -109,13 +114,11 @@ const ManageMenu = () => {
     }
   ];
 
-  // Filter menu items based on user permissions
   const accessibleResources = currentUser ? getAccessibleResources(currentUser.role) : [];
-  const filteredManageItems = currentUser 
+  const filteredManageItems = currentUser
     ? manageItems.filter(item => accessibleResources.includes(item.resource))
     : manageItems;
 
-  // Don't render anything if no items or when collapsed
   if (filteredManageItems.length === 0) {
     return null;
   }
@@ -127,7 +130,7 @@ const ManageMenu = () => {
           <SidebarMenuItem>
             <Collapsible open={manageOpen} onOpenChange={setManageOpen} className="w-full">
               <CollapsibleTrigger asChild>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   className="flex items-center justify-between w-full"
                   tooltip="Manage"
                 >
@@ -143,7 +146,7 @@ const ManageMenu = () => {
                   {filteredManageItems.map((item) => (
                     <SidebarMenuSubItem key={item.path}>
                       <SidebarMenuSubButton asChild>
-                        <Link 
+                        <Link
                           to={item.path}
                           className={location.pathname === item.path ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}
                         >
