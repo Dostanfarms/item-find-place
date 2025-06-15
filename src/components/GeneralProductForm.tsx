@@ -9,6 +9,7 @@ import { useProducts, Product } from '@/hooks/useProducts';
 import { Barcode, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProductImageUpload from './ProductImageUpload';
 
 interface GeneralProductFormProps {
   onCancel: () => void;
@@ -24,6 +25,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   const [unit, setUnit] = useState(editProduct?.unit || 'kg');
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [category, setCategory] = useState(editProduct?.category || '');
+  const [imageUrl, setImageUrl] = useState<string | undefined>(editProduct?.image_url || undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate total price
@@ -95,7 +97,8 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
       unit,
       price_per_unit: parsedPrice,
       category,
-      barcode: editProduct?.barcode || generateBarcode()
+      barcode: editProduct?.barcode || generateBarcode(),
+      image_url: imageUrl || null
     };
     
     console.log('Submitting general product data:', productData);
@@ -115,6 +118,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
           setName('');
           setQuantity('1');
           setPricePerUnit('');
+          setImageUrl(undefined);
           const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
@@ -166,6 +170,15 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter product name"
               required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Product Image</Label>
+            <ProductImageUpload
+              value={imageUrl}
+              onChange={setImageUrl}
               disabled={isSubmitting}
             />
           </div>

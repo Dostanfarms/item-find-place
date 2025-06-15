@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/hooks/useProducts';
 
@@ -27,14 +28,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 p-6 flex items-center justify-center">
-        <div className="text-4xl">
-          {product.category === 'Vegetables' && '🥬'}
-          {product.category === 'Fruits' && '🍎'}
-          {product.category === 'Grains' && '🌾'}
-          {product.category === 'Dairy' && '🥛'}
-          {!['Vegetables', 'Fruits', 'Grains', 'Dairy'].includes(product.category) && '🌱'}
-        </div>
+      {/* Product Image or Fallback */}
+      <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center relative overflow-hidden">
+        {product.image_url ? (
+          <img 
+            src={product.image_url} 
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-4xl">
+            {product.category === 'Vegetables' && '🥬'}
+            {product.category === 'Fruits' && '🍎'}
+            {product.category === 'Grains' && '🌾'}
+            {product.category === 'Dairy' && '🥛'}
+            {!['Vegetables', 'Fruits', 'Grains', 'Dairy'].includes(product.category) && <Package className="h-12 w-12 text-green-600" />}
+          </div>
+        )}
       </div>
       
       <CardContent className="p-4">

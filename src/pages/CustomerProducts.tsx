@@ -2,17 +2,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
   Package, 
   ChevronLeft, 
   Search,
-  ShoppingCart,
   Filter
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
+import ProductGrid from '@/components/ProductGrid';
 
 const CustomerProducts = () => {
   const navigate = useNavigate();
@@ -86,48 +84,7 @@ const CustomerProducts = () => {
         </div>
 
         {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-8">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center">
-                {searchTerm || selectedCategory !== 'all' 
-                  ? 'No products match your search criteria' 
-                  : 'No products available at the moment'
-                }
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <Badge variant="outline">{product.category}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Price:</span>
-                      <span className="font-medium">₹{product.price_per_unit}/{product.unit}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Available:</span>
-                      <span className="font-medium">{product.quantity} {product.unit}</span>
-                    </div>
-                    <Button className="w-full mt-4">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        <ProductGrid products={filteredProducts} />
       </div>
     </div>
   );

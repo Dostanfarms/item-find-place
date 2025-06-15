@@ -10,6 +10,7 @@ export interface Product {
   price_per_unit: number;
   category: string;
   barcode?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +77,7 @@ export const useProducts = () => {
       if (productData.price_per_unit !== undefined) updateData.price_per_unit = productData.price_per_unit;
       if (productData.category !== undefined) updateData.category = productData.category;
       if (productData.barcode !== undefined) updateData.barcode = productData.barcode;
+      if (productData.image_url !== undefined) updateData.image_url = productData.image_url;
 
       const { data, error } = await supabase
         .from('products')

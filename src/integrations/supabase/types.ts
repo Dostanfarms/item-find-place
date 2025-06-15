@@ -332,6 +332,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          image_url: string | null
           name: string
           price_per_unit: number
           quantity: number
@@ -343,6 +344,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          image_url?: string | null
           name: string
           price_per_unit: number
           quantity?: number
@@ -354,6 +356,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           name?: string
           price_per_unit?: number
           quantity?: number
