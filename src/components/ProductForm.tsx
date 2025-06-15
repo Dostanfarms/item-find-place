@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,10 +94,14 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
       try {
         const farmerData = JSON.parse(currentFarmer);
         farmerMobile = farmerData.phone || '';
+        console.log('Retrieved farmer mobile from localStorage:', farmerMobile);
       } catch (error) {
         console.error('Error parsing farmer data:', error);
       }
     }
+    
+    // If we don't have farmer mobile from localStorage, we should still proceed
+    // The backend will handle getting it from the farmers table
     
     const productData = {
       farmer_id: farmerId,
@@ -114,14 +119,32 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
     try {
       if (editProduct) {
         // Update existing product
+        console.log('Updating product with ID:', editProduct.id);
         const result = await updateFarmerProduct(editProduct.id, productData);
+        console.log('Update result:', result);
         if (result.success) {
+          toast({
+            title: "Success",
+            description: "Product updated successfully",
+          });
           onCancel(); // Close form
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to update product",
+            variant: "destructive"
+          });
         }
       } else {
         // Add new product
+        console.log('Adding new product for farmer:', farmerId);
         const result = await addFarmerProduct(productData);
+        console.log('Add result:', result);
         if (result.success) {
+          toast({
+            title: "Success",
+            description: "Product added successfully",
+          });
           // Reset form
           setName('');
           setQuantity('1');
@@ -129,6 +152,12 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
           const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to add product",
+            variant: "destructive"
+          });
         }
       }
       
@@ -288,3 +317,4 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
 };
 
 export default ProductForm;
+

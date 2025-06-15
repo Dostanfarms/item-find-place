@@ -185,7 +185,6 @@ export type Database = {
       }
       farmer_products: {
         Row: {
-          barcode: string | null
           category: string
           created_at: string
           farmer_id: string
@@ -199,7 +198,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          barcode?: string | null
           category: string
           created_at?: string
           farmer_id: string
@@ -213,7 +211,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          barcode?: string | null
           category?: string
           created_at?: string
           farmer_id?: string
