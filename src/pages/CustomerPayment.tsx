@@ -178,6 +178,11 @@ const CustomerPayment = () => {
     }
   };
 
+  const handleQRPaymentComplete = async () => {
+    // Automatically place order when QR payment is completed
+    await handlePlaceOrder();
+  };
+
   const handlePlaceOrder = async () => {
     if (!shippingAddress.fullName.trim() || !shippingAddress.mobile.trim() || !shippingAddress.address.trim() || !shippingAddress.landmark.trim()) {
       toast({
@@ -402,6 +407,7 @@ const CustomerPayment = () => {
                 <PaymentMethods
                   total={finalTotal}
                   onPaymentMethodSelect={handlePaymentMethodSelect}
+                  onQRPaymentComplete={handleQRPaymentComplete}
                   disabled={isProcessing}
                 />
                 {paymentMethod && (

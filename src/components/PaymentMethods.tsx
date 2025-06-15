@@ -1,17 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, QrCode } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 interface PaymentMethodsProps {
   total: number;
   onPaymentMethodSelect: (method: string, appUrl?: string) => void;
   disabled?: boolean;
+  onQRPaymentComplete?: () => void;
 }
 
-const PaymentMethods = ({ total, onPaymentMethodSelect, disabled = false }: PaymentMethodsProps) => {
+const PaymentMethods = ({ total, onPaymentMethodSelect, disabled = false, onQRPaymentComplete }: PaymentMethodsProps) => {
+  const [showQR, setShowQR] = useState(false);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
   const upiId = "2755c@ybl";
   
   const generateUPIUrl = (app: string) => {
@@ -77,18 +81,22 @@ const PaymentMethods = ({ total, onPaymentMethodSelect, disabled = false }: Paym
     }, 2000);
   };
 
+  const handleShowQR = () => {
+    setShowQR(true);
+    onPaymentMethodSelect('qr');
+  };
+
+  const handlePaymentComplete = () => {
+    setPaymentCompleted(true);
+    if (onQRPaymentComplete) {
+      onQRPaymentComplete();
+    }
+  };
+
+  const qrValue = `upi://pay?pa=${upiId}&pn=Dostan Farms&am=${total}&cu=INR&tn=Payment for Order ${Date.now()}`;
+
   return (
     <div className="space-y-4">
-      {/* Available Offers */}
-      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="flex items-center gap-2">
-          <span className="text-blue-600 font-medium">💳 Available Offers</span>
-        </div>
-        <p className="text-sm text-blue-600 mt-1">
-          Pay with UPI and get instant confirmation
-        </p>
-      </div>
-
       {/* UPI Payment Options */}
       <div>
         <h3 className="font-medium mb-3 flex items-center gap-2">
@@ -110,6 +118,53 @@ const PaymentMethods = ({ total, onPaymentMethodSelect, disabled = false }: Paym
             </Button>
           ))}
         </div>
+
+        {/* QR Code Option */}
+        <Button
+          variant="outline"
+          className="w-full h-14 flex items-center justify-between bg-green-50 border-green-200 hover:bg-green-100 mb-4"
+          onClick={handleShowQR}
+          disabled={disabled}
+        >
+          <div className="flex items-center gap-3">
+            <QrCode className="h-6 w-6 text-green-600" />
+            <span className="font-medium">Show QR Code</span>
+          </div>
+          <span className="text-sm text-green-600">Scan & Pay</span>
+        </Button>
+
+        {/* QR Code Display */}
+        {showQR && (
+          <div className="p-4 bg-white rounded-lg border border-gray-200 text-center">
+            <h4 className="font-medium mb-3">Scan QR Code to Pay</h4>
+            <div className="bg-white p-4 rounded-lg inline-block border">
+              <QRCode
+                value={qrValue}
+                size={200}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-3 mb-4">
+              Amount: ₹{total.toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              UPI ID: {upiId}
+            </p>
+            
+            {!paymentCompleted ? (
+              <Button
+                onClick={handlePaymentComplete}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={disabled}
+              >
+                Payment Completed
+              </Button>
+            ) : (
+              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-green-600 font-medium">✓ Payment Completed Successfully!</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Generic UPI Option */}
         <Button
