@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, DollarSign, Eye } from 'lucide-react';
+import { Search, DollarSign, AlertCircle } from 'lucide-react';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { useFarmers } from '@/hooks/useFarmers';
 import SettlementModal from '@/components/SettlementModal';
-import { format } from 'date-fns';
 
 const Settlements = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +17,8 @@ const Settlements = () => {
   
   const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
   const { farmers, loading: farmersLoading } = useFarmers();
+
+  console.log('Settlements page loaded', { allProducts, farmers, productsLoading, farmersLoading });
 
   // Create a map for quick farmer lookup
   const farmerMap = useMemo(() => {
@@ -78,11 +79,13 @@ const Settlements = () => {
   }, [filteredProducts, farmerMap]);
 
   const handleSettlePayment = (farmerSummary) => {
+    console.log('Opening settlement modal for:', farmerSummary.farmer.name);
     setSelectedFarmer(farmerSummary);
     setIsSettlementModalOpen(true);
   };
 
   const handleSettlementComplete = () => {
+    console.log('Settlement completed, refreshing data');
     fetchFarmerProducts();
     setIsSettlementModalOpen(false);
     setSelectedFarmer(null);
@@ -184,7 +187,7 @@ const Settlements = () => {
                                 variant="default"
                                 size="sm"
                                 onClick={() => handleSettlePayment(summary)}
-                                className="h-7 px-2 bg-agri-primary hover:bg-agri-secondary"
+                                className="h-7 px-2 bg-green-600 hover:bg-green-700"
                               >
                                 <DollarSign className="h-3 w-3 mr-1" />
                                 Settle
