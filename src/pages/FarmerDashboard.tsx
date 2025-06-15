@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, BarChart3, Ticket, Edit } from 'lucide-react';
+import { Package, User, LogOut, BarChart3, Ticket, Edit, DollarSign } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import TransactionHistory from '@/components/TransactionHistory';
 import EditProfileDialog from '@/components/farmer/EditProfileDialog';
 import FarmerProductsTable from '@/components/FarmerProductsTable';
+import FarmerSettlements from '@/components/farmer/FarmerSettlements';
 import { format } from 'date-fns';
 
 const FarmerDashboard = () => {
@@ -23,6 +25,7 @@ const FarmerDashboard = () => {
   const [farmer, setFarmer] = useState<any>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
+  const [showSettlementsDialog, setShowSettlementsDialog] = useState(false);
   const [dailyEarnings, setDailyEarnings] = useState([]);
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [settlementTransactions, setSettlementTransactions] = useState([]);
@@ -188,6 +191,10 @@ const FarmerDashboard = () => {
     navigate(`/farmer-tickets/${farmer.id}`);
   };
 
+  const handleSettlementsClick = () => {
+    setShowSettlementsDialog(true);
+  };
+
   const handleProfileUpdate = (updatedFarmer: any) => {
     setFarmer(updatedFarmer);
   };
@@ -226,6 +233,10 @@ const FarmerDashboard = () => {
               <DropdownMenuItem onClick={handleProfileClick}>
                 <User className="mr-2 h-4 w-4" />
                 <span>View Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettlementsClick}>
+                <DollarSign className="mr-2 h-4 w-4" />
+                <span>My Settlements</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTicketsClick}>
                 <Ticket className="mr-2 h-4 w-4" />
@@ -380,6 +391,22 @@ const FarmerDashboard = () => {
           farmer={farmer}
           onProfileUpdate={handleProfileUpdate}
         />
+
+        {/* Settlements Dialog */}
+        <Dialog open={showSettlementsDialog} onOpenChange={setShowSettlementsDialog}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                My Settlements
+              </DialogTitle>
+            </DialogHeader>
+            <FarmerSettlements 
+              products={farmerSpecificProducts} 
+              loading={productsLoading} 
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
