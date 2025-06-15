@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./contexts/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CustomerProtectedRoute from "./components/CustomerProtectedRoute";
 import { Sidebar } from "./components/sidebar/Sidebar";
@@ -61,6 +61,15 @@ const EmployeeLayout = () => {
         </main>
       </div>
     </SidebarProvider>
+  );
+};
+
+// Layout component for customer routes with cart provider
+const CustomerLayout = () => {
+  return (
+    <CartProvider>
+      <Outlet />
+    </CartProvider>
   );
 };
 
@@ -152,16 +161,18 @@ const App = () => (
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
             <Route path="/farmer-tickets/:id" element={<FarmerTicketHistory />} />
             
-            {/* Customer Routes - Using CustomerProtectedRoute */}
-            <Route element={<CustomerProtectedRoute />}>
-              <Route path="/customer-home" element={<CustomerHome />} />
-              <Route path="/customer-products" element={<CustomerProducts />} />
-              <Route path="/customer-profile" element={<CustomerProfile />} />
-              <Route path="/customer-orders" element={<CustomerOrderHistory />} />
-              <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/order-tracking" element={<OrderTracking />} />
-              <Route path="/order-history" element={<OrderHistory />} />
+            {/* Customer Routes - Using CustomerProtectedRoute with CartProvider */}
+            <Route element={<CustomerLayout />}>
+              <Route element={<CustomerProtectedRoute />}>
+                <Route path="/customer-home" element={<CustomerHome />} />
+                <Route path="/customer-products" element={<CustomerProducts />} />
+                <Route path="/customer-profile" element={<CustomerProfile />} />
+                <Route path="/customer-orders" element={<CustomerOrderHistory />} />
+                <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/order-tracking" element={<OrderTracking />} />
+                <Route path="/order-history" element={<OrderHistory />} />
+              </Route>
             </Route>
             
             <Route path="*" element={<NotFound />} />
