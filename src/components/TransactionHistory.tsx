@@ -125,7 +125,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         {formatDate(dayData.date)}
                       </div>
                       <div className="p-2">
-                        {dayData.products.map((product, productIndex) => (
+                        {dayData.products.map((product: FarmerProduct, productIndex) => (
                           <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
                             <div className="flex-1">
                               <div className="font-medium">{product.name}</div>
@@ -174,9 +174,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               <div className="text-sm text-muted-foreground">
                                 Total: {product.quantity} {product.unit} | Transactions: {product.count}
                               </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {product.category}
-                              </Badge>
                             </div>
                             <div className="text-right">
                               <div className="font-medium">
