@@ -12,10 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Package, ArrowLeft, User, Home, MapPin, Mail, Phone } from 'lucide-react';
+import PhotoUploadField from '@/components/PhotoUploadField';
+import { useCustomers } from '@/hooks/useCustomers';
 
 const CustomerProfile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { updateCustomer } = useCustomers();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -28,7 +31,8 @@ const CustomerProfile = () => {
     mobile: '',
     email: '',
     address: '',
-    pincode: ''
+    pincode: '',
+    profile_photo: ''
   });
   
   // Redirect if not logged in
@@ -42,12 +46,23 @@ const CustomerProfile = () => {
     const { name, value } = e.target;
     setCustomer(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleProfilePhotoChange = (photoUrl: string) => {
+    setCustomer(prev => ({ ...prev, profile_photo: photoUrl }));
+  };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Update customer in Supabase if customer has an ID
+      if (customer.id) {
+        const result = await updateCustomer(customer.id, customer);
+        if (!result.success) {
+          throw new Error('Failed to update profile in database');
+        }
+      }
+      
       // Update customer in localStorage
       localStorage.setItem('currentCustomer', JSON.stringify(customer));
       
@@ -65,7 +80,15 @@ const CustomerProfile = () => {
         title: "Profile Updated",
         description: "Your profile has been updated successfully"
       });
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setIsLoading(false);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   if (!initialCustomer) {
@@ -103,9 +126,12 @@ const CustomerProfile = () => {
             {!isEditing ? (
               <>
                 <div className="flex flex-col items-center mb-6">
-                  <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <User className="h-12 w-12 text-muted-foreground" />
-                  </div>
+                  <PhotoUploadField
+                    value={customer.profile_photo}
+                    onChange={handleProfilePhotoChange}
+                    name="customer-profile-photo"
+                    className="w-24 h-24 mb-4"
+                  />
                   <h2 className="text-xl font-bold">{customer.name}</h2>
                 </div>
                 
@@ -154,6 +180,18 @@ const CustomerProfile = () => {
               </>
             ) : (
               <form className="space-y-4">
+                <div className="flex flex-col items-center mb-6">
+                  <PhotoUploadField
+                    value={customer.profile_photo}
+                    onChange={handleProfilePhotoChange}
+                    name="customer-profile-photo"
+                    className="w-24 h-24"
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Tap to update profile photo
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
