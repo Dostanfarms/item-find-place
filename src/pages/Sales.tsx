@@ -234,8 +234,8 @@ const Sales = () => {
                 )}
               </div>
 
-              {/* Total and Proceed to Payment */}
-              <div className="flex-none space-y-3">
+              {/* Total and Proceed to Payment (moved here) */}
+              <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-center font-bold">
                   <span>Total:</span>
                   <span>₹{getTotalAmount().toFixed(2)}</span>
@@ -243,7 +243,7 @@ const Sales = () => {
                 <ProtectedAction resource="sales" action="create">
                   <Button 
                     onClick={handleProceedToPayment}
-                    className="w-full"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
                     disabled={cart.length === 0}
                   >
                     Proceed to Payment
