@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, DollarSign, AlertCircle } from 'lucide-react';
+import { Search, DollarSign } from 'lucide-react';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import { useFarmers } from '@/hooks/useFarmers';
 import SettlementModal from '@/components/SettlementModal';
@@ -15,10 +15,16 @@ const Settlements = () => {
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   
+  // Fetch all products (no farmerId provided)
   const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
   const { farmers, loading: farmersLoading } = useFarmers();
 
-  console.log('Settlements page loaded', { allProducts, farmers, productsLoading, farmersLoading });
+  console.log('Settlements page data:', { 
+    allProducts: allProducts.length, 
+    farmers: farmers.length, 
+    productsLoading, 
+    farmersLoading 
+  });
 
   // Create a map for quick farmer lookup
   const farmerMap = useMemo(() => {
@@ -84,25 +90,29 @@ const Settlements = () => {
     setIsSettlementModalOpen(true);
   };
 
-  const handleSettlementComplete = () => {
+  const handleSettlementComplete = async () => {
     console.log('Settlement completed, refreshing data');
-    fetchFarmerProducts();
+    await fetchFarmerProducts(); // Fetch all products again
     setIsSettlementModalOpen(false);
     setSelectedFarmer(null);
   };
 
+  // Show loading state while either farmers or products are loading
   if (productsLoading || farmersLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground text-lg">Loading settlements...</div>
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <div className="text-muted-foreground text-lg">Loading settlements...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
+      {/* Header */}
+      <div className="bg-white border-b shadow-sm">
         <div className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Payment Settlements</h1>
@@ -122,7 +132,7 @@ const Settlements = () => {
       {/* Content */}
       <div className="flex-1 p-4 md:p-6">
         {farmerSummaries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-300px)] bg-white rounded-lg border">
             <DollarSign className="h-16 w-16 text-muted-foreground mb-6" />
             {searchTerm ? (
               <>

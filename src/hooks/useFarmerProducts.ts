@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+// Use the database types directly
+type DatabaseFarmerProduct = Database['public']['Tables']['farmer_products']['Row'];
 
 export interface FarmerProduct {
   id: string;
@@ -20,16 +24,18 @@ export interface FarmerProduct {
 export const useFarmerProducts = (farmerId?: string) => {
   const [products, setProducts] = useState<FarmerProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  const fetchFarmerProducts = async (id?: string) => {
+  const fetchFarmerProducts = useCallback(async (id?: string) => {
     try {
       setLoading(true);
+      console.log('Fetching farmer products...', id ? `for farmer: ${id}` : 'for all farmers');
+      
       let query = supabase
         .from('farmer_products')
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Only filter by farmer_id if one is provided
       if (id) {
         query = query.eq('farmer_id', id);
       }
@@ -38,74 +44,43 @@ export const useFarmerProducts = (farmerId?: string) => {
 
       if (error) {
         console.error('Error fetching farmer products:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load farmer products",
-          variant: "destructive"
-        });
         return;
       }
 
-      // Type assertion to ensure payment_status is properly typed
-      const typedData = (data || []).map(product => ({
-        ...product,
-        payment_status: product.payment_status as 'settled' | 'unsettled'
+      console.log('Farmer products fetched successfully:', data);
+      
+      // Transform the data to match our interface
+      const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: DatabaseFarmerProduct) => ({
+        id: dbProduct.id,
+        farmer_id: dbProduct.farmer_id,
+        name: dbProduct.name,
+        quantity: Number(dbProduct.quantity),
+        unit: dbProduct.unit,
+        price_per_unit: Number(dbProduct.price_per_unit),
+        category: dbProduct.category,
+        barcode: dbProduct.barcode || undefined,
+        payment_status: dbProduct.payment_status as 'settled' | 'unsettled',
+        transaction_image: dbProduct.transaction_image || undefined,
+        created_at: dbProduct.created_at,
+        updated_at: dbProduct.updated_at,
       }));
-
-      setProducts(typedData);
+      
+      setProducts(transformedProducts);
     } catch (error) {
       console.error('Error in fetchFarmerProducts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load farmer products",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const addFarmerProduct = async (productData: Omit<FarmerProduct, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .from('farmer_products')
-        .insert([productData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding farmer product:', error);
-        toast({
-          title: "Error",
-          description: "Failed to add product",
-          variant: "destructive"
-        });
-        return { success: false, error };
-      }
-
-      await fetchFarmerProducts(farmerId);
-      toast({
-        title: "Success",
-        description: `${productData.name} was successfully added`
-      });
+      console.log('Adding farmer product:', productData);
       
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error in addFarmerProduct:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add product",
-        variant: "destructive"
-      });
-      return { success: false, error };
-    }
-  };
-
-  const updateFarmerProduct = async (id: string, productData: Partial<FarmerProduct>) => {
-    try {
       const { data, error } = await supabase
         .from('farmer_products')
-        .update({
+        .insert([{
+          farmer_id: productData.farmer_id,
           name: productData.name,
           quantity: productData.quantity,
           unit: productData.unit,
@@ -114,87 +89,60 @@ export const useFarmerProducts = (farmerId?: string) => {
           barcode: productData.barcode,
           payment_status: productData.payment_status,
           transaction_image: productData.transaction_image,
-          updated_at: new Date().toISOString()
-        })
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding farmer product:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Farmer product added successfully:', data);
+      // Refresh the products list
+      await fetchFarmerProducts(farmerId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error in addFarmerProduct:', error);
+      return { success: false, error: 'Failed to add farmer product' };
+    }
+  };
+
+  const updateFarmerProduct = async (id: string, updates: Partial<FarmerProduct>) => {
+    try {
+      console.log('Updating farmer product:', id, updates);
+      
+      const { data, error } = await supabase
+        .from('farmer_products')
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) {
         console.error('Error updating farmer product:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update product",
-          variant: "destructive"
-        });
-        return { success: false, error };
+        return { success: false, error: error.message };
       }
 
+      console.log('Farmer product updated successfully:', data);
+      // Refresh the products list
       await fetchFarmerProducts(farmerId);
-      toast({
-        title: "Success",
-        description: `${productData.name} was successfully updated`
-      });
-      
       return { success: true, data };
     } catch (error) {
       console.error('Error in updateFarmerProduct:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update product",
-        variant: "destructive"
-      });
-      return { success: false, error };
-    }
-  };
-
-  const deleteFarmerProduct = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('farmer_products')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting farmer product:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete product",
-          variant: "destructive"
-        });
-        return { success: false, error };
-      }
-
-      await fetchFarmerProducts(farmerId);
-      toast({
-        title: "Success",
-        description: "Product has been deleted successfully"
-      });
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error in deleteFarmerProduct:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete product",
-        variant: "destructive"
-      });
-      return { success: false, error };
+      return { success: false, error: 'Failed to update farmer product' };
     }
   };
 
   useEffect(() => {
-    if (farmerId) {
-      fetchFarmerProducts(farmerId);
-    }
-  }, [farmerId]);
+    fetchFarmerProducts(farmerId);
+  }, [fetchFarmerProducts, farmerId]);
 
   return {
     products,
     loading,
     fetchFarmerProducts,
     addFarmerProduct,
-    updateFarmerProduct,
-    deleteFarmerProduct
+    updateFarmerProduct
   };
 };
