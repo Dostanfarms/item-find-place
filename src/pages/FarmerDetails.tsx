@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -429,7 +430,8 @@ const FarmerDetails = () => {
       <TransactionHistory 
         transactions={settlementTransactions} 
         dailyEarnings={dailyEarnings} 
-        monthlyEarnings={monthlyEarnings} 
+        monthlyEarnings={monthlyEarnings}
+        products={farmerProducts}
       />
       
       <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
