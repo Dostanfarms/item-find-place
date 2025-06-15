@@ -179,27 +179,6 @@ const FarmerPaymentDetailsModal = ({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 justify-end">
-            {unsettledAmount > 0 && (
-              <Button 
-                onClick={() => onSettle({
-                  farmer,
-                  totalAmount,
-                  settledAmount,
-                  unsettledAmount,
-                  products,
-                  unsettledProducts,
-                  settlementReceipt
-                })}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <IndianRupee className="h-4 w-4 mr-2" />
-                Settle Payment (₹{unsettledAmount.toFixed(2)})
-              </Button>
-            )}
-          </div>
-
           {/* Products Table */}
           <div>
             <div className="flex items-center justify-between mb-4">
