@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/hooks/useProducts';
+import { toast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -15,15 +16,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      quantity: 1,
-      pricePerUnit: Number(product.price_per_unit),
-      unit: product.unit,
-      category: product.category,
-      farmerId: '' // Remove farmer_id reference, use empty string as default
-    });
+    try {
+      addToCart({
+        productId: product.id,
+        name: product.name,
+        quantity: 1,
+        pricePerUnit: Number(product.price_per_unit),
+        unit: product.unit,
+        category: product.category,
+        farmerId: ''
+      });
+      
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -65,16 +80,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             per {product.unit}
           </p>
         </div>
-        
-        <p className="text-sm text-gray-600 mb-3">
-          {product.quantity > 0 ? (
-            <span className="text-green-600">
-              {product.quantity} {product.unit}s available
-            </span>
-          ) : (
-            <span className="text-red-600">Out of stock</span>
-          )}
-        </p>
       </CardContent>
       
       <CardFooter className="p-4 pt-0">

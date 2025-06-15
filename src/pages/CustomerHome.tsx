@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useProducts } from '@/hooks/useProducts';
 import ProductGrid from '@/components/ProductGrid';
+import Cart from '@/components/Cart';
+
 const CustomerHome = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<any>(null);
@@ -27,6 +29,7 @@ const CustomerHome = () => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || product.category.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch && product.quantity > 0;
   });
+
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
     if (!currentCustomer) {
@@ -51,7 +54,8 @@ const CustomerHome = () => {
   if (!customer) {
     return <div>Loading...</div>;
   }
-  return <div className="min-h-screen bg-muted/30">
+  return (
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <div className="bg-white shadow-sm border-b p-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -89,9 +93,9 @@ const CustomerHome = () => {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => {
-                localStorage.removeItem('currentCustomer');
-                navigate('/customer-login');
-              }}>
+                  localStorage.removeItem('currentCustomer');
+                  navigate('/customer-login');
+                }}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
@@ -112,8 +116,13 @@ const CustomerHome = () => {
           </div>
           
           <div className="relative w-full md:w-96">
-            
-            
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
       </div>
@@ -154,10 +163,19 @@ const CustomerHome = () => {
           </p>
         </div>
 
-        {productsLoading ? <div className="text-center py-12">
+        {productsLoading ? (
+          <div className="text-center py-12">
             <div className="text-muted-foreground text-lg">Loading products...</div>
-          </div> : <ProductGrid products={filteredProducts} />}
+          </div>
+        ) : (
+          <ProductGrid products={filteredProducts} />
+        )}
       </div>
-    </div>;
+
+      {/* Cart Component */}
+      <Cart />
+    </div>
+  );
 };
+
 export default CustomerHome;
