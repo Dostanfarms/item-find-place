@@ -164,15 +164,29 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     );
   }
 
-  // Render print-friendly billing - Show all customer info fields
+  // Helper function to extract address parts
+  function extractAddressParts(address?: string | null) {
+    if (!address) {
+      return { address: "-", city: "-", state: "-" };
+    }
+    const parts = address.split(",").map(p => p.trim());
+    return {
+      address: parts[0] || "-",
+      city: parts[1] || "-",
+      state: parts[2] || "-"
+    };
+  }
+
+  // Render print-friendly billing - Show all customer info fields, with extracted parts
   function renderPrintableBilling(customer: CustomerInfo | null) {
+    const { address, city, state } = extractAddressParts(customer?.address);
     return (
       `<div style="margin-bottom:8px; font-size:15px;">
         <div><b>Name:</b> ${customer?.name ?? "-"}</div>
         <div><b>Mobile:</b> ${customer?.mobile ?? "-"}</div>
-        <div><b>Address:</b> ${customer?.address ?? "-"}</div>
-        <div><b>City:</b> ${customer?.address ? (customer.address.split(',')[1] ? customer.address.split(',')[1].trim() : "-") : (customer?.city ?? "-")}</div>
-        <div><b>State:</b> ${customer?.address ? (customer.address.split(',')[2] ? customer.address.split(',')[2].trim() : "-") : (customer?.state ?? "-")}</div>
+        <div><b>Address:</b> ${address}</div>
+        <div><b>City:</b> ${city}</div>
+        <div><b>State:</b> ${state}</div>
         <div><b>Pincode:</b> ${customer?.pincode ?? "-"}</div>
         ${customer?.email ? `<div><b>Email:</b> ${customer.email}</div>` : ""}
       </div>`
@@ -181,16 +195,23 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   // Render print-friendly shipping - Show all shipping fields with clear labels
   function renderPrintableShipping(order: Order | null, customer: CustomerInfo | null) {
-    // If order.shipping_address present, use that, else fall back to customer
+    // If order.shipping_address present, use that, else fall back to customer as fallback
     const addr = order?.shipping_address || {};
-    // Prefer shipping address, but use customer fallback for missing fields
+    const customerParts = extractAddressParts(customer?.address);
+
     return (
       `<div style="margin-bottom:8px; font-size:15px;">
         <div><b>Name:</b> ${addr.name ?? customer?.name ?? "-"}</div>
         <div><b>Mobile:</b> ${addr.mobile ?? customer?.mobile ?? "-"}</div>
-        <div><b>Address:</b> ${addr.address ?? customer?.address ?? "-"}</div>
-        <div><b>City:</b> ${addr.city ?? "-"}</div>
-        <div><b>State:</b> ${addr.state ?? "-"}</div>
+        <div><b>Address:</b> ${
+          addr.address ?? customerParts.address
+        }</div>
+        <div><b>City:</b> ${
+          addr.city ?? customerParts.city
+        }</div>
+        <div><b>State:</b> ${
+          addr.state ?? customerParts.state
+        }</div>
         <div><b>Pincode:</b> ${addr.pincode ?? customer?.pincode ?? "-"}</div>
       </div>`
     );
