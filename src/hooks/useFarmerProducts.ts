@@ -17,11 +17,11 @@ export interface FarmerProduct {
   updated_at: string;
 }
 
-export const useFarmerProducts = () => {
+export const useFarmerProducts = (farmerId?: string) => {
   const [farmerProducts, setFarmerProducts] = useState<FarmerProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFarmerProducts = async (farmerId?: string) => {
+  const fetchFarmerProducts = async (targetFarmerId?: string) => {
     try {
       setLoading(true);
       let query = supabase
@@ -29,8 +29,9 @@ export const useFarmerProducts = () => {
         .select('*')
         .order('name', { ascending: true });
 
-      if (farmerId) {
-        query = query.eq('farmer_id', farmerId);
+      const idToUse = targetFarmerId || farmerId;
+      if (idToUse) {
+        query = query.eq('farmer_id', idToUse);
       }
 
       const { data, error } = await query;
@@ -40,7 +41,14 @@ export const useFarmerProducts = () => {
         return;
       }
 
-      setFarmerProducts(data || []);
+      // Type cast the data to ensure proper typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        payment_status: item.payment_status as 'settled' | 'unsettled',
+        is_active: item.is_active ?? true
+      })) as FarmerProduct[];
+
+      setFarmerProducts(typedData);
     } catch (error) {
       console.error('Error in fetchFarmerProducts:', error);
     } finally {
@@ -63,9 +71,15 @@ export const useFarmerProducts = () => {
       }
 
       console.log('Farmer product added successfully:', data);
-      // Immediately update the local state instead of refetching
-      setFarmerProducts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-      return { success: true, data };
+      // Type cast and update local state
+      const typedData = {
+        ...data,
+        payment_status: data.payment_status as 'settled' | 'unsettled',
+        is_active: data.is_active ?? true
+      } as FarmerProduct;
+      
+      setFarmerProducts(prev => [...prev, typedData].sort((a, b) => a.name.localeCompare(b.name)));
+      return { success: true, data: typedData };
     } catch (error) {
       console.error('Error in addFarmerProduct:', error);
       return { success: false, error: 'Failed to add farmer product' };
@@ -101,13 +115,19 @@ export const useFarmerProducts = () => {
       }
 
       console.log('Farmer product updated successfully:', data);
-      // Immediately update the local state instead of refetching
+      // Type cast and update local state
+      const typedData = {
+        ...data,
+        payment_status: data.payment_status as 'settled' | 'unsettled',
+        is_active: data.is_active ?? true
+      } as FarmerProduct;
+      
       setFarmerProducts(prev => 
         prev.map(product => 
-          product.id === id ? data : product
+          product.id === id ? typedData : product
         ).sort((a, b) => a.name.localeCompare(b.name))
       );
-      return { success: true, data };
+      return { success: true, data: typedData };
     } catch (error) {
       console.error('Error in updateFarmerProduct:', error);
       return { success: false, error: 'Failed to update farmer product' };
@@ -116,10 +136,11 @@ export const useFarmerProducts = () => {
 
   useEffect(() => {
     fetchFarmerProducts();
-  }, []);
+  }, [farmerId]);
 
   return {
     farmerProducts,
+    products: farmerProducts, // Add alias for backward compatibility
     loading,
     fetchFarmerProducts,
     addFarmerProduct,

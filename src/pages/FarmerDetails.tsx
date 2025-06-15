@@ -18,7 +18,7 @@ const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
-  const { products: farmerProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts(id);
+  const { farmerProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts(id);
   
   const [farmer, setFarmer] = useState<any>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);

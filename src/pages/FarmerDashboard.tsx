@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,19 +51,19 @@ const FarmerDashboard = () => {
   }, [navigate]);
 
   // Fetch products ONLY for the logged-in farmer
-  const { products, loading: productsLoading } = useFarmerProducts(farmer?.id);
+  const { farmerProducts, loading: productsLoading } = useFarmerProducts(farmer?.id);
 
   // Calculate earnings from farmer products (only for this specific farmer)
   const calculateEarnings = (products) => {
     // Ensure we're only calculating for the current farmer's products
-    const farmerProducts = products.filter(product => product.farmer_id === farmer?.id);
+    const farmerSpecificProducts = products.filter(product => product.farmer_id === farmer?.id);
     
     // Group by date for daily earnings
     const dailyGroups = new Map();
     // Group by month for monthly earnings
     const monthlyGroups = new Map();
     
-    farmerProducts.forEach(product => {
+    farmerSpecificProducts.forEach(product => {
       const productDate = new Date(product.created_at);
       const dayKey = format(productDate, 'yyyy-MM-dd');
       const monthKey = format(productDate, 'yyyy-MM');
@@ -116,8 +115,8 @@ const FarmerDashboard = () => {
   // Calculate settlement transactions from farmer products (only for this specific farmer)
   const calculateSettlementTransactions = (products) => {
     // Ensure we're only calculating for the current farmer's products
-    const farmerProducts = products.filter(product => product.farmer_id === farmer?.id);
-    const settledProducts = farmerProducts.filter(product => product.payment_status === 'settled');
+    const farmerSpecificProducts = products.filter(product => product.farmer_id === farmer?.id);
+    const settledProducts = farmerSpecificProducts.filter(product => product.payment_status === 'settled');
     
     // Group settled products by date to create settlement transactions
     const settlementGroups = new Map();
@@ -148,20 +147,20 @@ const FarmerDashboard = () => {
   };
 
   // Calculate totals for the specific farmer only
-  const farmerSpecificProducts = products.filter(product => product.farmer_id === farmer?.id);
+  const farmerSpecificProducts = farmerProducts.filter(product => product.farmer_id === farmer?.id);
   const totalEarnings = farmerSpecificProducts.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const settledAmount = farmerSpecificProducts.filter(p => p.payment_status === 'settled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
   const unsettledAmount = farmerSpecificProducts.filter(p => p.payment_status === 'unsettled').reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
 
   // Update earnings when products change
   useEffect(() => {
-    if (products && products.length > 0 && farmer?.id) {
-      console.log('Calculating earnings for farmer:', farmer.id, 'with products:', products.length);
-      const { dailyEarningsData, monthlyEarningsData } = calculateEarnings(products);
+    if (farmerProducts && farmerProducts.length > 0 && farmer?.id) {
+      console.log('Calculating earnings for farmer:', farmer.id, 'with products:', farmerProducts.length);
+      const { dailyEarningsData, monthlyEarningsData } = calculateEarnings(farmerProducts);
       setDailyEarnings(dailyEarningsData);
       setMonthlyEarnings(monthlyEarningsData);
       
-      const transactions = calculateSettlementTransactions(products);
+      const transactions = calculateSettlementTransactions(farmerProducts);
       setSettlementTransactions(transactions);
     } else {
       // Reset to empty arrays when no products
@@ -169,7 +168,7 @@ const FarmerDashboard = () => {
       setMonthlyEarnings([]);
       setSettlementTransactions([]);
     }
-  }, [products, farmer]);
+  }, [farmerProducts, farmer]);
 
   const handleLogout = () => {
     localStorage.removeItem('currentFarmer');

@@ -21,7 +21,7 @@ const Settlements = () => {
   const [isFarmerDetailsOpen, setIsFarmerDetailsOpen] = useState(false);
   
   // Fetch all products (no farmerId provided to get all farmer products)
-  const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
+  const { farmerProducts: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
   const { farmers, loading: farmersLoading } = useFarmers();
 
   console.log('Settlements page data:', { 
