@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/sidebar';
 import TopLevelMenu from './TopLevelMenu';
 import ManageMenu from './ManageMenu';
+import MastersMenu from './MastersMenu';
 import UserSection from './UserSection';
 import { Package, Menu } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export const Sidebar = () => {
         <SidebarContent>
           <TopLevelMenu />
           <ManageMenu />
+          <MastersMenu />
           <UserSection />
         </SidebarContent>
       </SidebarContainer>

@@ -15,69 +15,76 @@ import {
 import {
   ChevronDown,
   ChevronUp,
-  Receipt,
+  Settings,
+  UserCog,
   Package,
-  BarChart3,
-  Ticket,
-  DollarSign
+  Gift,
+  Tag,
+  Image
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/context/AuthContext';
 import { getAccessibleResources } from '@/utils/employeeData';
 
-const ManageMenu = () => {
+const MastersMenu = () => {
   const location = useLocation();
   const { currentUser } = useAuth();
   const { state } = useSidebar();
-  const [manageOpen, setManageOpen] = useState(false);
+  const [mastersOpen, setMastersOpen] = useState(false);
 
   useEffect(() => {
-    const managePathsToCheck = ['/sales-dashboard', '/orders', '/transactions', '/tickets', '/settlements'];
-    if (managePathsToCheck.some(path => location.pathname.startsWith(path))) {
-      setManageOpen(true);
+    const mastersPathsToCheck = ['/products', '/coupons', '/categories', '/banners', '/employees', '/roles'];
+    if (mastersPathsToCheck.some(path => location.pathname.startsWith(path))) {
+      setMastersOpen(true);
     }
   }, [location.pathname]);
 
-  // Items in the "Manage" section - removed Products, Coupons, Categories, Banners, Employees, Roles
-  const manageItems = [
+  // Items in the "Masters" section
+  const mastersItems = [
     {
-      title: 'Orders',
+      title: 'Products',
       icon: Package,
-      path: '/orders',
-      resource: 'orders'
+      path: '/products',
+      resource: 'products'
     },
     {
-      title: 'Sales Dashboard',
-      icon: BarChart3,
-      path: '/sales-dashboard',
-      resource: 'sales'
+      title: 'Coupons',
+      icon: Gift,
+      path: '/coupons',
+      resource: 'coupons'
     },
     {
-      title: 'Transactions',
-      icon: Receipt,
-      path: '/transactions',
-      resource: 'transactions'
+      title: 'Categories',
+      icon: Tag,
+      path: '/categories',
+      resource: 'categories'
     },
     {
-      title: 'Tickets',
-      icon: Ticket,
-      path: '/tickets',
-      resource: 'tickets'
+      title: 'Banners',
+      icon: Image,
+      path: '/banners',
+      resource: 'banners'
     },
     {
-      title: 'Settlements',
-      icon: DollarSign,
-      path: '/settlements',
-      resource: 'settlements'
+      title: 'Employees',
+      icon: UserCog,
+      path: '/employees',
+      resource: 'employees'
+    },
+    {
+      title: 'Roles',
+      icon: Settings,
+      path: '/roles',
+      resource: 'roles'
     }
   ];
 
   const accessibleResources = currentUser ? getAccessibleResources(currentUser.role) : [];
-  const filteredManageItems = currentUser
-    ? manageItems.filter(item => accessibleResources.includes(item.resource))
-    : manageItems;
+  const filteredMastersItems = currentUser
+    ? mastersItems.filter(item => accessibleResources.includes(item.resource))
+    : mastersItems;
 
-  if (filteredManageItems.length === 0) {
+  if (filteredMastersItems.length === 0) {
     return null;
   }
 
@@ -86,22 +93,22 @@ const ManageMenu = () => {
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Collapsible open={manageOpen} onOpenChange={setManageOpen} className="w-full">
+            <Collapsible open={mastersOpen} onOpenChange={setMastersOpen} className="w-full">
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
                   className="flex items-center justify-between w-full"
-                  tooltip="Manage"
+                  tooltip="Masters"
                 >
                   <div className="flex items-center gap-3">
-                    <BarChart3 className="h-5 w-5" />
-                    <span>Manage</span>
+                    <Settings className="h-5 w-5" />
+                    <span>Masters</span>
                   </div>
-                  {manageOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {mastersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenuSub>
-                  {filteredManageItems.map((item) => (
+                  {filteredMastersItems.map((item) => (
                     <SidebarMenuSubItem key={item.path}>
                       <SidebarMenuSubButton asChild>
                         <Link
@@ -124,4 +131,4 @@ const ManageMenu = () => {
   );
 };
 
-export default ManageMenu;
+export default MastersMenu;
