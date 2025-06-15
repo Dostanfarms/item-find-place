@@ -44,12 +44,8 @@ const FarmerLogin = () => {
     const farmer = farmers.find(f => f.phone === phone);
     
     if (!farmer) {
-      toast({
-        title: "Farmer not found",
-        description: "No farmer found with this phone number. Please check and try again.",
-        variant: "destructive"
-      });
       setIsLoading(false);
+      navigate('/access-denied');
       return;
     }
     
