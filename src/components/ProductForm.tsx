@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useCategories } from '@/hooks/useCategories';
 import { useFarmerProducts, FarmerProduct } from '@/hooks/useFarmerProducts';
-import { Barcode, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -48,11 +49,6 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
       }
     }
   }, [categories, editProduct, category]);
-
-  // Generate barcode for new products or keep existing barcode for edits
-  const generateBarcode = () => {
-    return `BAR${Date.now()}${Math.floor(Math.random() * 1000)}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +106,6 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
       unit,
       price_per_unit: parsedPrice,
       category,
-      barcode: editProduct?.barcode || generateBarcode(),
       payment_status: editProduct?.payment_status || 'unsettled' as const
     };
     
@@ -265,16 +260,6 @@ const ProductForm = ({ onCancel, editProduct, farmerId }: ProductFormProps) => {
               </div>
               <div className="text-xs text-muted-foreground mt-1">
                 {quantity} {unit} × ₹{pricePerUnit} per {unit}
-              </div>
-            </div>
-          )}
-
-          {editProduct?.barcode && (
-            <div className="space-y-2">
-              <Label>Barcode</Label>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded">
-                <Barcode className="h-4 w-4" />
-                <span className="font-mono text-sm">{editProduct.barcode}</span>
               </div>
             </div>
           )}
