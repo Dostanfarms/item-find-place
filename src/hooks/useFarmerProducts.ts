@@ -41,11 +41,11 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      // Type cast the data to ensure proper typing
+      // Ensure is_active defaults to true if missing
       const typedData = (data || []).map(item => ({
         ...item,
         payment_status: item.payment_status as 'settled' | 'unsettled',
-        is_active: item.is_active ?? true
+        is_active: 'is_active' in item ? item.is_active : true,
       })) as FarmerProduct[];
 
       setFarmerProducts(typedData);
@@ -56,7 +56,9 @@ export const useFarmerProducts = (farmerId?: string) => {
     }
   };
 
-  const addFarmerProduct = async (productData: Omit<FarmerProduct, 'id' | 'created_at' | 'updated_at'>) => {
+  const addFarmerProduct = async (
+    productData: Omit<FarmerProduct, 'id' | 'created_at' | 'updated_at'>
+  ) => {
     try {
       console.log('Adding farmer product:', productData);
       const { data, error } = await supabase
@@ -71,14 +73,16 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product added successfully:', data);
-      // Type cast and update local state
+      // Ensure is_active defaults to true if missing
       const typedData = {
         ...data,
         payment_status: data.payment_status as 'settled' | 'unsettled',
-        is_active: data.is_active ?? true
+        is_active: 'is_active' in data ? data.is_active : true,
       } as FarmerProduct;
-      
-      setFarmerProducts(prev => [...prev, typedData].sort((a, b) => a.name.localeCompare(b.name)));
+
+      setFarmerProducts(prev =>
+        [...prev, typedData].sort((a, b) => a.name.localeCompare(b.name))
+      );
       return { success: true, data: typedData };
     } catch (error) {
       console.error('Error in addFarmerProduct:', error);
@@ -86,21 +90,30 @@ export const useFarmerProducts = (farmerId?: string) => {
     }
   };
 
-  const updateFarmerProduct = async (id: string, productData: Partial<FarmerProduct>) => {
+  const updateFarmerProduct = async (
+    id: string,
+    productData: Partial<FarmerProduct>
+  ) => {
     try {
       console.log('Updating farmer product:', id, productData);
-      
+
       // Create update object with only the fields that can be updated
       const updateData: any = {};
-      
+
       if (productData.name !== undefined) updateData.name = productData.name;
-      if (productData.quantity !== undefined) updateData.quantity = productData.quantity;
+      if (productData.quantity !== undefined)
+        updateData.quantity = productData.quantity;
       if (productData.unit !== undefined) updateData.unit = productData.unit;
-      if (productData.price_per_unit !== undefined) updateData.price_per_unit = productData.price_per_unit;
-      if (productData.category !== undefined) updateData.category = productData.category;
-      if (productData.payment_status !== undefined) updateData.payment_status = productData.payment_status;
-      if (productData.transaction_image !== undefined) updateData.transaction_image = productData.transaction_image;
-      if (productData.is_active !== undefined) updateData.is_active = productData.is_active;
+      if (productData.price_per_unit !== undefined)
+        updateData.price_per_unit = productData.price_per_unit;
+      if (productData.category !== undefined)
+        updateData.category = productData.category;
+      if (productData.payment_status !== undefined)
+        updateData.payment_status = productData.payment_status;
+      if (productData.transaction_image !== undefined)
+        updateData.transaction_image = productData.transaction_image;
+      if (productData.is_active !== undefined)
+        updateData.is_active = productData.is_active;
 
       const { data, error } = await supabase
         .from('farmer_products')
@@ -115,17 +128,17 @@ export const useFarmerProducts = (farmerId?: string) => {
       }
 
       console.log('Farmer product updated successfully:', data);
-      // Type cast and update local state
+      // Ensure is_active defaults to true if missing
       const typedData = {
         ...data,
         payment_status: data.payment_status as 'settled' | 'unsettled',
-        is_active: data.is_active ?? true
+        is_active: 'is_active' in data ? data.is_active : true,
       } as FarmerProduct;
-      
-      setFarmerProducts(prev => 
-        prev.map(product => 
-          product.id === id ? typedData : product
-        ).sort((a, b) => a.name.localeCompare(b.name))
+
+      setFarmerProducts(prev =>
+        prev
+          .map(product => (product.id === id ? typedData : product))
+          .sort((a, b) => a.name.localeCompare(b.name))
       );
       return { success: true, data: typedData };
     } catch (error) {
@@ -136,14 +149,14 @@ export const useFarmerProducts = (farmerId?: string) => {
 
   useEffect(() => {
     fetchFarmerProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [farmerId]);
 
   return {
     farmerProducts,
-    products: farmerProducts, // Add alias for backward compatibility
     loading,
     fetchFarmerProducts,
     addFarmerProduct,
-    updateFarmerProduct
+    updateFarmerProduct,
   };
 };
