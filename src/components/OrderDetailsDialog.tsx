@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -207,7 +206,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                 </Button>
               </div>
             </div>
-            {/* CUSTOMER INFO */}
+            {/* CUSTOMER INFO (modal dialog, not print) */}
             <div className="mb-2" ref={shippingRef}>
               <div className="font-bold mb-1">Customer Info</div>
               {customer ? (
@@ -225,67 +224,110 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </div>
             {/* PRINTABLE INVOICE (products + all info) */}
             <div style={{ display: "none" }}>
-              {/* Hidden in modal, rendered for printing invoice */}
+              {/* This is rendered for the print invoice */}
               <div ref={invoiceRef}>
-                <h2>Invoice</h2>
-                <div>
-                  <b>Order ID:</b> #{order?.id?.slice(-8)}<br />
-                  <b>Status:</b> {status}<br />
-                  <b>Payment:</b> {order?.payment_method === "upi" || order?.payment_method === "card" ? "Online" : "Cash"}
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <h3 style={{ marginBottom: 4 }}>Customer Info</h3>
-                  {customer ? (
+                {/* Start of new invoice print layout */}
+                <div style={{
+                  fontFamily: 'sans-serif',
+                  maxWidth: 600,
+                  margin: '0 auto',
+                  border: '1px solid #dee2e6',
+                  borderRadius: 8,
+                  padding: 24
+                }}>
+                  <h2 style={{
+                    textAlign: "center",
+                    marginBottom: 24,
+                    fontSize: 22,
+                    letterSpacing: "1px"
+                  }}>
+                    Invoice
+                  </h2>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                     <div>
-                      <div><b>Name:</b> {customer.name}</div>
-                      <div><b>Mobile:</b> {customer.mobile}</div>
-                      {customer.email && <div><b>Email:</b> {customer.email}</div>}
-                      {customer.address && <div><b>Address:</b> {customer.address}{customer.pincode ? ` (${customer.pincode})` : ""}</div>}
+                      <div><b>Order ID:</b> #{order?.id?.slice(-8) || "-"}</div>
+                      <div>
+                        <b>Date:</b> {order?.created_at ? new Date(order.created_at).toLocaleDateString() : "-"}
+                      </div>
+                      <div>
+                        <b>Payment:</b> {order?.payment_method === "upi" || order?.payment_method === "card" ? "Online" : "Cash"}
+                      </div>
                     </div>
-                  ) : (
-                    <div>No customer info available.</div>
-                  )}
-                  <div style={{ marginTop: 6 }}>Shipping Address:<br />{order ? JSON.stringify(order.shipping_address, null, 2) : ""}</div>
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <h3>Products</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Product ID</th>
-                        <th>Name</th>
-                        <th>Quantity</th>
-                        <th>Unit</th>
-                        <th>Unit Price</th>
-                        <th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.length === 0 ? (
-                        <tr>
-                          <td colSpan={6}>No products found</td>
-                        </tr>
-                      ) : (
-                        items.map(item => (
-                          <tr key={item.id}>
-                            <td>{item.product_id ? item.product_id.slice(-8) : "-"}</td>
-                            <td>{item.name}</td>
-                            <td>{item.quantity}</td>
-                            <td>{item.unit}</td>
-                            <td>₹{Number(item.price_per_unit).toFixed(2)}</td>
-                            <td>₹{Number(item.price_per_unit * item.quantity).toFixed(2)}</td>
-                          </tr>
-                        ))
+                    <div style={{ minWidth: 180 }}>
+                      <b>Name:</b>{" "}
+                      {customer?.name || "-"}
+                      <br />
+                      <b>Billing Address:</b>
+                      <div style={{ whiteSpace: "pre-line" }}>
+                        {customer?.address
+                          ? customer.address + (customer.pincode ? ` (${customer.pincode})` : "")
+                          : "—"}
+                      </div>
+                      {customer?.mobile && (
+                        <div>
+                          <b>Mobile:</b> {customer.mobile}
+                        </div>
                       )}
-                    </tbody>
-                  </table>
-                  <div style={{ marginTop: 12, fontWeight: "bold" }}>
-                    Total: ₹{Number(order?.total).toFixed(2)}
+                      {customer?.email && (
+                        <div>
+                          <b>Email:</b> {customer.email}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Products Table */}
+                  <div>
+                    <h3 style={{ margin: "18px 0 8px", fontSize: 16, fontWeight: "bold" }}>Products</h3>
+                    <table style={{
+                      borderCollapse: "collapse",
+                      width: "100%",
+                      marginBottom: 12,
+                      fontSize: 14
+                    }}>
+                      <thead>
+                        <tr style={{ background: "#f8f9fa" }}>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px", textAlign: "left" }}>Product ID</th>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px", textAlign: "left" }}>Name</th>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px" }}>Qty</th>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px" }}>Unit</th>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px" }}>Unit Price</th>
+                          <th style={{ border: "1px solid #ccc", padding: "6px 8px" }}>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: "center", padding: 12, color: "#888" }}>No products found</td>
+                          </tr>
+                        ) : (
+                          items.map(item => (
+                            <tr key={item.id}>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px", fontFamily: "monospace" }}>
+                                {item.product_id ? item.product_id.slice(-8) : "-"}
+                              </td>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px" }}>{item.name}</td>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px", textAlign: "right" }}>{item.quantity}</td>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px" }}>{item.unit}</td>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px", textAlign: "right" }}>₹{Number(item.price_per_unit).toFixed(2)}</td>
+                              <td style={{ border: "1px solid #ccc", padding: "6px 8px", textAlign: "right" }}>₹{Number(item.price_per_unit * item.quantity).toFixed(2)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{
+                    marginTop: 18,
+                    textAlign: "right",
+                    fontWeight: "bold",
+                    fontSize: 16
+                  }}>
+                    Total Amount: ₹{Number(order?.total).toFixed(2)}
                   </div>
                 </div>
               </div>
             </div>
-            {/* PRODUCTS TABLE */}
+            {/* PRODUCTS TABLE (Modal, not print) */}
             <div className="mb-4">
               <div className="font-bold mb-2">Products:</div>
               <table className="w-full text-sm border">
