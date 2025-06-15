@@ -13,15 +13,12 @@ import {
 import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
 import CustomerHeader from '@/components/CustomerHeader';
 import OrderDetailsDialog from '@/components/OrderDetailsDialog';
-import ProtectedAction from '@/components/ProtectedAction';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_OPTIONS = ["pending", "confirmed", "shipped", "delivered"];
 
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,15 +90,6 @@ const CustomerOrderHistory = () => {
   };
 
   const handleViewOrder = async (order: any) => {
-    if (!hasPermission('orders', 'view')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to view order details",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const { items } = await fetchOrderItems(order.id);
       setSelectedOrder(order);
@@ -109,6 +97,11 @@ const CustomerOrderHistory = () => {
       setDialogOpen(true);
     } catch (error) {
       console.error('Error fetching order items:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load order details",
+        variant: "destructive"
+      });
     }
   };
 
@@ -117,18 +110,6 @@ const CustomerOrderHistory = () => {
     setCustomer(null);
     navigate('/customer-login');
   };
-
-  // Check if user has permission to view orders
-  if (!hasPermission('orders', 'view')) {
-    return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">You don't have permission to view order history.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!customer) return null;
 
@@ -214,17 +195,15 @@ const CustomerOrderHistory = () => {
                           ₹{Number(order.total).toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          <ProtectedAction resource="orders" action="view">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewOrder(order)}
-                              className="flex items-center gap-1"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
-                          </ProtectedAction>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewOrder(order)}
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -237,14 +216,12 @@ const CustomerOrderHistory = () => {
       </div>
 
       {/* Order Details Dialog */}
-      {hasPermission('orders', 'view') && (
-        <OrderDetailsDialog
-          order={selectedOrder}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          statusOptions={STATUS_OPTIONS}
-        />
-      )}
+      <OrderDetailsDialog
+        order={selectedOrder}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        statusOptions={STATUS_OPTIONS}
+      />
     </div>
   );
 };
