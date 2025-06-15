@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -74,7 +73,15 @@ const FarmerTicketHistory = () => {
     attachment_url?: string;
   }) => {
     console.log('Submitting farmer ticket:', ticketData);
-    const result = await addTicket(ticketData);
+    
+    // Add the missing properties to match the Ticket type
+    const completeTicketData = {
+      ...ticketData,
+      assigned_to: null,
+      resolution: null
+    };
+    
+    const result = await addTicket(completeTicketData);
     
     if (result.success) {
       toast({
