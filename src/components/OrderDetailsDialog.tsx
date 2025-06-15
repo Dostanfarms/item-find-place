@@ -15,6 +15,7 @@ interface Order {
   total: number;
   customer_id?: string;
   shipping_address?: any;
+  created_at?: string;
 }
 
 interface ProductItem {
@@ -163,6 +164,38 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     );
   }
 
+  // --- Render clean, print-friendly billing (always using customer info for billing) ---
+  function renderPrintableBilling(customer: CustomerInfo | null) {
+    return (
+      `<div style="margin-bottom: 8px;">
+        <div><strong>Name:</strong> ${customer?.name ?? "-"}</div>
+        <div><strong>Billing Address:</strong><br />
+          <span style="white-space: pre-line;">
+            ${customer?.address ? customer.address : "—"}${customer?.pincode ? ` (${customer.pincode})` : ""}
+          </span>
+        </div>
+        ${customer?.mobile ? `<div><strong>Mobile:</strong> ${customer.mobile}</div>` : ""}
+        ${customer?.email ? `<div><strong>Email:</strong> ${customer.email}</div>` : ""}
+      </div>`
+    );
+  }
+
+  // --- Render clean, print-friendly shipping address section ---
+  function renderPrintableShipping(order: Order | null) {
+    if (!order?.shipping_address) return '<div style="color:#888;">No shipping address available.</div>';
+    const addr = order.shipping_address;
+    return (
+      `<div style="margin-bottom:8px;">
+        <div><strong>Name:</strong> ${addr.name || "-"}</div>
+        <div><strong>Address:</strong> ${addr.address || "-"}</div>
+        <div><strong>City:</strong> ${addr.city || "-"}</div>
+        <div><strong>State:</strong> ${addr.state || "-"}</div>
+        <div><strong>Pincode:</strong> ${addr.pincode || "-"}</div>
+        <div><strong>Mobile:</strong> ${addr.mobile || "-"}</div>
+      </div>`
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -219,14 +252,58 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
               ) : (
                 <div className="text-muted-foreground text-sm">No customer info available.</div>
               )}
+              {/* --- Updated Shipping Address: NOW formatted vertically, clear spacing/labels --- */}
               <div className="mt-2 font-bold">Shipping Address</div>
-              {renderShippingAddress()}
+              <div className="p-2 bg-gray-50 rounded border border-gray-200 my-1 space-y-1">
+                {order && order.shipping_address ? (
+                  <>
+                    {order.shipping_address.name && <div><b>Name:</b> {order.shipping_address.name}</div>}
+                    {order.shipping_address.address && <div><b>Address:</b> {order.shipping_address.address}</div>}
+                    {order.shipping_address.city && <div><b>City:</b> {order.shipping_address.city}</div>}
+                    {order.shipping_address.state && <div><b>State:</b> {order.shipping_address.state}</div>}
+                    {order.shipping_address.pincode && <div><b>Pincode:</b> {order.shipping_address.pincode}</div>}
+                    {order.shipping_address.mobile && <div><b>Mobile:</b> {order.shipping_address.mobile}</div>}
+                    {!order.shipping_address.name && !order.shipping_address.address && !order.shipping_address.city && !order.shipping_address.state && !order.shipping_address.pincode && !order.shipping_address.mobile && (
+                      <pre className="text-xs">{JSON.stringify(order.shipping_address, null, 2)}</pre>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-muted-foreground">No shipping address available.</div>
+                )}
+              </div>
             </div>
-            {/* PRINTABLE INVOICE (products + all info) */}
+            
+            {/* --- Printable sections --- */}
+            {/* Printable SHIPPING section */}
             <div style={{ display: "none" }}>
-              {/* This is rendered for the print invoice */}
+              <div ref={shippingRef}>
+                <div style={{
+                  fontFamily: 'sans-serif',
+                  maxWidth: 420,
+                  border: '1px solid #dee2e6',
+                  borderRadius: 8,
+                  padding: 18,
+                  margin: '0 auto'
+                }}>
+                  <h2 style={{
+                    textAlign: 'center',
+                    fontSize: 20,
+                    marginBottom: 14,
+                    letterSpacing: "0.5px"
+                  }}>
+                    Shipping Address
+                  </h2>
+                  <div style={{
+                    lineHeight: 1.65,
+                    fontSize: 15,
+                    marginBottom: 8
+                  }} dangerouslySetInnerHTML={{ __html: renderPrintableShipping(order) }} />
+                </div>
+              </div>
+            </div>
+            {/* Printable INVOICE section (updated, removed status/shipping, improved billing format) */}
+            <div style={{ display: "none" }}>
               <div ref={invoiceRef}>
-                {/* Start of new invoice print layout */}
                 <div style={{
                   fontFamily: 'sans-serif',
                   maxWidth: 600,
@@ -247,32 +324,15 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div>
                       <div><b>Order ID:</b> #{order?.id?.slice(-8) || "-"}</div>
                       <div>
-                        <b>Date:</b> {order?.created_at ? new Date(order.created_at).toLocaleDateString() : "-"}
+                        <b>Date:</b> {order && "created_at" in order && order.created_at ? new Date(order.created_at as string).toLocaleDateString() : "-"}
                       </div>
                       <div>
                         <b>Payment:</b> {order?.payment_method === "upi" || order?.payment_method === "card" ? "Online" : "Cash"}
                       </div>
                     </div>
-                    <div style={{ minWidth: 180 }}>
-                      <b>Name:</b>{" "}
-                      {customer?.name || "-"}
-                      <br />
-                      <b>Billing Address:</b>
-                      <div style={{ whiteSpace: "pre-line" }}>
-                        {customer?.address
-                          ? customer.address + (customer.pincode ? ` (${customer.pincode})` : "")
-                          : "—"}
-                      </div>
-                      {customer?.mobile && (
-                        <div>
-                          <b>Mobile:</b> {customer.mobile}
-                        </div>
-                      )}
-                      {customer?.email && (
-                        <div>
-                          <b>Email:</b> {customer.email}
-                        </div>
-                      )}
+                    <div style={{ minWidth: 180, textAlign: "left" }}>
+                      {/* --- Billing Information (Proper Alignment) --- */}
+                      <div dangerouslySetInnerHTML={{ __html: renderPrintableBilling(customer) }} />
                     </div>
                   </div>
                   {/* Products Table */}
@@ -327,6 +387,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                 </div>
               </div>
             </div>
+
             {/* PRODUCTS TABLE (Modal, not print) */}
             <div className="mb-4">
               <div className="font-bold mb-2">Products:</div>
