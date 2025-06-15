@@ -131,7 +131,7 @@ const Sales = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col p-6">
+    <div className="flex-1 flex flex-col p-6 h-full overflow-hidden">
       <div className="flex-none mb-6">
         <h1 className="text-3xl font-bold">Sales Dashboard</h1>
         <p className="text-muted-foreground">Process sales transactions</p>
@@ -139,8 +139,8 @@ const Sales = () => {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Products Section */}
-        <div className="lg:col-span-2 flex flex-col">
-          <Card className="flex-1 flex flex-col">
+        <div className="lg:col-span-2 flex flex-col h-full">
+          <Card className="flex-1 flex flex-col h-full">
             <CardHeader className="flex-none">
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -154,47 +154,51 @@ const Sales = () => {
                 />
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {filteredProducts.map((product) => (
-                  <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <h3 className="font-medium text-sm mb-1">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Unit: {product.unit}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm">₹{product.price_per_unit}</span>
-                        <ProtectedAction resource="sales" action="create">
-                          <Button 
-                            size="sm" 
-                            onClick={() => addToCart(product)}
-                            className="h-7 px-2"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </ProtectedAction>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            {/* Make only this part scrollable */}
+            <CardContent className="flex-1 overflow-hidden">
+              <div className="h-full overflow-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filteredProducts.map((product) => (
+                    <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <h3 className="font-medium text-sm mb-1">{product.name}</h3>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Unit: {product.unit}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm">₹{product.price_per_unit}</span>
+                          <ProtectedAction resource="sales" action="create">
+                            <Button 
+                              size="sm" 
+                              onClick={() => addToCart(product)}
+                              className="h-7 px-2"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </ProtectedAction>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Cart Section */}
-        <div className="flex flex-col">
-          <Card className="flex-1 flex flex-col">
+        <div className="flex flex-col h-full">
+          <Card className="flex flex-col h-full sticky top-6">
+            {/* .sticky ensures cart is always visible */}
             <CardHeader className="flex-none">
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Cart ({cart.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              {/* Cart Items */}
-              <div className="flex-1 overflow-auto mb-4">
+            <CardContent className="flex flex-col flex-1">
+              {/* Cart Items (scroll here if cart is *very* long) */}
+              <div className="flex-1 overflow-auto mb-4 max-h-72">
                 {cart.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Cart is empty</p>
                 ) : (
@@ -233,8 +237,7 @@ const Sales = () => {
                   </div>
                 )}
               </div>
-
-              {/* Total and Proceed to Payment (moved here) */}
+              {/* Total and Proceed to Payment */}
               <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-center font-bold">
                   <span>Total:</span>
@@ -259,3 +262,4 @@ const Sales = () => {
 };
 
 export default Sales;
+
