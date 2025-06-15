@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, ShoppingCart, Ticket } from 'lucide-react';
+import { Package, User, LogOut, List, Ticket } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -37,6 +37,10 @@ const CustomerHome = () => {
 
   const handleTicketsClick = () => {
     navigate('/customer-tickets');
+  };
+
+  const handleOrdersClick = () => {
+    navigate('/customer-orders');
   };
 
   if (!customer) {
@@ -74,6 +78,10 @@ const CustomerHome = () => {
                 <Ticket className="mr-2 h-4 w-4" />
                 <span>Support Tickets</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleOrdersClick}>
+                <List className="mr-2 h-4 w-4" />
+                <span>My Orders</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -96,54 +104,6 @@ const CustomerHome = () => {
             <p className="text-muted-foreground">Email: {customer.email}</p>
           </CardContent>
         </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card 
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/customer-products')}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Browse Products
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Explore our fresh farm products</p>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/customer-order-history')}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                My Orders
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">View your order history and track orders</p>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate('/customer-profile')}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Manage your account settings and support tickets</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
