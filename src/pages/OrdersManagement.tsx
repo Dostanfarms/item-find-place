@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fetchAllOrders } from "@/api/orders";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Package } from "lucide-react";
+import { Package, View as ViewIcon } from "lucide-react";
+import OrderDetailsDialog from "@/components/OrderDetailsDialog";
 
 interface Order {
   id: string;
@@ -36,6 +37,8 @@ const OrdersManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -80,6 +83,12 @@ const OrdersManagement: React.FC = () => {
       });
     }
     setUpdatingOrderId(null);
+  };
+
+  // Handle status update via dialog as well
+  const handleUpdateStatusInDialog = async (newStatus: string) => {
+    if (!selectedOrder) return;
+    await handleStatusChange(selectedOrder.id, newStatus);
   };
 
   const filteredOrders =
@@ -129,12 +138,13 @@ const OrdersManagement: React.FC = () => {
                   <TableHead>Payment</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Update Status</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       No orders found.
                     </TableCell>
                   </TableRow>
@@ -168,6 +178,19 @@ const OrdersManagement: React.FC = () => {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          aria-label="View Order Details"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setDetailsOpen(true);
+                          }}
+                        >
+                          <ViewIcon className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -176,6 +199,13 @@ const OrdersManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      <OrderDetailsDialog
+        open={detailsOpen}
+        onOpenChange={(open) => setDetailsOpen(open)}
+        order={selectedOrder}
+        onUpdateStatus={handleUpdateStatusInDialog}
+        statusOptions={STATUS_OPTIONS}
+      />
     </div>
   );
 };
