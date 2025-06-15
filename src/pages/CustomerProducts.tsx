@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import Cart from '@/components/Cart';
 
 const CustomerProducts = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { products, loading } = useProducts();
   const { totalItems, setIsCartOpen } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +46,15 @@ const CustomerProducts = () => {
     }
     setCustomer(JSON.parse(currentCustomer));
   }, [navigate]);
+
+  // Handle category selection from navigation state
+  useEffect(() => {
+    if (location.state?.selectedCategory) {
+      setSelectedCategory(location.state.selectedCategory);
+      // Clear the navigation state to prevent it from persisting
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   if (loading) {
     return (
@@ -141,7 +151,9 @@ const CustomerProducts = () => {
             </Button>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-agri-primary" />
-              <span className="text-lg font-bold">Browse Products</span>
+              <span className="text-lg font-bold">
+                {selectedCategory === 'all' ? 'Browse Products' : `${selectedCategory} Products`}
+              </span>
             </div>
           </div>
 

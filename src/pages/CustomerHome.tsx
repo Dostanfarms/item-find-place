@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '@/components/ui/badge';
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { useCart } from '@/contexts/CartContext';
 import ProductGrid from '@/components/ProductGrid';
 import Cart from '@/components/Cart';
@@ -28,6 +28,7 @@ const CustomerHome = () => {
     products,
     loading: productsLoading
   } = useProducts();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   // Filter products based on search term and availability
   const filteredProducts = products.filter(product => {
@@ -57,6 +58,12 @@ const CustomerHome = () => {
     if (banner.redirect_url) {
       window.open(banner.redirect_url, '_blank');
     }
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    navigate('/customer-products', {
+      state: { selectedCategory: categoryName }
+    });
   };
 
   if (!customer) {
@@ -134,15 +141,33 @@ const CustomerHome = () => {
       <div className="pt-20">
         {/* Shopping Section */}
         <div className="max-w-7xl mx-auto p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
-            <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center gap-4 w-full">
               <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
                 <ShoppingBag className="h-4 w-4" />
                 Shop All Products
               </Button>
             </div>
             
-            <div className="relative w-full md:w-96">
+            {/* Category Buttons */}
+            {!categoriesLoading && categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm font-medium text-gray-600 flex items-center">Categories:</span>
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCategoryClick(category.name)}
+                    className="text-xs hover:bg-green-50 hover:border-green-300"
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            )}
+            
+            <div className="relative w-full md:w-96 md:ml-auto">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products..."
