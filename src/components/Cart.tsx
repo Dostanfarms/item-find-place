@@ -1,128 +1,134 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Minus, Plus, Trash2, X } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import LoginPopup from './LoginPopup';
 
-const Cart: React.FC = () => {
+const Cart = () => {
   const navigate = useNavigate();
-  const { 
-    items, 
-    totalPrice, 
-    totalItems, 
-    isCartOpen, 
-    setIsCartOpen, 
-    updateQuantity, 
-    removeFromCart, 
-    clearCart 
-  } = useCart();
+  const { items, removeFromCart, updateQuantity, totalPrice, isCartOpen, setIsCartOpen } = useCart();
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
-  const handleProceedToCheckout = () => {
-    if (items.length === 0) return;
+  const handleCheckout = () => {
+    const currentCustomer = localStorage.getItem('currentCustomer');
     
-    console.log('Proceeding to checkout with items:', items);
+    if (!currentCustomer) {
+      // Show login popup if not authenticated
+      setShowLoginPopup(true);
+      return;
+    }
     
-    // Close cart first
+    // Proceed to checkout if authenticated
     setIsCartOpen(false);
-    
-    // Navigate to customer payment page
+    navigate('/customer-payment');
+  };
+
+  const handleLoginSuccess = () => {
+    // After successful login, proceed to checkout
+    setIsCartOpen(false);
     navigate('/customer-payment');
   };
 
   return (
-    <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle className="flex items-center justify-between">
-            Shopping Cart
-            <Badge variant="secondary">{totalItems} items</Badge>
-          </SheetTitle>
-        </SheetHeader>
-        
-        <div className="mt-6 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {items.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Your cart is empty</p>
+    <>
+      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Your Cart ({items.length} items)
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto py-4">
+              {items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 text-center">
+                  <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">Your cart is empty</p>
+                  <p className="text-sm text-gray-400">Add some products to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div key={item.productId} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{item.name}</h3>
+                        <p className="text-xs text-gray-500">{item.category}</p>
+                        <p className="text-sm font-semibold text-green-600">
+                          ₹{item.pricePerUnit.toFixed(2)} / {item.unit}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        
+                        <Badge variant="secondary" className="min-w-[2rem] text-center">
+                          {item.quantity}
+                        </Badge>
+                        
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700"
+                          onClick={() => removeFromCart(item.productId)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <>
-              {items.map((item) => (
-                <Card key={item.productId} className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-sm">{item.name}</h4>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFromCart(item.productId)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="font-medium min-w-[2rem] text-center">
-                        {item.quantity}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="font-semibold">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">₹{item.pricePerUnit.toFixed(2)} per {item.unit}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-              
-              <div className="border-t pt-4 space-y-4">
-                <div className="flex justify-between items-center text-lg font-semibold">
-                  <span>Total:</span>
-                  <span className="text-green-600">₹{totalPrice.toFixed(2)}</span>
+            
+            {items.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-lg font-semibold">Total:</span>
+                  <span className="text-xl font-bold text-green-600">
+                    ₹{totalPrice.toFixed(2)}
+                  </span>
                 </div>
                 
-                <div className="space-y-2">
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={handleProceedToCheckout}
-                    disabled={items.length === 0}
-                  >
-                    Proceed to Checkout
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={clearCart}
-                  >
-                    Clear Cart
-                  </Button>
-                </div>
+                <Button 
+                  onClick={handleCheckout}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Proceed to Checkout
+                </Button>
               </div>
-            </>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <LoginPopup
+        isOpen={showLoginPopup}
+        onClose={() => setShowLoginPopup(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    </>
   );
 };
 

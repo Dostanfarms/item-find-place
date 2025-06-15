@@ -163,19 +163,24 @@ const App = () => (
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
             <Route path="/farmer-tickets/:id" element={<FarmerTicketHistory />} />
             
-            {/* Customer Routes - Using CustomerProtectedRoute with CartProvider */}
+            {/* Customer Routes - Mixed authentication requirements */}
             <Route element={<CustomerLayout />}>
+              {/* Public customer routes - no authentication required */}
+              <Route path="/customer-home" element={<CustomerHome />} />
+              <Route path="/customer-products" element={<CustomerProducts />} />
+              
+              {/* Protected customer routes - authentication required */}
               <Route element={<CustomerProtectedRoute />}>
-                <Route path="/customer-home" element={<CustomerHome />} />
-                <Route path="/customer-products" element={<CustomerProducts />} />
                 <Route path="/customer-profile" element={<CustomerProfile />} />
                 <Route path="/customer-orders" element={<CustomerOrderHistory />} />
                 <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
-                <Route path="/cart" element={<CartPage />} />
                 <Route path="/customer-payment" element={<CustomerPayment />} />
                 <Route path="/order-tracking" element={<OrderTracking />} />
                 <Route path="/order-history" element={<OrderHistory />} />
               </Route>
+              
+              {/* Cart page - accessible without authentication but will prompt for login on checkout */}
+              <Route path="/cart" element={<CartPage />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
