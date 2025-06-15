@@ -30,6 +30,7 @@ const CustomerPayment = () => {
     fullName: '',
     mobile: '',
     address: '',
+    landmark: '',
     city: '',
     state: '',
     pincode: ''
@@ -54,6 +55,7 @@ const CustomerPayment = () => {
       fullName: customerData.name || '',
       mobile: customerData.mobile || '',
       address: customerData.address || '',
+      landmark: '',
       city: '',
       state: '',
       pincode: customerData.pincode || ''
@@ -113,6 +115,12 @@ const CustomerPayment = () => {
             description: "Could not find location for this pincode",
             variant: "destructive"
           });
+          // Clear city and state if pincode is invalid
+          setShippingAddress(prev => ({
+            ...prev,
+            city: '',
+            state: ''
+          }));
         }
         setIsPincodeLoading(false);
       }
@@ -159,10 +167,19 @@ const CustomerPayment = () => {
   const finalTotal = totalPrice - calculateDiscount();
 
   const handlePlaceOrder = async () => {
-    if (!shippingAddress.fullName.trim() || !shippingAddress.mobile.trim() || !shippingAddress.address.trim()) {
+    if (!shippingAddress.fullName.trim() || !shippingAddress.mobile.trim() || !shippingAddress.address.trim() || !shippingAddress.landmark.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required shipping details",
+        description: "Please fill in all required shipping details including landmark",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!shippingAddress.city.trim() || !shippingAddress.state.trim()) {
+      toast({
+        title: "Missing Location",
+        description: "Please enter a valid pincode to auto-fill city and state",
         variant: "destructive"
       });
       return;
@@ -313,6 +330,16 @@ const CustomerPayment = () => {
                     disabled={isProcessing}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="landmark">Landmark *</Label>
+                  <Input
+                    id="landmark"
+                    value={shippingAddress.landmark}
+                    onChange={(e) => setShippingAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                    placeholder="Enter landmark (e.g., Near City Mall)"
+                    disabled={isProcessing}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="pincode">Pincode *</Label>
@@ -329,23 +356,23 @@ const CustomerPayment = () => {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="city">City</Label>
+                    <Label htmlFor="city">City *</Label>
                     <Input
                       id="city"
                       value={shippingAddress.city}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="City"
+                      placeholder="City (auto-filled)"
                       disabled={isProcessing}
                       className={shippingAddress.city ? "bg-green-50 border-green-300" : ""}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state">State *</Label>
                     <Input
                       id="state"
                       value={shippingAddress.state}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder="State"
+                      placeholder="State (auto-filled)"
                       disabled={isProcessing}
                       className={shippingAddress.state ? "bg-green-50 border-green-300" : ""}
                     />
