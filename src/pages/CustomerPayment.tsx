@@ -59,23 +59,30 @@ const CustomerPayment = () => {
     });
   }, [navigate]);
 
-  // Fetch coupons for the customer
+  // Fetch coupons for the customer using their mobile number
   const { coupons: userCoupons, loading: couponsLoading } = useCustomerCoupons(
     customer ? customer.mobile : undefined
   );
 
-  // Filter active coupons for this customer
+  // Filter active coupons for this customer - include 'all' type and customer-specific coupons
   const activeCoupons = userCoupons.filter(coupon => {
+    // Check if coupon is active and not expired
     if (!coupon.is_active || new Date(coupon.expiry_date) <= new Date()) {
       return false;
     }
     
-    // Show coupons that are either for 'all' users OR specifically for this customer's mobile
+    // Show coupons that are for 'all' users
     if (coupon.target_type === 'all') {
       return true;
     }
     
+    // Show coupons specifically created for this customer's mobile number
     if (customer && coupon.target_type === 'customer' && coupon.target_user_id === customer.mobile) {
+      return true;
+    }
+    
+    // Show coupons for employees if this customer's mobile matches an employee
+    if (customer && coupon.target_type === 'employee' && coupon.target_user_id === customer.mobile) {
       return true;
     }
     
@@ -327,10 +334,13 @@ const CustomerPayment = () => {
               <CardContent className="space-y-4">
                 {couponsLoading ? (
                   <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">Loading coupons...</p>
+                    <p className="text-sm text-muted-foreground">Loading available coupons...</p>
                   </div>
                 ) : activeCoupons.length > 0 ? (
                   <div className="space-y-3">
+                    <p className="text-sm text-green-600">
+                      {activeCoupons.length} coupon{activeCoupons.length > 1 ? 's' : ''} available for your account
+                    </p>
                     <Select value={selectedCoupon} onValueChange={setSelectedCoupon} disabled={isProcessing}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a coupon" />
@@ -340,35 +350,38 @@ const CustomerPayment = () => {
                         {activeCoupons.map((coupon) => (
                           <SelectItem key={coupon.id} value={coupon.id}>
                             <div className="flex items-center gap-2">
-                              <span>{coupon.code}</span>
+                              <span className="font-medium">{coupon.code}</span>
                               <Badge variant="secondary" className="text-xs">
                                 {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
                               </Badge>
-                              {coupon.target_type !== 'all' && (
-                                <Badge variant="outline" className="text-xs">
-                                  {coupon.target_type}
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="text-xs">
+                                {coupon.target_type}
+                              </Badge>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {selectedCoupon && selectedCoupon !== 'none' && (
-                      <div className="p-3 bg-green-50 rounded-lg">
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                         <div className="flex items-center gap-2">
                           <Tag className="h-4 w-4 text-green-600" />
                           <span className="font-medium text-green-600">
                             Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
                           </span>
                         </div>
+                        <p className="text-sm text-green-600 mt-1">
+                          You save ₹{calculateDiscount().toFixed(2)} on this order!
+                        </p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No coupons available for your account
-                  </p>
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">
+                      No active coupons available for your mobile number ({customer.mobile})
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -404,7 +417,7 @@ const CustomerPayment = () => {
                   
                   {calculateDiscount() > 0 && (
                     <div className="flex justify-between text-green-600">
-                      <span>Discount:</span>
+                      <span>Coupon Discount:</span>
                       <span>-₹{calculateDiscount().toFixed(2)}</span>
                     </div>
                   )}
