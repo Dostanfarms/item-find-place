@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -171,9 +170,9 @@ const Sales = () => {
                             <Button 
                               size="sm" 
                               onClick={() => addToCart(product)}
-                              className="h-7 px-2"
+                              className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white"
                             >
-                              <Plus className="h-3 w-3" />
+                              Add to Cart
                             </Button>
                           </ProtectedAction>
                         </div>
@@ -262,4 +261,3 @@ const Sales = () => {
 };
 
 export default Sales;
-
