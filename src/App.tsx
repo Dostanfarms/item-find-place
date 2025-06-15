@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -47,6 +46,7 @@ import EmployeeRegister from "./pages/EmployeeRegister";
 import AccessDenied from "./pages/AccessDenied";
 import AppLanding from "./pages/AppLanding";
 import NotFound from "./pages/NotFound";
+import OrdersManagement from "./pages/OrdersManagement";
 
 const queryClient = new QueryClient();
 
@@ -156,6 +156,11 @@ const App = () => (
               {/* Farmer Details - accessible by employees */}
               <Route element={<ProtectedRoute resource="farmers" action="view" />}>
                 <Route path="/farmer/:id" element={<FarmerDetails />} />
+              </Route>
+              
+              {/* Add the OrdersManagement route under ProtectedRoute */}
+              <Route element={<ProtectedRoute resource="orders" action="view" />}>
+                <Route path="/orders" element={<OrdersManagement />} />
               </Route>
             </Route>
             
