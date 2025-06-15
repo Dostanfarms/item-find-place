@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomers } from '@/hooks/useCustomers';
+import CustomerRegistrationForm from '@/components/CustomerRegistrationForm';
 
 const CustomerLogin = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const CustomerLogin = () => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
   
   const handleSendOtp = async () => {
     if (!mobile || mobile.length < 10) {
@@ -48,7 +50,7 @@ const CustomerLogin = () => {
       if (!result.success) {
         toast({
           title: "Account Not Found",
-          description: "No account found with this mobile number",
+          description: "No account found with this mobile number. Please register first.",
           variant: "destructive"
         });
         setIsLoading(false);
@@ -136,107 +138,133 @@ const CustomerLogin = () => {
       setIsLoading(false);
     }
   };
+
+  const handleRegistrationSuccess = (customer: any) => {
+    toast({
+      title: "Registration Successful",
+      description: `Welcome, ${customer.name}!`
+    });
+    navigate('/customer-home');
+  };
+
+  const handleSwitchToLogin = () => {
+    setShowRegistration(false);
+    setOtpSent(false);
+    setMobile('');
+    setOtp('');
+  };
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 transition-all duration-300">
-      <Card className="w-full max-w-md animate-fade-in">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute left-4 top-4 transition-transform duration-200 hover:scale-110" 
-              onClick={() => navigate('/app')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back</span>
-            </Button>
-            <div className="mx-auto flex items-center gap-2">
-              <Package className="h-6 w-6 text-agri-primary" />
-              <span className="text-lg font-bold">DostanFarms</span>
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">Customer Login</CardTitle>
-          <CardDescription className="text-center">Log in to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="mobile">Mobile Number</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="mobile"
-                  placeholder="Your mobile number"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  disabled={otpSent || isLoading}
-                  className="transition-all duration-200 focus:scale-[1.02]"
-                  required
-                />
-                {!otpSent && (
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={handleSendOtp}
-                    disabled={isLoading}
-                    className="transition-all duration-200 hover:scale-105"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
-                        Sending...
-                      </div>
-                    ) : (
-                      "Send OTP"
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            {otpSent && (
-              <div className="space-y-2 animate-fade-in">
-                <Label htmlFor="otp">OTP</Label>
-                <Input
-                  id="otp"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  disabled={isLoading}
-                  className="transition-all duration-200 focus:scale-[1.02]"
-                  required
-                />
-              </div>
-            )}
-            
-            {otpSent && (
+      {showRegistration ? (
+        <CustomerRegistrationForm 
+          onRegistrationSuccess={handleRegistrationSuccess}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      ) : (
+        <Card className="w-full max-w-md animate-fade-in">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
               <Button 
-                type="submit" 
-                className="w-full bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-[1.02]"
-                disabled={isLoading}
+                variant="ghost" 
+                size="icon" 
+                className="absolute left-4 top-4 transition-transform duration-200 hover:scale-110" 
+                onClick={() => navigate('/app')}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Logging in...
-                  </div>
-                ) : (
-                  "Login"
-                )}
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Back</span>
               </Button>
-            )}
-            
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
-                <Link to="/customer-register" className="text-primary hover:underline transition-colors duration-200">
-                  Register
-                </Link>
-              </p>
+              <div className="mx-auto flex items-center gap-2">
+                <Package className="h-6 w-6 text-agri-primary" />
+                <span className="text-lg font-bold">DostanFarms</span>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            <CardTitle className="text-2xl font-bold text-center">Customer Login</CardTitle>
+            <CardDescription className="text-center">Log in to your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mobile">Mobile Number</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="mobile"
+                    placeholder="Your mobile number"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    disabled={otpSent || isLoading}
+                    className="transition-all duration-200 focus:scale-[1.02]"
+                    required
+                  />
+                  {!otpSent && (
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={handleSendOtp}
+                      disabled={isLoading}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                          Sending...
+                        </div>
+                      ) : (
+                        "Send OTP"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              {otpSent && (
+                <div className="space-y-2 animate-fade-in">
+                  <Label htmlFor="otp">OTP</Label>
+                  <Input
+                    id="otp"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    disabled={isLoading}
+                    className="transition-all duration-200 focus:scale-[1.02]"
+                    required
+                  />
+                </div>
+              )}
+              
+              {otpSent && (
+                <Button 
+                  type="submit" 
+                  className="w-full bg-agri-primary hover:bg-agri-secondary transition-all duration-200 hover:scale-[1.02]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Logging in...
+                    </div>
+                  ) : (
+                    "Login"
+                  )}
+                </Button>
+              )}
+              
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <button 
+                    type="button"
+                    onClick={() => setShowRegistration(true)}
+                    className="text-primary hover:underline transition-colors duration-200"
+                  >
+                    Register
+                  </button>
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

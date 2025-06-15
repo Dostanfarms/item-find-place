@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Package, ArrowLeft, User, Home, MapPin, Mail, Phone, Navigation } from 'lucide-react';
 import PhotoUploadField from '@/components/PhotoUploadField';
+import CustomerHeader from '@/components/CustomerHeader';
 import { useCustomers } from '@/hooks/useCustomers';
 
 const CustomerProfile = () => {
@@ -31,6 +32,9 @@ const CustomerProfile = () => {
     mobile: '',
     email: '',
     address: '',
+    landmark: '',
+    city: '',
+    state: '',
     pincode: '',
     profile_photo: ''
   });
@@ -52,7 +56,19 @@ const CustomerProfile = () => {
     return { street: fullAddress, landmark: '', city: '', state: '' };
   };
 
-  const addressComponents = parseAddress(customer.address);
+  // Initialize address components from stored address
+  useEffect(() => {
+    if (initialCustomer && initialCustomer.address && !customer.landmark && !customer.city && !customer.state) {
+      const addressComponents = parseAddress(initialCustomer.address);
+      setCustomer(prev => ({
+        ...prev,
+        address: addressComponents.street,
+        landmark: addressComponents.landmark,
+        city: addressComponents.city,
+        state: addressComponents.state
+      }));
+    }
+  }, []);
   
   // Redirect if not logged in
   useEffect(() => {
@@ -74,24 +90,35 @@ const CustomerProfile = () => {
     setIsLoading(true);
     
     try {
+      // Combine address components into full address
+      const fullAddress = [customer.address, customer.landmark, customer.city, customer.state]
+        .filter(Boolean)
+        .join(', ');
+      
+      const updatedCustomer = {
+        ...customer,
+        address: fullAddress
+      };
+      
       // Update customer in Supabase if customer has an ID
       if (customer.id) {
-        const result = await updateCustomer(customer.id, customer);
+        const result = await updateCustomer(customer.id, updatedCustomer);
         if (!result.success) {
           throw new Error('Failed to update profile in database');
         }
       }
       
       // Update customer in localStorage
-      localStorage.setItem('currentCustomer', JSON.stringify(customer));
+      localStorage.setItem('currentCustomer', JSON.stringify(updatedCustomer));
       
       // Update customer in customers array
       const customers = JSON.parse(localStorage.getItem('customers') || '[]');
       const updatedCustomers = customers.map((c: any) => 
-        c.id === customer.id ? customer : c
+        c.id === customer.id ? updatedCustomer : c
       );
       localStorage.setItem('customers', JSON.stringify(updatedCustomers));
       
+      setCustomer(updatedCustomer);
       setIsLoading(false);
       setIsEditing(false);
       
@@ -109,216 +136,245 @@ const CustomerProfile = () => {
       });
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentCustomer');
+    navigate('/customer-login');
+  };
   
   if (!initialCustomer) {
     return null; // Redirect handled in useEffect
   }
   
   return (
-    <div className="min-h-screen bg-muted/30 p-4">
-      <header className="container mx-auto max-w-md mb-6">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => navigate('/customer-home')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back</span>
-          </Button>
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-agri-primary" />
-            <span className="text-lg font-bold">DostanFarms</span>
-          </div>
+    <div className="min-h-screen bg-muted/30">
+      <CustomerHeader customer={customer} onLogout={handleLogout} />
+
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-20 p-4">
+        <div className="container mx-auto max-w-md">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                <span>My Profile</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isEditing ? (
+                <>
+                  <div className="flex flex-col items-center mb-6">
+                    <PhotoUploadField
+                      value={customer.profile_photo}
+                      onChange={handleProfilePhotoChange}
+                      name="customer-profile-photo"
+                      className="w-24 h-24 mb-4"
+                    />
+                    <h2 className="text-xl font-bold">{customer.name}</h2>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Mobile</p>
+                        <p>{customer.mobile}</p>
+                      </div>
+                    </div>
+                    
+                    {customer.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p>{customer.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-start gap-3">
+                      <Home className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground">Address</p>
+                        <p className="text-sm leading-relaxed">{customer.address}</p>
+                      </div>
+                    </div>
+
+                    {customer.landmark && (
+                      <div className="flex items-center gap-3">
+                        <Navigation className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Landmark</p>
+                          <p>{customer.landmark}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {customer.city && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">City</p>
+                          <p>{customer.city}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {customer.state && (
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">State</p>
+                          <p>{customer.state}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pincode</p>
+                        <p>{customer.pincode}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => setIsEditing(true)}
+                    className="w-full mt-6"
+                  >
+                    Edit Profile
+                  </Button>
+                </>
+              ) : (
+                <form className="space-y-4">
+                  <div className="flex flex-col items-center mb-6">
+                    <PhotoUploadField
+                      value={customer.profile_photo}
+                      onChange={handleProfilePhotoChange}
+                      name="customer-profile-photo"
+                      className="w-24 h-24"
+                    />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Tap to update profile photo
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={customer.name}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile">Mobile Number</Label>
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      value={customer.mobile}
+                      onChange={handleInputChange}
+                      disabled={true} // Cannot change mobile as it's the primary identifier
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={customer.email || ''}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      value={customer.address}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      placeholder="Street address"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="landmark">Landmark</Label>
+                    <Input
+                      id="landmark"
+                      name="landmark"
+                      value={customer.landmark || ''}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      placeholder="Nearby landmark"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      value={customer.city || ''}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      placeholder="City"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      value={customer.state || ''}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      placeholder="State"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="pincode">Pincode</Label>
+                    <Input
+                      id="pincode"
+                      name="pincode"
+                      value={customer.pincode}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-agri-primary hover:bg-agri-secondary"
+                      onClick={handleSave}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </header>
-      
-      <div className="container mx-auto max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <span>My Profile</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isEditing ? (
-              <>
-                <div className="flex flex-col items-center mb-6">
-                  <PhotoUploadField
-                    value={customer.profile_photo}
-                    onChange={handleProfilePhotoChange}
-                    name="customer-profile-photo"
-                    className="w-24 h-24 mb-4"
-                  />
-                  <h2 className="text-xl font-bold">{customer.name}</h2>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Mobile</p>
-                      <p>{customer.mobile}</p>
-                    </div>
-                  </div>
-                  
-                  {customer.email && (
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p>{customer.email}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-start gap-3">
-                    <Home className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Full Address</p>
-                      <p className="text-sm leading-relaxed">{customer.address}</p>
-                    </div>
-                  </div>
-
-                  {addressComponents.landmark && (
-                    <div className="flex items-center gap-3">
-                      <Navigation className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Landmark</p>
-                        <p>{addressComponents.landmark}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Pincode</p>
-                      <p>{customer.pincode}</p>
-                    </div>
-                  </div>
-
-                  {addressComponents.city && (
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">City</p>
-                        <p>{addressComponents.city}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {addressComponents.state && (
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">State</p>
-                        <p>{addressComponents.state}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  onClick={() => setIsEditing(true)}
-                  className="w-full mt-6"
-                >
-                  Edit Profile
-                </Button>
-              </>
-            ) : (
-              <form className="space-y-4">
-                <div className="flex flex-col items-center mb-6">
-                  <PhotoUploadField
-                    value={customer.profile_photo}
-                    onChange={handleProfilePhotoChange}
-                    name="customer-profile-photo"
-                    className="w-24 h-24"
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Tap to update profile photo
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={customer.name}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="mobile">Mobile Number</Label>
-                  <Input
-                    id="mobile"
-                    name="mobile"
-                    value={customer.mobile}
-                    onChange={handleInputChange}
-                    disabled={true} // Cannot change mobile as it's the primary identifier
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email (Optional)</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={customer.email || ''}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="address">Full Address</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={customer.address}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    placeholder="Street, Landmark, City, State"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="pincode">Pincode</Label>
-                  <Input
-                    id="pincode"
-                    name="pincode"
-                    value={customer.pincode}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
-                </div>
-                
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => setIsEditing(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    className="flex-1 bg-agri-primary hover:bg-agri-secondary"
-                    onClick={handleSave}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
