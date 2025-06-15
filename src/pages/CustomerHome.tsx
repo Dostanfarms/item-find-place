@@ -3,7 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, ShoppingCart } from 'lucide-react';
+import { Package, User, LogOut, ShoppingCart, Ticket } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
@@ -23,6 +31,14 @@ const CustomerHome = () => {
     navigate('/customer-login');
   };
 
+  const handleProfileClick = () => {
+    navigate('/customer-profile');
+  };
+
+  const handleTicketsClick = () => {
+    navigate('/customer-tickets');
+  };
+
   if (!customer) {
     return <div>Loading...</div>;
   }
@@ -36,10 +52,35 @@ const CustomerHome = () => {
             <Package className="h-6 w-6 text-agri-primary" />
             <span className="text-lg font-bold">DostanFarms</span>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={customer.profile_photo} alt={customer.name} />
+                  <AvatarFallback>
+                    {customer.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuItem onClick={handleProfileClick}>
+                <User className="mr-2 h-4 w-4" />
+                <span>My Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleTicketsClick}>
+                <Ticket className="mr-2 h-4 w-4" />
+                <span>Support Tickets</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Welcome Section */}
