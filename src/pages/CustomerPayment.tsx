@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useCustomerCoupons } from '@/hooks/useCustomerCoupons';
 import { ArrowLeft, CreditCard, ShoppingCart, Tag, MapPin } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { fetchLocationFromPincode, debounce } from '@/utils/pincodeUtils';
 import PaymentMethods from '@/components/PaymentMethods';
 import { placeOrder } from "@/api/orders";
 import CustomerHeader from '@/components/CustomerHeader';
@@ -42,7 +42,6 @@ const CustomerPayment = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [selectedCoupon, setSelectedCoupon] = useState('none');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
 
   // Get customer data from localStorage
   useEffect(() => {
@@ -67,29 +66,16 @@ const CustomerPayment = () => {
       return;
     }
     
-    // Auto-fill shipping address with customer data
+    // Auto-fill shipping address with customer data including landmark
     setShippingAddress({
       fullName: customerData.name || '',
       mobile: customerData.mobile || '',
       address: customerData.address || '',
-      landmark: '',
-      city: '',
-      state: '',
+      landmark: customerData.landmark || '', // Auto-fill landmark from profile
+      city: customerData.city || '',
+      state: customerData.state || '',
       pincode: customerData.pincode || ''
     });
-
-    // If pincode exists, fetch location data
-    if (customerData.pincode && customerData.pincode.length === 6) {
-      fetchLocationFromPincode(customerData.pincode).then(locationData => {
-        if (locationData) {
-          setShippingAddress(prev => ({
-            ...prev,
-            city: locationData.city,
-            state: locationData.state
-          }));
-        }
-      });
-    }
   }, [navigate, toast]);
 
   // Fetch coupons for the customer using their mobile number
@@ -121,56 +107,6 @@ const CustomerPayment = () => {
     
     return false;
   });
-
-  // Debounced function to fetch location data for shipping address
-  const debouncedFetchLocation = useCallback(
-    debounce(async (pincodeValue: string) => {
-      if (pincodeValue.length === 6) {
-        setIsPincodeLoading(true);
-        const locationData = await fetchLocationFromPincode(pincodeValue);
-        
-        if (locationData) {
-          setShippingAddress(prev => ({
-            ...prev,
-            city: locationData.city,
-            state: locationData.state
-          }));
-          toast({
-            title: "Location Found",
-            description: `${locationData.city}, ${locationData.state}`
-          });
-        } else {
-          toast({
-            title: "Invalid Pincode",
-            description: "Could not find location for this pincode",
-            variant: "destructive"
-          });
-          // Clear city and state if pincode is invalid
-          setShippingAddress(prev => ({
-            ...prev,
-            city: '',
-            state: ''
-          }));
-        }
-        setIsPincodeLoading(false);
-      }
-    }, 500),
-    []
-  );
-
-  const handlePincodeChange = (value: string) => {
-    const numericValue = value.replace(/\D/g, '').slice(0, 6);
-    setShippingAddress(prev => ({ 
-      ...prev, 
-      pincode: numericValue,
-      // Clear city and state when pincode changes
-      city: numericValue.length < 6 ? '' : prev.city,
-      state: numericValue.length < 6 ? '' : prev.state
-    }));
-    
-    // Fetch location data when pincode is 6 digits
-    debouncedFetchLocation(numericValue);
-  };
 
   const calculateDiscount = () => {
     if (!selectedCoupon || selectedCoupon === 'none') return 0;
@@ -235,7 +171,7 @@ const CustomerPayment = () => {
     if (!shippingAddress.city.trim() || !shippingAddress.state.trim()) {
       toast({
         title: "Missing Location",
-        description: "Please enter a valid pincode to auto-fill city and state",
+        description: "Please enter city and state information",
         variant: "destructive"
       });
       return;
@@ -566,14 +502,11 @@ const CustomerPayment = () => {
                     <Input
                       id="pincode"
                       value={shippingAddress.pincode}
-                      onChange={(e) => handlePincodeChange(e.target.value)}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, pincode: e.target.value }))}
                       placeholder="Enter pincode"
                       disabled={isProcessing}
                       maxLength={6}
                     />
-                    {isPincodeLoading && (
-                      <p className="text-sm text-blue-600 mt-1">Fetching location...</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="city">City *</Label>
@@ -581,9 +514,8 @@ const CustomerPayment = () => {
                       id="city"
                       value={shippingAddress.city}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="City (auto-filled)"
+                      placeholder="Enter city"
                       disabled={isProcessing}
-                      className={shippingAddress.city ? "bg-green-50 border-green-300" : ""}
                     />
                   </div>
                   <div>
@@ -592,9 +524,8 @@ const CustomerPayment = () => {
                       id="state"
                       value={shippingAddress.state}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder="State (auto-filled)"
+                      placeholder="Enter state"
                       disabled={isProcessing}
-                      className={shippingAddress.state ? "bg-green-50 border-green-300" : ""}
                     />
                   </div>
                 </div>
