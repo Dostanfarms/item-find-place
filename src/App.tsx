@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +26,7 @@ import CustomerProfile from "./pages/CustomerProfile";
 import CustomerOrderHistory from "./pages/CustomerOrderHistory";
 import CustomerTicketHistory from "./pages/CustomerTicketHistory";
 import CartPage from "./pages/CartPage";
+import CustomerPayment from "./pages/CustomerPayment";
 import PaymentPage from "./pages/PaymentPage";
 import OrderReceiptPage from "./pages/OrderReceiptPage";
 import OrderTracking from "./pages/OrderTracking";
@@ -170,6 +172,7 @@ const App = () => (
                 <Route path="/customer-orders" element={<CustomerOrderHistory />} />
                 <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
                 <Route path="/cart" element={<CartPage />} />
+                <Route path="/customer-payment" element={<CustomerPayment />} />
                 <Route path="/order-tracking" element={<OrderTracking />} />
                 <Route path="/order-history" element={<OrderHistory />} />
               </Route>

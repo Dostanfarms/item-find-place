@@ -26,26 +26,11 @@ const Cart: React.FC = () => {
     
     console.log('Proceeding to checkout with items:', items);
     
-    // Convert cart items to format expected by payment page
-    const cartItems = items.map(item => ({
-      id: item.productId,
-      name: item.name,
-      price: item.pricePerUnit,
-      quantity: item.quantity
-    }));
-
-    console.log('Navigating to payment with data:', { cartItems, subtotal: totalPrice });
-
     // Close cart first
     setIsCartOpen(false);
     
-    // Navigate to payment page with cart data
-    navigate('/payment', {
-      state: {
-        cartItems,
-        subtotal: totalPrice
-      }
-    });
+    // Navigate to customer payment page
+    navigate('/customer-payment');
   };
 
   return (
