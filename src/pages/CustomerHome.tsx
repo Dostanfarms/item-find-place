@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -141,18 +142,16 @@ const CustomerHome = () => {
       <div className="pt-20">
         {/* Shopping Section */}
         <div className="max-w-7xl mx-auto p-4">
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex items-center gap-4 w-full">
-              <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                Shop All Products
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              Shop All Products
+            </Button>
             
             {/* Category Buttons */}
             {!categoriesLoading && categories.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <span className="text-sm font-medium text-gray-600 flex items-center">Categories:</span>
+              <>
+                <span className="text-sm font-medium text-gray-600">Categories:</span>
                 {categories.map((category) => (
                   <Button
                     key={category.id}
@@ -164,18 +163,8 @@ const CustomerHome = () => {
                     {category.name}
                   </Button>
                 ))}
-              </div>
+              </>
             )}
-            
-            <div className="relative w-full md:w-96 md:ml-auto">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
           </div>
         </div>
 
