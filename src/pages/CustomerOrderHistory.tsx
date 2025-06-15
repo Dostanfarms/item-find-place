@@ -8,38 +8,62 @@ import {
   Package, 
   ChevronLeft, 
   Clock,
-  MapPin,
-  Phone
+  MapPin
 } from 'lucide-react';
 import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
+import CustomerHeader from '@/components/CustomerHeader';
 
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
   const [itemMap, setItemMap] = useState<{ [orderId: string]: any[] }>({});
-  
-  // Get current customer
-  const currentCustomer = localStorage.getItem('currentCustomer');
-  const customer = currentCustomer ? JSON.parse(currentCustomer) : null;
+  const [loading, setLoading] = useState(true);
+  const [customer, setCustomer] = useState<any>(null);
 
   useEffect(() => {
-    if (!customer) {
+    const currentCustomer = localStorage.getItem('currentCustomer');
+    if (currentCustomer) {
+      setCustomer(JSON.parse(currentCustomer));
+    } else {
       navigate('/customer-login');
       return;
     }
+  }, [navigate]);
 
-    fetchCustomerOrders(customer.id).then(async ({ orders }) => {
-      setOrders(orders);
+  useEffect(() => {
+    if (!customer) return;
 
-      // Fetch items for each order
-      const map: { [orderId: string]: any[] } = {};
-      for (const order of orders) {
-        const { items } = await fetchOrderItems(order.id);
-        map[order.id] = items;
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching orders for customer:', customer.id);
+        
+        const { orders, error } = await fetchCustomerOrders(customer.id);
+        
+        if (error) {
+          console.error('Error fetching orders:', error);
+          return;
+        }
+
+        console.log('Orders fetched:', orders);
+        setOrders(orders);
+
+        // Fetch items for each order
+        const map: { [orderId: string]: any[] } = {};
+        for (const order of orders) {
+          const { items } = await fetchOrderItems(order.id);
+          map[order.id] = items;
+        }
+        setItemMap(map);
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      } finally {
+        setLoading(false);
       }
-      setItemMap(map);
-    });
-  }, [customer, navigate]);
+    };
+
+    loadOrders();
+  }, [customer]);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -66,108 +90,123 @@ const CustomerOrderHistory = () => {
     }
   };
 
+  const handleLogout = () => {
+    setCustomer(null);
+    navigate('/customer-login');
+  };
+
   if (!customer) return null;
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-6">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => navigate('/customer-home')}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-agri-primary" />
-            <span className="text-lg font-bold">My Orders</span>
-          </div>
-        </div>
+    <div className="min-h-screen bg-muted/30">
+      <CustomerHeader customer={customer} onLogout={handleLogout} />
 
-        {/* Orders List */}
-        {orders.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-8">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center">
-                You haven't placed any orders yet
-              </p>
-              <Button 
-                className="mt-4" 
-                onClick={() => navigate('/customer-products')}
-              >
-                Browse Products
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">Order #{order.id.slice(-8)}</CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {formatDate(order.created_at)}
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-20 p-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-6">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => navigate('/customer-home')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-agri-primary" />
+              <span className="text-lg font-bold">My Orders</span>
+            </div>
+          </div>
+
+          {/* Loading state */}
+          {loading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8">
+                <div className="text-muted-foreground">Loading your orders...</div>
+              </CardContent>
+            </Card>
+          ) : orders.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8">
+                <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  You haven't placed any orders yet
+                </p>
+                <Button 
+                  className="mt-4" 
+                  onClick={() => navigate('/customer-products')}
+                >
+                  Browse Products
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <Card key={order.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">Order #{order.id.slice(-8)}</CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(order.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge className={getStatusColor(order.status || 'pending')}>
+                          {order.status || 'pending'}
+                        </Badge>
+                        <p className="text-lg font-bold mt-1">₹{Number(order.total).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {/* Items */}
+                      <div>
+                        <h4 className="font-medium mb-2">Items:</h4>
+                        <div className="space-y-1">
+                          {(itemMap[order.id] || []).map((item, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span>{item.name} x{item.quantity}</span>
+                              <span>₹{(item.price_per_unit * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Payment Method */}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Payment Method:</span>
+                        <Badge variant="outline">
+                          {order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
+                        </Badge>
+                      </div>
+                      
+                      {/* Tracking Info */}
+                      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {(order.status || 'pending') === 'delivered' 
+                            ? 'Order has been delivered' 
+                            : 'Order is being processed'
+                          }
                         </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge className={getStatusColor(order.status || 'pending')}>
-                        {order.status || 'pending'}
-                      </Badge>
-                      <p className="text-lg font-bold mt-1">₹{Number(order.total).toFixed(2)}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {/* Items */}
-                    <div>
-                      <h4 className="font-medium mb-2">Items:</h4>
-                      <div className="space-y-1">
-                        {(itemMap[order.id] || []).map((item, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span>{item.name} x{item.quantity}</span>
-                            <span>₹{(item.price_per_unit * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Payment Method */}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Payment Method:</span>
-                      <Badge variant="outline">
-                        {order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
-                      </Badge>
-                    </div>
-                    
-                    {/* Tracking Info */}
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {(order.status || 'pending') === 'delivered' 
-                          ? 'Order has been delivered' 
-                          : 'Order is being processed'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default CustomerOrderHistory;
-
