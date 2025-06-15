@@ -8,8 +8,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
-  dailyEarnings: DailyEarning[];
-  monthlyEarnings: MonthlyEarning[];
+  dailyEarnings: (DailyEarning & { settledAmount?: number; unsettledAmount?: number })[];
+  monthlyEarnings: (MonthlyEarning & { settledAmount?: number; unsettledAmount?: number })[];
 }
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({ 
@@ -34,12 +34,16 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   // Format data for chart
   const dailyChartData = dailyEarnings.map(item => ({
     name: format(new Date(item.date), 'MMM dd'),
-    amount: item.amount
+    settled: item.settledAmount || 0,
+    unsettled: item.unsettledAmount || 0,
+    total: item.amount
   }));
 
   const monthlyChartData = monthlyEarnings.map(item => ({
     name: formatMonth(item.month).split(' ')[0], // Just the month name
-    amount: item.amount
+    settled: item.settledAmount || 0,
+    unsettled: item.unsettledAmount || 0,
+    total: item.amount
   }));
   
   return (
@@ -65,11 +69,15 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip 
-                    formatter={(value) => [`₹${value}`, 'Earnings']}
+                    formatter={(value, name) => {
+                      const label = name === 'settled' ? 'Settled' : name === 'unsettled' ? 'Unsettled' : 'Total';
+                      return [`₹${value}`, label];
+                    }}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
                   <Legend />
-                  <Bar dataKey="amount" name="Earnings (₹)" fill="#2E7D32" />
+                  <Bar dataKey="settled" name="Settled" fill="#2E7D32" />
+                  <Bar dataKey="unsettled" name="Unsettled" fill="#F57C00" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -80,7 +88,9 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   <thead>
                     <tr className="bg-muted border-b">
                       <th className="text-left p-2">Date</th>
-                      <th className="text-right p-2">Amount (₹)</th>
+                      <th className="text-right p-2">Settled (₹)</th>
+                      <th className="text-right p-2">Unsettled (₹)</th>
+                      <th className="text-right p-2">Total (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -88,12 +98,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       dailyEarnings.map((item, index) => (
                         <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
                           <td className="text-left p-2">{formatDate(item.date)}</td>
-                          <td className="text-right p-2">₹{item.amount.toFixed(2)}</td>
+                          <td className="text-right p-2 text-green-600">₹{(item.settledAmount || 0).toFixed(2)}</td>
+                          <td className="text-right p-2 text-orange-600">₹{(item.unsettledAmount || 0).toFixed(2)}</td>
+                          <td className="text-right p-2 font-medium">₹{item.amount.toFixed(2)}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={2} className="text-center p-4">No daily earnings data available</td>
+                        <td colSpan={4} className="text-center p-4">No daily earnings data available</td>
                       </tr>
                     )}
                   </tbody>
@@ -113,11 +125,15 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip 
-                    formatter={(value) => [`₹${value}`, 'Earnings']}
+                    formatter={(value, name) => {
+                      const label = name === 'settled' ? 'Settled' : name === 'unsettled' ? 'Unsettled' : 'Total';
+                      return [`₹${value}`, label];
+                    }}
                     labelFormatter={(label) => `Month: ${label}`}
                   />
                   <Legend />
-                  <Bar dataKey="amount" name="Earnings (₹)" fill="#558B2F" />
+                  <Bar dataKey="settled" name="Settled" fill="#558B2F" />
+                  <Bar dataKey="unsettled" name="Unsettled" fill="#FF8F00" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -128,7 +144,9 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   <thead>
                     <tr className="bg-muted border-b">
                       <th className="text-left p-2">Month</th>
-                      <th className="text-right p-2">Amount (₹)</th>
+                      <th className="text-right p-2">Settled (₹)</th>
+                      <th className="text-right p-2">Unsettled (₹)</th>
+                      <th className="text-right p-2">Total (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -136,12 +154,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       monthlyEarnings.map((item, index) => (
                         <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-muted'}>
                           <td className="text-left p-2">{formatMonth(item.month)}</td>
-                          <td className="text-right p-2">₹{item.amount.toFixed(2)}</td>
+                          <td className="text-right p-2 text-green-600">₹{(item.settledAmount || 0).toFixed(2)}</td>
+                          <td className="text-right p-2 text-orange-600">₹{(item.unsettledAmount || 0).toFixed(2)}</td>
+                          <td className="text-right p-2 font-medium">₹{item.amount.toFixed(2)}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={2} className="text-center p-4">No monthly earnings data available</td>
+                        <td colSpan={4} className="text-center p-4">No monthly earnings data available</td>
                       </tr>
                     )}
                   </tbody>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,35 +28,57 @@ const FarmerDetails = () => {
   const [unsettledAmount, setUnsettledAmount] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<FarmerProduct | undefined>(undefined);
 
-  // Calculate earnings from farmer products
+  // Calculate earnings from farmer products (including both settled and unsettled)
   const calculateEarnings = (products: FarmerProduct[]) => {
-    const settledProducts = products.filter(product => product.payment_status === 'settled');
-    
     // Group by date for daily earnings
-    const dailyGroups = new Map<string, number>();
+    const dailyGroups = new Map<string, { settled: number; unsettled: number }>();
     // Group by month for monthly earnings
-    const monthlyGroups = new Map<string, number>();
+    const monthlyGroups = new Map<string, { settled: number; unsettled: number }>();
     
-    settledProducts.forEach(product => {
-      const productDate = new Date(product.updated_at);
+    products.forEach(product => {
+      const productDate = new Date(product.created_at);
       const dayKey = format(productDate, 'yyyy-MM-dd');
       const monthKey = format(productDate, 'yyyy-MM');
       const amount = product.quantity * product.price_per_unit;
       
-      // Daily grouping
-      dailyGroups.set(dayKey, (dailyGroups.get(dayKey) || 0) + amount);
+      // Initialize if not exists
+      if (!dailyGroups.has(dayKey)) {
+        dailyGroups.set(dayKey, { settled: 0, unsettled: 0 });
+      }
+      if (!monthlyGroups.has(monthKey)) {
+        monthlyGroups.set(monthKey, { settled: 0, unsettled: 0 });
+      }
       
-      // Monthly grouping
-      monthlyGroups.set(monthKey, (monthlyGroups.get(monthKey) || 0) + amount);
+      // Add to appropriate category
+      const dailyData = dailyGroups.get(dayKey)!;
+      const monthlyData = monthlyGroups.get(monthKey)!;
+      
+      if (product.payment_status === 'settled') {
+        dailyData.settled += amount;
+        monthlyData.settled += amount;
+      } else {
+        dailyData.unsettled += amount;
+        monthlyData.unsettled += amount;
+      }
     });
     
     // Convert to arrays and sort
     const dailyEarningsData = Array.from(dailyGroups.entries())
-      .map(([date, amount]) => ({ date, amount }))
+      .map(([date, amounts]) => ({ 
+        date, 
+        amount: amounts.settled + amounts.unsettled,
+        settledAmount: amounts.settled,
+        unsettledAmount: amounts.unsettled
+      }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const monthlyEarningsData = Array.from(monthlyGroups.entries())
-      .map(([month, amount]) => ({ month, amount }))
+      .map(([month, amounts]) => ({ 
+        month, 
+        amount: amounts.settled + amounts.unsettled,
+        settledAmount: amounts.settled,
+        unsettledAmount: amounts.unsettled
+      }))
       .sort((a, b) => b.month.localeCompare(a.month));
     
     return { dailyEarningsData, monthlyEarningsData };
