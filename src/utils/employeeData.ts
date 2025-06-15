@@ -24,7 +24,8 @@ export const availableResources = [
   'banners',
   'employees',
   'roles',
-  'settlements'
+  'settlements',
+  'orders'
 ] as const;
 
 export const availableActions = ['view', 'create', 'edit', 'delete'] as const;
@@ -47,7 +48,8 @@ export const predefinedRoles: Role[] = [
       { resource: 'banners', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'employees', actions: ['view', 'create', 'edit', 'delete'] },
       { resource: 'roles', actions: ['view', 'create', 'edit', 'delete'] },
-      { resource: 'settlements', actions: ['view', 'create', 'edit', 'delete'] }
+      { resource: 'settlements', actions: ['view', 'create', 'edit', 'delete'] },
+      { resource: 'orders', actions: ['view', 'create', 'edit', 'delete'] }
     ]
   },
   {
@@ -65,7 +67,8 @@ export const predefinedRoles: Role[] = [
       { resource: 'coupons', actions: ['view', 'create', 'edit'] },
       { resource: 'banners', actions: ['view', 'create', 'edit'] },
       { resource: 'employees', actions: ['view'] },
-      { resource: 'settlements', actions: ['view', 'create', 'edit'] }
+      { resource: 'settlements', actions: ['view', 'create', 'edit'] },
+      { resource: 'orders', actions: ['view', 'edit'] }
     ]
   },
   {
@@ -79,7 +82,8 @@ export const predefinedRoles: Role[] = [
       { resource: 'sales-dashboard', actions: ['view'] },
       { resource: 'transactions', actions: ['view'] },
       { resource: 'tickets', actions: ['view', 'create'] },
-      { resource: 'coupons', actions: ['view'] }
+      { resource: 'coupons', actions: ['view'] },
+      { resource: 'orders', actions: ['view'] }
     ]
   }
 ];
