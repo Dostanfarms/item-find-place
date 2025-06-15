@@ -164,34 +164,34 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     );
   }
 
-  // --- Render clean, print-friendly billing (always using customer info for billing) ---
+  // Render print-friendly billing - Show all customer info fields
   function renderPrintableBilling(customer: CustomerInfo | null) {
     return (
-      `<div style="margin-bottom: 8px;">
-        <div><strong>Name:</strong> ${customer?.name ?? "-"}</div>
-        <div><strong>Billing Address:</strong><br />
-          <span style="white-space: pre-line;">
-            ${customer?.address ? customer.address : "—"}${customer?.pincode ? ` (${customer.pincode})` : ""}
-          </span>
-        </div>
-        ${customer?.mobile ? `<div><strong>Mobile:</strong> ${customer.mobile}</div>` : ""}
-        ${customer?.email ? `<div><strong>Email:</strong> ${customer.email}</div>` : ""}
+      `<div style="margin-bottom:8px; font-size:15px;">
+        <div><b>Name:</b> ${customer?.name ?? "-"}</div>
+        <div><b>Mobile:</b> ${customer?.mobile ?? "-"}</div>
+        <div><b>Address:</b> ${customer?.address ?? "-"}</div>
+        <div><b>City:</b> ${customer?.address ? (customer.address.split(',')[1] ? customer.address.split(',')[1].trim() : "-") : (customer?.city ?? "-")}</div>
+        <div><b>State:</b> ${customer?.address ? (customer.address.split(',')[2] ? customer.address.split(',')[2].trim() : "-") : (customer?.state ?? "-")}</div>
+        <div><b>Pincode:</b> ${customer?.pincode ?? "-"}</div>
+        ${customer?.email ? `<div><b>Email:</b> ${customer.email}</div>` : ""}
       </div>`
     );
   }
 
-  // --- Render clean, print-friendly shipping address section ---
-  function renderPrintableShipping(order: Order | null) {
-    if (!order?.shipping_address) return '<div style="color:#888;">No shipping address available.</div>';
-    const addr = order.shipping_address;
-    // Proper alignment and consistent field labels, matching the given reference
+  // Render print-friendly shipping - Show all shipping fields with clear labels
+  function renderPrintableShipping(order: Order | null, customer: CustomerInfo | null) {
+    // If order.shipping_address present, use that, else fall back to customer
+    const addr = order?.shipping_address || {};
+    // Prefer shipping address, but use customer fallback for missing fields
     return (
       `<div style="margin-bottom:8px; font-size:15px;">
-        ${addr.address ? `<div><b>Address:</b> ${addr.address}</div>` : ""}
-        ${addr.city ? `<div><b>City:</b> ${addr.city}</div>` : ""}
-        ${addr.state ? `<div><b>State:</b> ${addr.state}</div>` : ""}
-        ${addr.pincode ? `<div><b>Pincode:</b> ${addr.pincode}</div>` : ""}
-        ${addr.mobile ? `<div><b>Mobile:</b> ${addr.mobile}</div>` : ""}
+        <div><b>Name:</b> ${addr.name ?? customer?.name ?? "-"}</div>
+        <div><b>Mobile:</b> ${addr.mobile ?? customer?.mobile ?? "-"}</div>
+        <div><b>Address:</b> ${addr.address ?? customer?.address ?? "-"}</div>
+        <div><b>City:</b> ${addr.city ?? "-"}</div>
+        <div><b>State:</b> ${addr.state ?? "-"}</div>
+        <div><b>Pincode:</b> ${addr.pincode ?? customer?.pincode ?? "-"}</div>
       </div>`
     );
   }
@@ -297,11 +297,11 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     lineHeight: 1.65,
                     fontSize: 15,
                     marginBottom: 8
-                  }} dangerouslySetInnerHTML={{ __html: renderPrintableShipping(order) }} />
+                  }} dangerouslySetInnerHTML={{ __html: renderPrintableShipping(order, customer) }} />
                 </div>
               </div>
             </div>
-            {/* Printable INVOICE section (updated, removed status/shipping, improved billing format) */}
+            {/* Printable INVOICE section (updated to show all customer data) */}
             <div style={{ display: "none" }}>
               <div ref={invoiceRef}>
                 <div style={{
@@ -330,8 +330,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         <b>Payment:</b> {order?.payment_method === "upi" || order?.payment_method === "card" ? "Online" : "Cash"}
                       </div>
                     </div>
-                    <div style={{ minWidth: 180, textAlign: "left" }}>
-                      {/* --- Billing Information (Proper Alignment) --- */}
+                    <div style={{ minWidth: 240, textAlign: "left" }}>
+                      <div style={{ fontWeight: "bold", marginBottom: 4 }}>Billing Address</div>
                       <div dangerouslySetInnerHTML={{ __html: renderPrintableBilling(customer) }} />
                     </div>
                   </div>
