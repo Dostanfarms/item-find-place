@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Package } from 'lucide-react';
+import { ShoppingCart, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/hooks/useProducts';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +14,24 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Parse images from image_url - assume it's stored as JSON array string or single URL
+  const getProductImages = (): string[] => {
+    if (!product.image_url) return [];
+    
+    try {
+      // Try to parse as JSON array first
+      const parsed = JSON.parse(product.image_url);
+      return Array.isArray(parsed) ? parsed : [product.image_url];
+    } catch {
+      // If parsing fails, treat as single URL
+      return [product.image_url];
+    }
+  };
+
+  const images = getProductImages();
+  const hasMultipleImages = images.length > 1;
 
   const handleAddToCart = () => {
     try {
@@ -41,16 +59,61 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       {/* Product Image or Fallback */}
       <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center relative overflow-hidden">
-        {product.image_url ? (
-          <img 
-            src={product.image_url} 
-            alt={product.name}
-            className="w-full h-full object-cover"
-          />
+        {images.length > 0 ? (
+          <>
+            <img 
+              src={images[currentImageIndex]} 
+              alt={`${product.name} - Image ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Navigation arrows for multiple images */}
+            {hasMultipleImages && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                {/* Image indicators */}
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
+                      onClick={() => setCurrentImageIndex(index)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <div className="text-4xl">
             {product.category === 'Vegetables' && '🥬'}

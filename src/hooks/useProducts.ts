@@ -10,7 +10,7 @@ export interface Product {
   price_per_unit: number;
   category: string;
   barcode?: string;
-  image_url?: string;
+  image_url?: string; // This will store JSON array of image URLs
   created_at: string;
   updated_at: string;
 }

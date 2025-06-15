@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { useProducts, Product } from '@/hooks/useProducts';
 import { Barcode, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import ProductImageUpload from './ProductImageUpload';
+import MultipleImageUpload from './MultipleImageUpload';
 
 interface GeneralProductFormProps {
   onCancel: () => void;
@@ -25,7 +26,15 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   const [unit, setUnit] = useState(editProduct?.unit || 'kg');
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [category, setCategory] = useState(editProduct?.category || '');
-  const [imageUrl, setImageUrl] = useState<string | undefined>(editProduct?.image_url || undefined);
+  const [images, setImages] = useState<string[]>(() => {
+    if (!editProduct?.image_url) return [];
+    try {
+      const parsed = JSON.parse(editProduct.image_url);
+      return Array.isArray(parsed) ? parsed : [editProduct.image_url];
+    } catch {
+      return editProduct.image_url ? [editProduct.image_url] : [];
+    }
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate total price
@@ -91,6 +100,9 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
     
     setIsSubmitting(true);
     
+    // Prepare image data
+    const imageData = images.length > 0 ? JSON.stringify(images) : null;
+    
     const productData = {
       name: name.trim(),
       quantity: Math.floor(parsedQuantity), // General products use integer quantities
@@ -98,7 +110,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
       price_per_unit: parsedPrice,
       category,
       barcode: editProduct?.barcode || generateBarcode(),
-      image_url: imageUrl || null
+      image_url: imageData
     };
     
     console.log('Submitting general product data:', productData);
@@ -118,7 +130,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
           setName('');
           setQuantity('1');
           setPricePerUnit('');
-          setImageUrl(undefined);
+          setImages([]);
           const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
           setCategory(defaultCategory?.name || '');
           onCancel(); // Close form
@@ -175,11 +187,11 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
           </div>
 
           <div className="space-y-2">
-            <Label>Product Image</Label>
-            <ProductImageUpload
-              value={imageUrl}
-              onChange={setImageUrl}
+            <MultipleImageUpload
+              value={images}
+              onChange={setImages}
               disabled={isSubmitting}
+              maxImages={4}
             />
           </div>
           
