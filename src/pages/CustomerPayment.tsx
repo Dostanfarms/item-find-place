@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -337,44 +336,90 @@ const CustomerPayment = () => {
                     <p className="text-sm text-muted-foreground">Loading available coupons...</p>
                   </div>
                 ) : activeCoupons.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-green-600">
-                      {activeCoupons.length} coupon{activeCoupons.length > 1 ? 's' : ''} available for your account
+                  <div className="space-y-4">
+                    <p className="text-sm text-green-600 font-medium">
+                      🎉 You have {activeCoupons.length} coupon{activeCoupons.length > 1 ? 's' : ''} available! 
+                      {activeCoupons.length > 1 && ' (Select one to apply)'}
                     </p>
-                    <Select value={selectedCoupon} onValueChange={setSelectedCoupon} disabled={isProcessing}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a coupon" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No coupon</SelectItem>
-                        {activeCoupons.map((coupon) => (
-                          <SelectItem key={coupon.id} value={coupon.id}>
+                    
+                    {/* Show all available coupons */}
+                    <div className="space-y-3">
+                      <div className="grid gap-3">
+                        <div 
+                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                            selectedCoupon === 'none' 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedCoupon('none')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">No Coupon</span>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{coupon.code}</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {coupon.target_type}
-                              </Badge>
+                              {selectedCoupon === 'none' && (
+                                <Badge variant="default" className="bg-blue-500">Selected</Badge>
+                              )}
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedCoupon && selectedCoupon !== 'none' && (
-                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-center gap-2">
-                          <Tag className="h-4 w-4 text-green-600" />
-                          <span className="font-medium text-green-600">
-                            Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
-                          </span>
+                          </div>
                         </div>
-                        <p className="text-sm text-green-600 mt-1">
-                          You save ₹{calculateDiscount().toFixed(2)} on this order!
-                        </p>
+                        
+                        {activeCoupons.map((coupon) => (
+                          <div 
+                            key={coupon.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                              selectedCoupon === coupon.id 
+                                ? 'border-green-500 bg-green-50' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => setSelectedCoupon(coupon.id)}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-lg text-green-700">{coupon.code}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {coupon.discount_type === 'percentage' 
+                                    ? `${coupon.discount_value}% OFF` 
+                                    : `₹${coupon.discount_value} OFF`
+                                  }
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {coupon.target_type}
+                                </Badge>
+                                {selectedCoupon === coupon.id && (
+                                  <Badge variant="default" className="bg-green-500">Selected</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {coupon.discount_type === 'percentage' 
+                                ? `Get ${coupon.discount_value}% discount on your order`
+                                : `Get ₹${coupon.discount_value} off your order`
+                              }
+                              {coupon.max_discount_limit && coupon.discount_type === 'percentage' && 
+                                ` (Max ₹${coupon.max_discount_limit})`
+                              }
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Valid until {new Date(coupon.expiry_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    )}
+                      
+                      {selectedCoupon && selectedCoupon !== 'none' && (
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-green-600" />
+                            <span className="font-medium text-green-600">
+                              Coupon Applied: {activeCoupons.find(c => c.id === selectedCoupon)?.code}
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-600 mt-1">
+                            You save ₹{calculateDiscount().toFixed(2)} on this order!
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-4">
