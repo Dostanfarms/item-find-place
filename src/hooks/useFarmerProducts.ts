@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -14,7 +15,6 @@ export interface FarmerProduct {
   unit: string;
   price_per_unit: number;
   category: string;
-  barcode?: string;
   payment_status: 'settled' | 'unsettled';
   transaction_image?: string;
   created_at: string;
@@ -65,7 +65,6 @@ export const useFarmerProducts = (farmerId?: string) => {
         unit: dbProduct.unit,
         price_per_unit: Number(dbProduct.price_per_unit),
         category: dbProduct.category,
-        barcode: dbProduct.barcode || undefined,
         payment_status: dbProduct.payment_status as 'settled' | 'unsettled',
         transaction_image: dbProduct.transaction_image || undefined,
         created_at: dbProduct.created_at,
@@ -94,7 +93,6 @@ export const useFarmerProducts = (farmerId?: string) => {
           unit: productData.unit,
           price_per_unit: productData.price_per_unit,
           category: productData.category,
-          barcode: productData.barcode,
           payment_status: productData.payment_status,
           transaction_image: productData.transaction_image,
         }])
