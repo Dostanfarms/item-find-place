@@ -14,6 +14,16 @@ interface TransactionHistoryProps {
   products?: FarmerProduct[];
 }
 
+interface MonthlyProductSummary {
+  name: string;
+  category: string;
+  unit: string;
+  payment_status: string;
+  quantity: number;
+  totalAmount: number;
+  count: number;
+}
+
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({ 
   transactions, 
   dailyEarnings, 
@@ -53,7 +63,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
 
   // Group and merge products by month for monthly view
   const getMonthlyProductSummary = () => {
-    const monthlyGroups = new Map();
+    const monthlyGroups = new Map<string, Map<string, MonthlyProductSummary>>();
     
     products.forEach(product => {
       const monthKey = format(new Date(product.created_at), 'yyyy-MM');
@@ -61,7 +71,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
         monthlyGroups.set(monthKey, new Map());
       }
       
-      const monthData = monthlyGroups.get(monthKey);
+      const monthData = monthlyGroups.get(monthKey)!;
       const productKey = `${product.name}_${product.payment_status}`;
       
       if (!monthData.has(productKey)) {
@@ -76,7 +86,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
         });
       }
       
-      const existing = monthData.get(productKey);
+      const existing = monthData.get(productKey)!;
       existing.quantity += product.quantity;
       existing.totalAmount += (product.quantity * product.price_per_unit);
       existing.count += 1;
@@ -161,7 +171,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         {formatMonth(monthData.month)}
                       </div>
                       <div className="p-2">
-                        {monthData.products.map((product, productIndex) => (
+                        {monthData.products.map((product: MonthlyProductSummary, productIndex) => (
                           <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
                             <div className="flex-1">
                               <div className="font-medium">{product.name}</div>
