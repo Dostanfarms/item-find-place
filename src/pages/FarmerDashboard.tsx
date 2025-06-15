@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import TransactionHistory from '@/components/TransactionHistory';
 import EditProfileDialog from '@/components/farmer/EditProfileDialog';
-import FarmerProductsTable from '@/components/FarmerProductsTable';
 import FarmerSettlements from '@/components/farmer/FarmerSettlements';
 import { format } from 'date-fns';
 
@@ -306,12 +305,6 @@ const FarmerDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Products Table with Transaction Receipts */}
-        <FarmerProductsTable 
-          products={farmerSpecificProducts} 
-          loading={productsLoading} 
-        />
 
         {/* Earnings History */}
         <div className="mt-6">
