@@ -10,10 +10,13 @@ import { Search, Plus, Users, UserCheck, UserX, Menu } from 'lucide-react';
 import AddEmployeeDialog from '@/components/employees/AddEmployeeDialog';
 import EditEmployeeDialog from '@/components/employees/EditEmployeeDialog';
 import EmployeeTable from '@/components/employees/EmployeeTable';
+import ProtectedAction from '@/components/ProtectedAction';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 const Employees = () => {
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const { employees, loading, deleteEmployee, updateEmployee, addEmployee } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -44,6 +47,15 @@ const Employees = () => {
   );
 
   const handleEdit = (employee: any) => {
+    if (!hasPermission('employees', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit employees",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setEditingEmployee(employee);
     setFormData({
       name: employee.name || '',
@@ -64,6 +76,15 @@ const Employees = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission('employees', 'delete')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to delete employees",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this employee?')) {
       const result = await deleteEmployee(id);
       if (result?.success) {
@@ -76,6 +97,15 @@ const Employees = () => {
   };
 
   const handleAddEmployee = async () => {
+    if (!hasPermission('employees', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create employees",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const result = await addEmployee({
       name: formData.name,
       email: formData.email,
@@ -101,6 +131,15 @@ const Employees = () => {
 
   const handleUpdateEmployee = async () => {
     if (!editingEmployee) return;
+
+    if (!hasPermission('employees', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit employees",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const updateData: any = {
       name: formData.name,
@@ -186,12 +225,14 @@ const Employees = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button 
-            className="bg-agri-primary hover:bg-agri-secondary"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
+          <ProtectedAction resource="employees" action="create">
+            <Button 
+              className="bg-agri-primary hover:bg-agri-secondary"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          </ProtectedAction>
         </div>
       </div>
 
@@ -246,24 +287,26 @@ const Employees = () => {
             employees={filteredEmployees}
             onEditClick={handleEdit}
             onDeleteEmployee={handleDelete}
-            canEdit={true}
-            canDelete={true}
+            canEdit={hasPermission('employees', 'edit')}
+            canDelete={hasPermission('employees', 'delete')}
           />
         )}
       </div>
 
-      <AddEmployeeDialog 
-        isOpen={isAddDialogOpen}
-        setIsOpen={setIsAddDialogOpen}
-        formData={formData}
-        onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
-        showPassword={showPassword}
-        togglePasswordVisibility={() => setShowPassword(!showPassword)}
-        onAddEmployee={handleAddEmployee}
-        onCancel={handleCancel}
-      />
+      {hasPermission('employees', 'create') && (
+        <AddEmployeeDialog 
+          isOpen={isAddDialogOpen}
+          setIsOpen={setIsAddDialogOpen}
+          formData={formData}
+          onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
+          showPassword={showPassword}
+          togglePasswordVisibility={() => setShowPassword(!showPassword)}
+          onAddEmployee={handleAddEmployee}
+          onCancel={handleCancel}
+        />
+      )}
 
-      {editingEmployee && (
+      {editingEmployee && hasPermission('employees', 'edit') && (
         <EditEmployeeDialog 
           isOpen={!!editingEmployee}
           setIsOpen={(open) => !open && setEditingEmployee(null)}

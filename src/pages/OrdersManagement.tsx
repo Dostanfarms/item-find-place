@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import ProtectedAction from "@/components/ProtectedAction";
+import { useAuth } from "@/context/AuthContext";
 
 interface Order {
   id: string;
@@ -41,6 +44,7 @@ const getStatusColor = (status: string) => {
 };
 
 const OrdersManagement: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +52,6 @@ const OrdersManagement: React.FC = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  // --- New for filters
   const [orderDate, setOrderDate] = useState<Date | undefined>();
   const [mobileSearch, setMobileSearch] = useState("");
 
@@ -83,6 +86,15 @@ const OrdersManagement: React.FC = () => {
   }, []);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
+    if (!hasPermission('orders', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit orders",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUpdatingOrderId(orderId);
     const { error } = await supabase
       .from("orders")
@@ -255,17 +267,19 @@ const OrdersManagement: React.FC = () => {
                       <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
                       <TableCell>{getCustomerMobile(order.customer_id)}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          aria-label="View Order Details"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setDetailsOpen(true);
-                          }}
-                        >
-                          <ViewIcon className="h-4 w-4" />
-                        </Button>
+                        <ProtectedAction resource="orders" action="view">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label="View Order Details"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setDetailsOpen(true);
+                            }}
+                          >
+                            <ViewIcon className="h-4 w-4" />
+                          </Button>
+                        </ProtectedAction>
                       </TableCell>
                     </TableRow>
                   ))

@@ -8,6 +8,7 @@ interface AuthContextProps {
   login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkPermission: (resource: string, action: string) => boolean;
+  hasPermission: (resource: string, action: string) => boolean;
 }
 
 interface User {
@@ -194,12 +195,16 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     return false;
   };
 
+  // Add hasPermission as an alias for checkPermission
+  const hasPermission = checkPermission;
+
   const value: AuthContextProps = {
     user,
     currentUser: user,
     login,
     logout,
     checkPermission,
+    hasPermission,
   };
 
   return (

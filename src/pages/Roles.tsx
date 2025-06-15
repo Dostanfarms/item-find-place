@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -36,6 +37,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRoles, Role } from '@/hooks/useRoles';
+import ProtectedAction from '@/components/ProtectedAction';
+import { useAuth } from '@/context/AuthContext';
 
 const resources = [
   { id: 'dashboard', name: 'Dashboard' },
@@ -64,6 +67,7 @@ const actions = [
 
 const Roles = () => {
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const { roles, loading, addRole, updateRole } = useRoles();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [permissions, setPermissions] = useState<any[]>([]);
@@ -98,6 +102,15 @@ const Roles = () => {
   }, [selectedRole]);
 
   const handlePermissionChange = (resource: string, action: string, checked: boolean) => {
+    if (!hasPermission('roles', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit roles",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setPermissions(prev => {
       const resourceIndex = prev.findIndex(p => p.resource === resource);
       
@@ -131,6 +144,15 @@ const Roles = () => {
   const handleSavePermissions = async () => {
     if (!selectedRole) return;
 
+    if (!hasPermission('roles', 'edit')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit roles",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const result = await updateRole(selectedRole.id, { permissions });
     
     if (result?.success) {
@@ -141,7 +163,7 @@ const Roles = () => {
     }
   };
 
-  const hasPermission = (resource: string, action: string) => {
+  const hasResourcePermission = (resource: string, action: string) => {
     if (!Array.isArray(permissions)) {
       return false;
     }
@@ -151,6 +173,15 @@ const Roles = () => {
   };
 
   const handleCreateRole = async () => {
+    if (!hasPermission('roles', 'create')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create roles",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!newRoleName.trim()) {
       toast({
         title: "Role name required",
@@ -190,13 +221,15 @@ const Roles = () => {
           <h1 className="text-3xl font-bold">Role Management</h1>
           <p className="text-muted-foreground">Manage permissions for different roles in the system</p>
         </div>
-        <Button 
-          onClick={() => setCreateRoleDialogOpen(true)}
-          className="bg-agri-primary hover:bg-agri-secondary"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Role
-        </Button>
+        <ProtectedAction resource="roles" action="create">
+          <Button 
+            onClick={() => setCreateRoleDialogOpen(true)}
+            className="bg-agri-primary hover:bg-agri-secondary"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Role
+          </Button>
+        </ProtectedAction>
       </div>
       
       <div className="flex-1 flex flex-col min-h-0">
@@ -251,10 +284,11 @@ const Roles = () => {
                           {actions.map(action => (
                             <TableCell key={action.id}>
                               <Checkbox 
-                                checked={hasPermission(resource.id, action.id)}
+                                checked={hasResourcePermission(resource.id, action.id)}
                                 onCheckedChange={(checked) => 
                                   handlePermissionChange(resource.id, action.id, checked === true)
                                 }
+                                disabled={!hasPermission('roles', 'edit')}
                               />
                             </TableCell>
                           ))}
@@ -265,9 +299,11 @@ const Roles = () => {
                 </div>
                 
                 <div className="flex-none mt-6 flex justify-end">
-                  <Button onClick={handleSavePermissions}>
-                    Save Permissions
-                  </Button>
+                  <ProtectedAction resource="roles" action="edit">
+                    <Button onClick={handleSavePermissions}>
+                      Save Permissions
+                    </Button>
+                  </ProtectedAction>
                 </div>
               </div>
             )}
@@ -301,7 +337,9 @@ const Roles = () => {
             <Button variant="outline" onClick={() => setCreateRoleDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateRole}>Create Role</Button>
+            <Button onClick={handleCreateRole} disabled={!hasPermission('roles', 'create')}>
+              Create Role
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
