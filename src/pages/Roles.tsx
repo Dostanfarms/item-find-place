@@ -48,6 +48,7 @@ const resources = [
   { id: 'transactions', name: 'Transactions' },
   { id: 'settlements', name: 'Settlements' },
   { id: 'coupons', name: 'Coupons' },
+  { id: 'banners', name: 'Banners' },
   { id: 'employees', name: 'Employees' },
   { id: 'roles', name: 'Roles' },
   { id: 'tickets', name: 'Tickets' }
