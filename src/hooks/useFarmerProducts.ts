@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -29,16 +28,9 @@ export const useFarmerProducts = (farmerId?: string) => {
   const fetchFarmerProducts = useCallback(async (id?: string) => {
     try {
       setLoading(true);
-      console.log('Fetching farmer products for farmer:', id);
+      console.log('Fetching farmer products for farmer:', id || 'all farmers');
       
-      // If no farmer ID is provided, don't fetch anything
-      if (!id) {
-        console.log('No farmer ID provided, skipping fetch');
-        setProducts([]);
-        setLoading(false);
-        return;
-      }
-
+      // Build the query - if no farmer ID provided, fetch all products
       let query = supabase
         .from('farmer_products')
         .select(`
@@ -47,8 +39,12 @@ export const useFarmerProducts = (farmerId?: string) => {
             phone
           )
         `)
-        .eq('farmer_id', id)  // Always filter by farmer_id when provided
         .order('created_at', { ascending: false });
+
+      // Only filter by farmer_id if one is provided
+      if (id) {
+        query = query.eq('farmer_id', id);
+      }
 
       const { data, error } = await query;
 
@@ -57,7 +53,7 @@ export const useFarmerProducts = (farmerId?: string) => {
         return;
       }
 
-      console.log('Farmer products fetched successfully for farmer:', id, data);
+      console.log('Farmer products fetched successfully:', data?.length || 0, 'products');
       
       // Transform the data to match our interface
       const transformedProducts: FarmerProduct[] = (data || []).map((dbProduct: any) => ({
@@ -147,14 +143,8 @@ export const useFarmerProducts = (farmerId?: string) => {
   };
 
   useEffect(() => {
-    if (farmerId) {
-      console.log('Farmer ID changed, fetching products for:', farmerId);
-      fetchFarmerProducts(farmerId);
-    } else {
-      console.log('No farmer ID provided, clearing products');
-      setProducts([]);
-      setLoading(false);
-    }
+    console.log('Farmer ID changed, fetching products for:', farmerId || 'all farmers');
+    fetchFarmerProducts(farmerId);
   }, [fetchFarmerProducts, farmerId]);
 
   return {

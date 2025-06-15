@@ -15,7 +15,7 @@ const Settlements = () => {
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   
-  // Fetch all products (no farmerId provided)
+  // Fetch all products (no farmerId provided to get all farmer products)
   const { products: allProducts, loading: productsLoading, fetchFarmerProducts } = useFarmerProducts();
   const { farmers, loading: farmersLoading } = useFarmers();
 
