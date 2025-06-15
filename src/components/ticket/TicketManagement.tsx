@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Ticket } from '@/utils/types';
 import { 
   Table, 
   TableBody, 
@@ -24,17 +23,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { File, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Ticket } from '@/hooks/useTickets';
 
 interface TicketManagementProps {
   tickets: Ticket[];
-  onUpdateTicket: (updatedTicket: Ticket) => void;
+  onUpdateTicket: (ticketId: string, updatedData: any) => void;
+  loading?: boolean;
 }
 
-const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTicket }) => {
+const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTicket, loading }) => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [resolution, setResolution] = useState('');
-  const [newStatus, setNewStatus] = useState<Ticket['status']>('pending');
+  const [newStatus, setNewStatus] = useState<string>('pending');
 
   const filteredTickets = statusFilter === 'all' 
     ? tickets 
@@ -48,19 +49,17 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
 
   const handleUpdateTicket = () => {
     if (selectedTicket) {
-      const updatedTicket: Ticket = {
-        ...selectedTicket,
+      const updatedData = {
         status: newStatus,
-        resolution: resolution.trim() || undefined,
-        lastUpdated: new Date()
+        resolution: resolution.trim() || null,
       };
       
-      onUpdateTicket(updatedTicket);
+      onUpdateTicket(selectedTicket.id, updatedData);
       setSelectedTicket(null);
     }
   };
 
-  const getStatusBadge = (status: Ticket['status']) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-100">Pending</Badge>;
@@ -72,6 +71,14 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Loading tickets...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 pb-4">
@@ -111,10 +118,10 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
             <TableBody>
               {filteredTickets.map((ticket) => (
                 <TableRow key={ticket.id}>
-                  <TableCell className="font-medium">#{ticket.id}</TableCell>
-                  <TableCell>{format(new Date(ticket.dateCreated), 'dd MMM yyyy')}</TableCell>
-                  <TableCell>{ticket.userName}</TableCell>
-                  <TableCell className="capitalize">{ticket.userType}</TableCell>
+                  <TableCell className="font-medium">#{ticket.id.slice(0, 8)}</TableCell>
+                  <TableCell>{format(new Date(ticket.created_at), 'dd MMM yyyy')}</TableCell>
+                  <TableCell>{ticket.user_name}</TableCell>
+                  <TableCell className="capitalize">{ticket.user_type}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{ticket.message}</TableCell>
                   <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                   <TableCell className="text-right">
@@ -141,27 +148,27 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
           <DialogContent className="sm:max-w-lg max-h-[90vh]">
             <ScrollArea className="max-h-[80vh] pr-4">
               <DialogHeader>
-                <DialogTitle>Ticket #{selectedTicket.id}</DialogTitle>
+                <DialogTitle>Ticket #{selectedTicket.id.slice(0, 8)}</DialogTitle>
               </DialogHeader>
               
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">User</Label>
-                    <p className="font-medium">{selectedTicket.userName}</p>
+                    <p className="font-medium">{selectedTicket.user_name}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Contact</Label>
-                    <p className="font-medium">{selectedTicket.userContact}</p>
+                    <p className="font-medium">{selectedTicket.user_contact}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Type</Label>
-                    <p className="font-medium capitalize">{selectedTicket.userType}</p>
+                    <p className="font-medium capitalize">{selectedTicket.user_type}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Date Created</Label>
                     <p className="font-medium">
-                      {format(new Date(selectedTicket.dateCreated), 'dd MMM yyyy, HH:mm')}
+                      {format(new Date(selectedTicket.created_at), 'dd MMM yyyy, HH:mm')}
                     </p>
                   </div>
                 </div>
@@ -173,13 +180,13 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
                   </div>
                 </div>
                 
-                {selectedTicket.attachmentUrl && (
+                {selectedTicket.attachment_url && (
                   <div>
                     <Label className="text-muted-foreground">Attachment</Label>
                     <div className="mt-1 p-3 bg-muted rounded-md flex items-center">
                       <File className="h-4 w-4 mr-2" />
                       <a 
-                        href={selectedTicket.attachmentUrl} 
+                        href={selectedTicket.attachment_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
@@ -192,7 +199,7 @@ const TicketManagement: React.FC<TicketManagementProps> = ({ tickets, onUpdateTi
                 
                 <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select value={newStatus} onValueChange={(value) => setNewStatus(value as Ticket['status'])}>
+                  <Select value={newStatus} onValueChange={setNewStatus}>
                     <SelectTrigger id="status">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
