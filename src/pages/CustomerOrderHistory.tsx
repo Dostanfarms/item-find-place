@@ -11,29 +11,12 @@ import {
   MapPin,
   Phone
 } from 'lucide-react';
-
-interface CustomerOrder {
-  id: string;
-  customerName: string;
-  customerMobile: string;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }>;
-  subtotal: number;
-  discount: number;
-  total: number;
-  couponUsed: string | null;
-  paymentMethod: string;
-  timestamp: string;
-  status: string;
-}
+import { fetchCustomerOrders, fetchOrderItems } from '@/api/orders';
 
 const CustomerOrderHistory = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [itemMap, setItemMap] = useState<{ [orderId: string]: any[] }>({});
   
   // Get current customer
   const currentCustomer = localStorage.getItem('currentCustomer');
@@ -45,22 +28,17 @@ const CustomerOrderHistory = () => {
       return;
     }
 
-    // Load orders from transactions in localStorage
-    const savedTransactions = localStorage.getItem('transactions');
-    if (savedTransactions) {
-      try {
-        const allTransactions = JSON.parse(savedTransactions);
-        // Filter orders for current customer
-        const customerOrders = allTransactions.filter((transaction: CustomerOrder) => 
-          transaction.customerMobile === customer.mobile || 
-          transaction.customerName === customer.name
-        );
-        setOrders(customerOrders.reverse()); // Most recent first
-      } catch (error) {
-        console.error('Error loading orders:', error);
-        setOrders([]);
+    fetchCustomerOrders(customer.id).then(async ({ orders }) => {
+      setOrders(orders);
+
+      // Fetch items for each order
+      const map: { [orderId: string]: any[] } = {};
+      for (const order of orders) {
+        const { items } = await fetchOrderItems(order.id);
+        map[order.id] = items;
       }
-    }
+      setItemMap(map);
+    });
   }, [customer, navigate]);
 
   const getStatusColor = (status: string) => {
@@ -135,15 +113,15 @@ const CustomerOrderHistory = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          {formatDate(order.timestamp)}
+                          {formatDate(order.created_at)}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge className={getStatusColor(order.status || 'completed')}>
-                        {order.status || 'completed'}
+                      <Badge className={getStatusColor(order.status || 'pending')}>
+                        {order.status || 'pending'}
                       </Badge>
-                      <p className="text-lg font-bold mt-1">₹{order.total.toFixed(2)}</p>
+                      <p className="text-lg font-bold mt-1">₹{Number(order.total).toFixed(2)}</p>
                     </div>
                   </div>
                 </CardHeader>
@@ -153,12 +131,12 @@ const CustomerOrderHistory = () => {
                     <div>
                       <h4 className="font-medium mb-2">Items:</h4>
                       <div className="space-y-1">
-                        {order.items?.map((item, index) => (
+                        {(itemMap[order.id] || []).map((item, index) => (
                           <div key={index} className="flex justify-between text-sm">
                             <span>{item.name} x{item.quantity}</span>
-                            <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                            <span>₹{(item.price_per_unit * item.quantity).toFixed(2)}</span>
                           </div>
-                        )) || <span className="text-muted-foreground">No items</span>}
+                        ))}
                       </div>
                     </div>
                     
@@ -166,7 +144,7 @@ const CustomerOrderHistory = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Payment Method:</span>
                       <Badge variant="outline">
-                        {order.paymentMethod === 'upi' || order.paymentMethod === 'card' ? 'Online' : 'Cash'}
+                        {order.payment_method === 'upi' || order.payment_method === 'card' ? 'Online' : 'Cash'}
                       </Badge>
                     </div>
                     
@@ -174,7 +152,7 @@ const CustomerOrderHistory = () => {
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {(order.status || 'completed') === 'delivered' 
+                        {(order.status || 'pending') === 'delivered' 
                           ? 'Order has been delivered' 
                           : 'Order is being processed'
                         }
@@ -192,3 +170,4 @@ const CustomerOrderHistory = () => {
 };
 
 export default CustomerOrderHistory;
+

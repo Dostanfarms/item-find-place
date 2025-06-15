@@ -326,6 +326,110 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          farmer_id: string | null
+          id: string
+          name: string
+          order_id: string | null
+          price_per_unit: number
+          product_id: string | null
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          farmer_id?: string | null
+          id?: string
+          name: string
+          order_id?: string | null
+          price_per_unit: number
+          product_id?: string | null
+          quantity: number
+          unit: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          farmer_id?: string | null
+          id?: string
+          name?: string
+          order_id?: string | null
+          price_per_unit?: number
+          product_id?: string | null
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          coupon_code: string | null
+          created_at: string
+          customer_id: string | null
+          discount: number
+          id: string
+          payment_method: string
+          shipping_address: Json
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          payment_method: string
+          shipping_address: Json
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          payment_method?: string
+          shipping_address?: Json
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null

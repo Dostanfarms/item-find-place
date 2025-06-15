@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { ArrowLeft, CreditCard, ShoppingCart, Tag, MapPin } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { fetchLocationFromPincode, debounce } from '@/utils/pincodeUtils';
 import PaymentMethods from '@/components/PaymentMethods';
+import { placeOrder } from "@/api/orders";
 
 interface CartItem {
   id: string;
@@ -231,42 +231,37 @@ const CustomerPayment = () => {
       const selectedCouponData = selectedCoupon && selectedCoupon !== 'none' ? 
         activeCoupons.find(c => c.id === selectedCoupon) : null;
 
-      // Create order data
-      const orderData = {
-        id: Date.now().toString(),
+      const orderPayload = {
         customerId: customer.id,
-        customerName: customer.name,
-        customerMobile: customer.mobile,
-        items: items,
+        shippingAddress,
+        paymentMethod,
+        couponCode: selectedCouponData?.code || null,
         subtotal: totalPrice,
         discount: calculateDiscount(),
         total: finalTotal,
-        couponUsed: selectedCouponData?.code || null,
-        paymentMethod,
-        shippingAddress,
-        status: 'pending',
-        timestamp: new Date().toISOString()
+        items,
       };
 
-      console.log('Creating order:', orderData);
+      const result = await placeOrder(orderPayload);
 
-      // Save order to localStorage (in a real app, this would go to a backend)
-      const existingOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-      existingOrders.push(orderData);
-      localStorage.setItem('customerOrders', JSON.stringify(existingOrders));
+      if (result.success) {
+        clearCart();
 
-      // Clear cart
-      clearCart();
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Your order has been placed.`
+        });
 
-      toast({
-        title: "Order Placed Successfully!",
-        description: `Your order #${orderData.id} has been placed.`
-      });
-
-      // Navigate to order confirmation or order history
-      navigate('/customer-orders', {
-        state: { newOrder: orderData }
-      });
+        navigate('/customer-orders', {
+          state: { newOrderId: result.id }
+        });
+      } else {
+        toast({
+          title: "Order Error",
+          description: result.error || "Failed to place order.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error placing order:', error);
       toast({
