@@ -2,16 +2,28 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Package, User, LogOut, Ticket } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Package, User, LogOut, Ticket, Search, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useActiveBanners } from '@/hooks/useBanners';
+import { useProducts } from '@/hooks/useProducts';
+import ProductGrid from '@/components/ProductGrid';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<any>(null);
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
   const { data: banners, isLoading: bannersLoading } = useActiveBanners();
+  const { products, loading: productsLoading } = useProducts();
+
+  // Filter products based on search term and availability
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.category.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch && product.quantity > 0;
+  });
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
@@ -92,8 +104,33 @@ const CustomerHome = () => {
         </div>
       </div>
 
-      {/* Banner Slider */}
+      {/* Shopping Section */}
       <div className="max-w-7xl mx-auto p-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <Button 
+              onClick={() => navigate('/customer-products')}
+              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              Shop All Products
+            </Button>
+          </div>
+          
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Banner Slider */}
+      <div className="max-w-7xl mx-auto px-4">
         {bannersLoading ? (
           <div className="relative overflow-hidden rounded-lg h-55 bg-gray-200 animate-pulse">
             <div className="w-full h-full flex items-center justify-center">
@@ -152,9 +189,24 @@ const CustomerHome = () => {
         )}
       </div>
 
-      {/* Main content area */}
+      {/* Products Section */}
       <div className="max-w-7xl mx-auto p-4">
-        {/* Content can be added here later */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {searchTerm ? `Search Results for "${searchTerm}"` : 'Featured Products'}
+          </h2>
+          <p className="text-gray-600">
+            {searchTerm ? `${filteredProducts.length} products found` : 'Fresh products available for you'}
+          </p>
+        </div>
+
+        {productsLoading ? (
+          <div className="text-center py-12">
+            <div className="text-muted-foreground text-lg">Loading products...</div>
+          </div>
+        ) : (
+          <ProductGrid products={filteredProducts} />
+        )}
       </div>
     </div>
   );
