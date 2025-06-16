@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
-import { Search, Receipt, Calendar as CalendarIcon, IndianRupee, User, Eye } from 'lucide-react';
+import { Search, Receipt, Calendar as CalendarIcon, Eye, FileDown } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
@@ -23,6 +24,7 @@ const Transactions = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter by search, status, and selected date
   const filteredTransactions = transactions.filter(transaction => {
@@ -65,6 +67,105 @@ const Transactions = () => {
     }
     setSelectedTransaction(transaction);
     setIsDetailsDialogOpen(true);
+  };
+
+  const formatItemNames = (items: any[]) => {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    return items.map(item => item.name).join(', ');
+  };
+
+  const formatItemDetails = (items: any[]) => {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    return items.map(item => `${item.name} (${item.quantity}x₹${item.price})`).join('; ');
+  };
+
+  const exportToCSV = () => {
+    if (!hasPermission('transactions', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to export transactions",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      // Prepare CSV headers
+      const headers = [
+        'Transaction ID',
+        'Customer Name',
+        'Customer Mobile',
+        'Date',
+        'Payment Method',
+        'Status',
+        'Item Names',
+        'Item Details',
+        'Subtotal',
+        'Discount Amount',
+        'Coupon Used',
+        'Final Total'
+      ];
+
+      // Prepare CSV data
+      const csvData = filteredTransactions.map(transaction => {
+        const itemNames = formatItemNames(transaction.items);
+        const itemDetails = formatItemDetails(transaction.items);
+        const discountAmount = Number(transaction.discount) || 0;
+        const couponUsed = transaction.coupon_used || '';
+        
+        return [
+          transaction.id,
+          transaction.customer_name,
+          transaction.customer_mobile,
+          format(new Date(transaction.created_at), 'yyyy-MM-dd HH:mm:ss'),
+          transaction.payment_method,
+          transaction.status,
+          `"${itemNames}"`, // Wrap in quotes to handle commas
+          `"${itemDetails}"`, // Wrap in quotes to handle semicolons
+          Number(transaction.subtotal).toFixed(2),
+          discountAmount.toFixed(2),
+          couponUsed,
+          Number(transaction.total).toFixed(2)
+        ];
+      });
+
+      // Create CSV content
+      const csvContent = [headers, ...csvData]
+        .map(row => row.join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      // Generate filename with timestamp
+      const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
+      const filename = `transactions_export_${timestamp}.csv`;
+      link.setAttribute('download', filename);
+      
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredTransactions.length} transactions to ${filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export transactions. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Check if user has permission to view transactions
@@ -149,6 +250,16 @@ const Transactions = () => {
             <option value="cancelled">Cancelled</option>
             <option value="refunded">Refunded</option>
           </select>
+          <ProtectedAction resource="transactions" action="view">
+            <Button 
+              onClick={exportToCSV}
+              disabled={isExporting || filteredTransactions.length === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {isExporting ? 'Exporting...' : `Export (${filteredTransactions.length})`}
+            </Button>
+          </ProtectedAction>
         </div>
       </div>
 
