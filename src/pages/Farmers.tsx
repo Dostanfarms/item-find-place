@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import FarmerForm from '@/components/FarmerForm';
 import { useFarmers, Farmer } from '@/hooks/useFarmers';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
-import { Search, Plus, User, Edit, Eye } from 'lucide-react';
+import { Search, Plus, User, Edit, Eye, FileDown } from 'lucide-react';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 const Farmers = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Farmers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | undefined>(undefined);
+  const [isExporting, setIsExporting] = useState(false);
   
   const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
   const { farmerProducts: allProducts } = useFarmerProducts();
@@ -36,6 +38,96 @@ const Farmers = () => {
     return allProducts.filter(product => product.farmer_id === farmerId).length;
   };
   
+  const exportToCSV = () => {
+    if (!hasPermission('farmers', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to export farmers",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      // Prepare CSV headers
+      const headers = [
+        'Farmer ID',
+        'Name',
+        'Phone',
+        'Email',
+        'Address',
+        'State',
+        'District',
+        'Village',
+        'Bank Name',
+        'Account Number',
+        'IFSC Code',
+        'Products Count',
+        'Date Joined',
+        'Status'
+      ];
+
+      // Prepare CSV data
+      const csvData = filteredFarmers.map(farmer => {
+        const productCount = getProductCount(farmer.id);
+        
+        return [
+          farmer.id,
+          farmer.name,
+          farmer.phone,
+          farmer.email,
+          farmer.address || 'Not provided',
+          farmer.state || 'Not provided',
+          farmer.district || 'Not provided',
+          farmer.village || 'Not provided',
+          farmer.bank_name || 'Not provided',
+          farmer.account_number || 'Not provided',
+          farmer.ifsc_code || 'Not provided',
+          productCount.toString(),
+          format(new Date(farmer.date_joined), 'yyyy-MM-dd HH:mm:ss'),
+          'Active' // Could be enhanced with actual status field
+        ];
+      });
+
+      // Create CSV content
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      // Generate filename with timestamp
+      const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
+      const filename = `farmers_export_${timestamp}.csv`;
+      link.setAttribute('download', filename);
+      
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredFarmers.length} farmers to ${filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export farmers. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleAddFarmer = async (farmerData: Farmer) => {
     let result;
     
@@ -143,6 +235,16 @@ const Farmers = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <ProtectedAction resource="farmers" action="view">
+                <Button 
+                  onClick={exportToCSV}
+                  disabled={isExporting || filteredFarmers.length === 0}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {isExporting ? 'Exporting...' : `Export (${filteredFarmers.length})`}
+                </Button>
+              </ProtectedAction>
               <Dialog open={isDialogOpen} onOpenChange={(open) => {
                 if (!open) {
                   setIsDialogOpen(false);

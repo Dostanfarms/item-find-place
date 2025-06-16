@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Search, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Eye, Edit, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +11,7 @@ import { useCustomers, Customer } from '@/hooks/useCustomers';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 const Customers = () => {
   const {
@@ -25,6 +25,7 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingOrders, setViewingOrders] = useState<Customer | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter customers based on search term - now includes mobile number
   const filteredCustomers = customers.filter(customer => 
@@ -32,6 +33,84 @@ const Customers = () => {
     customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
     customer.mobile.includes(searchTerm)
   );
+
+  const exportToCSV = () => {
+    if (!hasPermission('customers', 'view')) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to export customers",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      // Prepare CSV headers
+      const headers = [
+        'Customer ID',
+        'Name',
+        'Email',
+        'Mobile',
+        'Address',
+        'Pincode',
+        'Date Registered',
+        'Total Orders Count',
+        'Last Order Date'
+      ];
+
+      // Prepare CSV data
+      const csvData = filteredCustomers.map(customer => {
+        return [
+          customer.id,
+          customer.name,
+          customer.email || 'Not provided',
+          customer.mobile,
+          customer.address || 'Not provided',
+          customer.pincode || 'Not provided',
+          format(new Date(customer.date_joined || customer.created_at), 'yyyy-MM-dd HH:mm:ss'),
+          '0', // Placeholder for order count - could be enhanced later
+          'N/A' // Placeholder for last order date - could be enhanced later
+        ];
+      });
+
+      // Create CSV content
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      // Generate filename with timestamp
+      const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
+      const filename = `customers_export_${timestamp}.csv`;
+      link.setAttribute('download', filename);
+      
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredCustomers.length} customers to ${filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export customers. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleDeleteCustomer = async (customerId: string) => {
     if (!hasPermission('customers', 'delete')) {
@@ -127,6 +206,16 @@ const Customers = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by name, email, or mobile..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-full sm:w-80" />
               </div>
+              <ProtectedAction resource="customers" action="view">
+                <Button 
+                  onClick={exportToCSV}
+                  disabled={isExporting || filteredCustomers.length === 0}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {isExporting ? 'Exporting...' : `Export (${filteredCustomers.length})`}
+                </Button>
+              </ProtectedAction>
             </div>
           </div>
         </div>
