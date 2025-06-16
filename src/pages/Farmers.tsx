@@ -13,31 +13,35 @@ import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-
 const Farmers = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  const { toast } = useToast();
+  const {
+    hasPermission
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | undefined>(undefined);
   const [isExporting, setIsExporting] = useState(false);
-  
-  const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
-  const { farmerProducts: allProducts } = useFarmerProducts();
-  
+  const {
+    farmers,
+    loading,
+    addFarmer,
+    updateFarmer
+  } = useFarmers();
+  const {
+    farmerProducts: allProducts
+  } = useFarmerProducts();
+
   // Filter farmers based on search - now includes mobile number
-  const filteredFarmers = farmers.filter(farmer => 
-    farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    farmer.phone.includes(searchTerm) ||
-    farmer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+  const filteredFarmers = farmers.filter(farmer => farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) || farmer.phone.includes(searchTerm) || farmer.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
   // Get product count for each farmer
   const getProductCount = (farmerId: string) => {
     return allProducts.filter(product => product.farmer_id === farmerId).length;
   };
-  
   const exportToCSV = () => {
     if (!hasPermission('farmers', 'view')) {
       toast({
@@ -47,74 +51,40 @@ const Farmers = () => {
       });
       return;
     }
-
     setIsExporting(true);
-    
     try {
       // Prepare CSV headers
-      const headers = [
-        'Farmer ID',
-        'Name',
-        'Phone',
-        'Email',
-        'Address',
-        'State',
-        'District',
-        'Village',
-        'Bank Name',
-        'Account Number',
-        'IFSC Code',
-        'Products Count',
-        'Date Joined',
-        'Status'
-      ];
+      const headers = ['Farmer ID', 'Name', 'Phone', 'Email', 'Address', 'State', 'District', 'Village', 'Bank Name', 'Account Number', 'IFSC Code', 'Products Count', 'Date Joined', 'Status'];
 
       // Prepare CSV data
       const csvData = filteredFarmers.map(farmer => {
         const productCount = getProductCount(farmer.id);
-        
-        return [
-          farmer.id,
-          farmer.name,
-          farmer.phone,
-          farmer.email,
-          farmer.address || 'Not provided',
-          farmer.state || 'Not provided',
-          farmer.district || 'Not provided',
-          farmer.village || 'Not provided',
-          farmer.bank_name || 'Not provided',
-          farmer.account_number || 'Not provided',
-          farmer.ifsc_code || 'Not provided',
-          productCount.toString(),
-          format(new Date(farmer.date_joined), 'yyyy-MM-dd HH:mm:ss'),
-          'Active' // Could be enhanced with actual status field
+        return [farmer.id, farmer.name, farmer.phone, farmer.email, farmer.address || 'Not provided', farmer.state || 'Not provided', farmer.district || 'Not provided', farmer.village || 'Not provided', farmer.bank_name || 'Not provided', farmer.account_number || 'Not provided', farmer.ifsc_code || 'Not provided', productCount.toString(), format(new Date(farmer.date_joined), 'yyyy-MM-dd HH:mm:ss'), 'Active' // Could be enhanced with actual status field
         ];
       });
 
       // Create CSV content
-      const csvContent = [headers, ...csvData]
-        .map(row => row.map(field => `"${field}"`).join(','))
-        .join('\n');
+      const csvContent = [headers, ...csvData].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
 
       // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], {
+        type: 'text/csv;charset=utf-8;'
+      });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      
+
       // Generate filename with timestamp
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
       const filename = `farmers_export_${timestamp}.csv`;
       link.setAttribute('download', filename);
-      
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
       toast({
         title: "Export Successful",
-        description: `Exported ${filteredFarmers.length} farmers to ${filename}`,
+        description: `Exported ${filteredFarmers.length} farmers to ${filename}`
       });
     } catch (error) {
       console.error('Export error:', error);
@@ -127,10 +97,8 @@ const Farmers = () => {
       setIsExporting(false);
     }
   };
-
   const handleAddFarmer = async (farmerData: Farmer) => {
     let result;
-    
     if (selectedFarmer) {
       // Update existing farmer
       if (!hasPermission('farmers', 'edit')) {
@@ -154,13 +122,11 @@ const Farmers = () => {
       }
       result = await addFarmer(farmerData);
     }
-    
     if (result.success) {
       setIsDialogOpen(false);
       setSelectedFarmer(undefined);
     }
   };
-
   const handleEditFarmer = (farmer: Farmer) => {
     if (!hasPermission('farmers', 'edit')) {
       toast({
@@ -173,7 +139,6 @@ const Farmers = () => {
     setSelectedFarmer(farmer);
     setIsDialogOpen(true);
   };
-
   const handleViewFarmer = (farmer: Farmer) => {
     if (!hasPermission('farmers', 'view')) {
       toast({
@@ -185,7 +150,6 @@ const Farmers = () => {
     }
     navigate(`/farmer/${farmer.id}`);
   };
-
   const handleCreateFarmer = () => {
     if (!hasPermission('farmers', 'create')) {
       toast({
@@ -200,26 +164,19 @@ const Farmers = () => {
 
   // Check if user has permission to view farmers
   if (!hasPermission('farmers', 'view')) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
+    return <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
           <p className="text-muted-foreground">You don't have permission to view farmers.</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
+    return <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground text-lg">Loading farmers...</div>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+  return <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Fixed Header */}
       <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
         <div className="p-4 md:p-6">
@@ -228,29 +185,20 @@ const Farmers = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, phone, or email..."
-                  className="pl-8 w-full sm:w-80"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <Input placeholder="Search by name, phone, or email..." className="pl-8 w-full sm:w-80" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               </div>
               <ProtectedAction resource="farmers" action="view">
-                <Button 
-                  onClick={exportToCSV}
-                  disabled={isExporting || filteredFarmers.length === 0}
-                  className="bg-green-600 hover:bg-green-700"
-                >
+                <Button onClick={exportToCSV} disabled={isExporting || filteredFarmers.length === 0} className="bg-cyan-600 hover:bg-cyan-500">
                   <FileDown className="h-4 w-4 mr-2" />
                   {isExporting ? 'Exporting...' : `Export (${filteredFarmers.length})`}
                 </Button>
               </ProtectedAction>
-              <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                if (!open) {
-                  setIsDialogOpen(false);
-                  setSelectedFarmer(undefined);
-                }
-              }}>
+              <Dialog open={isDialogOpen} onOpenChange={open => {
+              if (!open) {
+                setIsDialogOpen(false);
+                setSelectedFarmer(undefined);
+              }
+            }}>
                 <DialogTrigger asChild>
                   <ProtectedAction resource="farmers" action="create">
                     <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateFarmer}>
@@ -259,14 +207,10 @@ const Farmers = () => {
                   </ProtectedAction>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
-                  <FarmerForm 
-                    onSubmit={handleAddFarmer} 
-                    onCancel={() => {
-                      setIsDialogOpen(false);
-                      setSelectedFarmer(undefined);
-                    }}
-                    editFarmer={selectedFarmer}
-                  />
+                  <FarmerForm onSubmit={handleAddFarmer} onCancel={() => {
+                  setIsDialogOpen(false);
+                  setSelectedFarmer(undefined);
+                }} editFarmer={selectedFarmer} />
                 </DialogContent>
               </Dialog>
             </div>
@@ -276,27 +220,20 @@ const Farmers = () => {
 
       {/* Content */}
       <div className="flex-1 p-4 md:p-6">
-        {filteredFarmers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
+        {filteredFarmers.length === 0 ? <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
             <User className="h-16 w-16 text-muted-foreground mb-6" />
-            {searchTerm ? (
-              <>
+            {searchTerm ? <>
                 <h3 className="text-xl font-medium mb-2">No farmers found</h3>
                 <p className="text-muted-foreground text-center">
                   No farmers match your search criteria. Try with a different name, phone number, or email.
                 </p>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <h3 className="text-xl font-medium mb-2">No farmers added yet</h3>
                 <p className="text-muted-foreground text-center">
                   Get started by adding your first farmer using the "Add Farmer" button.
                 </p>
-              </>
-            )}
-          </div>
-        ) : (
-          <Card className="border shadow-sm">
+              </>}
+          </div> : <Card className="border shadow-sm">
             <CardHeader className="bg-gray-50 border-b">
               <CardTitle className="text-xl">Registered Farmers</CardTitle>
             </CardHeader>
@@ -315,8 +252,7 @@ const Farmers = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredFarmers.map((farmer) => (
-                      <TableRow key={farmer.id} className="hover:bg-gray-50 border-b">
+                    {filteredFarmers.map(farmer => <TableRow key={farmer.id} className="hover:bg-gray-50 border-b">
                         <TableCell className="font-medium">
                           <div className="max-w-[120px] truncate" title={farmer.name}>
                             {farmer.name}
@@ -344,40 +280,24 @@ const Farmers = () => {
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
                             <ProtectedAction resource="farmers" action="view">
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewFarmer(farmer)}
-                                title="View Details"
-                                className="h-7 w-7 p-0"
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleViewFarmer(farmer)} title="View Details" className="h-7 w-7 p-0">
                                 <Eye className="h-3 w-3" />
                               </Button>
                             </ProtectedAction>
                             <ProtectedAction resource="farmers" action="edit">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditFarmer(farmer)}
-                                title="Edit Farmer"
-                                className="h-7 w-7 p-0"
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleEditFarmer(farmer)} title="Edit Farmer" className="h-7 w-7 p-0">
                                 <Edit className="h-3 w-3" />
                               </Button>
                             </ProtectedAction>
                           </div>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
                 </Table>
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Farmers;
