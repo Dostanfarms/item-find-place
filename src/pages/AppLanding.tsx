@@ -1,20 +1,17 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, UserCog, ShoppingBag } from 'lucide-react';
-
 const AppLanding = () => {
-  return (
-    <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
+  return <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
       <div className="flex items-center gap-2 mb-6">
         <Package className="h-8 w-8 text-agri-primary" />
-        <span className="text-2xl font-bold">Dostan Farms</span>
+        <span className="text-2xl font-bold">Dostan Mart</span>
       </div>
       
-      <h1 className="text-2xl font-bold mb-8 text-center">Welcome To Dostan Farms</h1>
+      <h1 className="text-2xl font-bold mb-8 text-center">Welcome To Dostan Mart</h1>
       
       <div className="grid grid-cols-1 gap-6 w-full max-w-md">
         <Link to="/farmer-login" className="w-full">
@@ -60,8 +57,6 @@ const AppLanding = () => {
           </Link>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AppLanding;
