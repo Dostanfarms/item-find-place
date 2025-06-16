@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, EyeOff, ArrowLeft } from 'lucide-react';
@@ -53,7 +54,7 @@ const EmployeeLogin = () => {
             variant="ghost" 
             size="icon" 
             className="absolute left-4 top-4 transition-transform duration-200 hover:scale-110" 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/app')}
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="sr-only">Back</span>
