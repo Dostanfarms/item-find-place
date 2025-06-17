@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/hooks/useProducts';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Parse images from image_url - assume it's stored as JSON array string or single URL
@@ -57,6 +59,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewProduct = () => {
+    navigate(`/product-details/${product.id}`);
   };
 
   const nextImage = () => {
@@ -145,7 +151,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        <Button 
+          onClick={handleViewProduct}
+          variant="outline"
+          className="w-full"
+        >
+          <Eye className="w-4 h-4 mr-2" />
+          View Details
+        </Button>
         <Button 
           onClick={handleAddToCart}
           disabled={product.quantity === 0}

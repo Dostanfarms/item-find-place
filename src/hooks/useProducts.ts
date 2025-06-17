@@ -5,13 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Product {
   id: string;
   name: string;
+  description?: string;
   quantity: number;
   unit: string;
   price_per_unit: number;
   category: string;
   barcode?: string;
   image_url?: string;
-  is_active: boolean; // now required
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }

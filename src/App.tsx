@@ -47,6 +47,7 @@ import AccessDenied from "./pages/AccessDenied";
 import AppLanding from "./pages/AppLanding";
 import NotFound from "./pages/NotFound";
 import OrdersManagement from "./pages/OrdersManagement";
+import ProductDetails from "./pages/ProductDetails";
 
 const queryClient = new QueryClient();
 
@@ -173,6 +174,7 @@ const App = () => (
               {/* Public customer routes - no authentication required */}
               <Route path="/customer-home" element={<CustomerHome />} />
               <Route path="/customer-products" element={<CustomerProducts />} />
+              <Route path="/product-details/:productId" element={<ProductDetails />} />
               
               {/* Protected customer routes - authentication required */}
               <Route element={<CustomerProtectedRoute />}>
