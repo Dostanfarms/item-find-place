@@ -9,6 +9,7 @@ export interface CartItem {
   unit: string;
   category: string;
   farmerId: string;
+  imageUrl?: string;
 }
 
 interface CartContextType {

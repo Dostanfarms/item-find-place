@@ -102,7 +102,8 @@ const ProductDetails = () => {
         pricePerUnit: Number(product.price_per_unit),
         unit: product.unit,
         category: product.category,
-        farmerId: ''
+        farmerId: '',
+        imageUrl: images[0] // Add image URL to cart item
       });
       
       toast({
@@ -256,7 +257,7 @@ const ProductDetails = () => {
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {product.quantity > 0 ? `${product.quantity} ${product.unit} available` : 'Out of stock'}
+                    {product.quantity > 0 ? `${product.quantity} ${product.unit}` : 'Out of stock'}
                   </span>
                 </div>
 

@@ -44,7 +44,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         pricePerUnit: Number(product.price_per_unit),
         unit: product.unit,
         category: product.category,
-        farmerId: ''
+        farmerId: '',
+        imageUrl: images[0] // Add image URL to cart item
       });
       
       toast({
