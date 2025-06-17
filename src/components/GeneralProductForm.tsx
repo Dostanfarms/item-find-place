@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +12,8 @@ import { Barcode, AlertCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import MultipleImageUpload from './MultipleImageUpload';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface GeneralProductFormProps {
   onCancel: () => void;
@@ -41,6 +41,24 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Rich text editor configuration
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'align': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      ['link'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'align', 'list', 'bullet', 'color', 'background', 'link'
+  ];
 
   // Calculate total price
   const totalPrice = React.useMemo(() => {
@@ -185,7 +203,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   // Show alert if no categories are available
   if (!categoriesLoading && categories.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <Alert>
@@ -206,18 +224,23 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] bg-white">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold">
+    <div className="min-h-screen bg-muted/30">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
+        <div className="flex items-center justify-between p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {editProduct ? 'Edit Product' : 'Add New Product'}
-          </h2>
+          </h1>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <CardContent className="p-6">
-          <ScrollArea className="h-[calc(90vh-120px)] pr-4">
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-4 md:p-6">
+        <Card className="max-w-6xl mx-auto">
+          <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="product-name">Product Name*</Label>
@@ -233,14 +256,17 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
 
               <div className="space-y-2">
                 <Label htmlFor="product-description">Product Description</Label>
-                <Textarea
-                  id="product-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter product description (optional)"
-                  disabled={isSubmitting}
-                  rows={3}
-                />
+                <div className="border rounded-lg">
+                  <ReactQuill
+                    value={description}
+                    onChange={setDescription}
+                    modules={modules}
+                    formats={formats}
+                    placeholder="Enter product description..."
+                    style={{ minHeight: '200px' }}
+                    readOnly={isSubmitting}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -380,9 +406,9 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
                 </Button>
               </div>
             </form>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

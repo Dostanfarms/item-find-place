@@ -438,6 +438,7 @@ export type Database = {
           barcode: string | null
           category: string
           created_at: string
+          description: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -451,6 +452,7 @@ export type Database = {
           barcode?: string | null
           category: string
           created_at?: string
+          description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -464,6 +466,7 @@ export type Database = {
           barcode?: string | null
           category?: string
           created_at?: string
+          description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean

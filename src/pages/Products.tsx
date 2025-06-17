@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
@@ -17,7 +16,7 @@ const Products = () => {
   const { toast } = useToast();
   const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
   
   const { products, loading } = useProducts();
@@ -37,7 +36,7 @@ const Products = () => {
       return;
     }
     setSelectedProduct(product);
-    setIsDialogOpen(true);
+    setShowForm(true);
   };
 
   const handleCreateProduct = () => {
@@ -49,7 +48,13 @@ const Products = () => {
       });
       return;
     }
-    setIsDialogOpen(true);
+    setSelectedProduct(undefined);
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setSelectedProduct(undefined);
   };
 
   const printBarcode = (product: Product) => {
@@ -154,6 +159,16 @@ const Products = () => {
     );
   }
 
+  // Show form if requested
+  if (showForm) {
+    return (
+      <GeneralProductForm 
+        onCancel={handleCloseForm}
+        editProduct={selectedProduct}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -179,29 +194,11 @@ const Products = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                if (!open) {
-                  setIsDialogOpen(false);
-                  setSelectedProduct(undefined);
-                }
-              }}>
-                <DialogTrigger asChild>
-                  <ProtectedAction resource="products" action="create">
-                    <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
-                      <Plus className="mr-2 h-4 w-4" /> Add Product
-                    </Button>
-                  </ProtectedAction>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <GeneralProductForm 
-                    onCancel={() => {
-                      setIsDialogOpen(false);
-                      setSelectedProduct(undefined);
-                    }}
-                    editProduct={selectedProduct}
-                  />
-                </DialogContent>
-              </Dialog>
+              <ProtectedAction resource="products" action="create">
+                <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Product
+                </Button>
+              </ProtectedAction>
             </div>
           </div>
         </div>
