@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface CartItem {
   productId: string;
@@ -10,95 +10,117 @@ export interface CartItem {
   category: string;
   farmerId: string;
   imageUrl?: string;
+  size?: string; // Add size for Fashion products
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  removeFromCart: (productId: string, size?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
-  totalItems: number;
-  totalPrice: number;
-  isCartOpen: boolean;
-  setIsCartOpen: (open: boolean) => void;
+  getTotalPrice: () => number;
+  getTotalItems: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
-
-interface CartProviderProps {
-  children: ReactNode;
-}
-
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addToCart = (newItem: CartItem) => {
-    setItems(prevItems => {
-      const existingItem = prevItems.find(item => item.productId === newItem.productId);
-      
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.productId === newItem.productId
-            ? { ...item, quantity: item.quantity + newItem.quantity }
-            : item
-        );
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error parsing cart from localStorage:', error);
       }
-      
-      return [...prevItems, newItem];
+    }
+  }, []);
+
+  // Save cart to localStorage whenever items change
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(items));
+  }, [items]);
+
+  const addToCart = (newItem: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
+    const quantity = newItem.quantity || 1;
+    
+    setItems(prevItems => {
+      // For Fashion products, consider size when checking for existing items
+      const existingItemIndex = prevItems.findIndex(item => 
+        item.productId === newItem.productId && 
+        (newItem.category === 'Fashion' ? item.size === newItem.size : true)
+      );
+
+      if (existingItemIndex > -1) {
+        // Update quantity of existing item
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex].quantity += quantity;
+        return updatedItems;
+      } else {
+        // Add new item
+        return [...prevItems, { ...newItem, quantity }];
+      }
     });
-    // Removed setIsCartOpen(true) - don't auto-open cart when adding items
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems(prevItems => prevItems.filter(item => item.productId !== productId));
+  const removeFromCart = (productId: string, size?: string) => {
+    setItems(prevItems => 
+      prevItems.filter(item => 
+        !(item.productId === productId && (size ? item.size === size : true))
+      )
+    );
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, size?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, size);
       return;
     }
-    
+
     setItems(prevItems =>
       prevItems.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
+        item.productId === productId && (size ? item.size === size : true)
+          ? { ...item, quantity }
+          : item
       )
     );
   };
 
   const clearCart = () => {
     setItems([]);
-    setIsCartOpen(false);
   };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + (item.pricePerUnit * item.quantity), 0);
+  const getTotalPrice = () => {
+    return items.reduce((total, item) => total + (item.pricePerUnit * item.quantity), 0);
+  };
 
-  const value: CartContextType = {
-    items,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    totalItems,
-    totalPrice,
-    isCartOpen,
-    setIsCartOpen,
+  const getTotalItems = () => {
+    return items.reduce((total, item) => total + item.quantity, 0);
   };
 
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider value={{
+      items,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      getTotalPrice,
+      getTotalItems
+    }}>
       {children}
     </CartContext.Provider>
   );
+};
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
 };

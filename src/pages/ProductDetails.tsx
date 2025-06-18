@@ -13,19 +13,26 @@ import {
   Package 
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
+import { useProductSizes } from '@/hooks/useProductSizes';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import CustomerHeader from '@/components/CustomerHeader';
 import ProductGrid from '@/components/ProductGrid';
+import SizeSelector from '@/components/SizeSelector';
 import Cart from '@/components/Cart';
+import { ProductSize } from '@/components/ProductSizesManager';
 
 const ProductDetails = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { products, loading } = useProducts();
+  const { fetchProductSizes } = useProductSizes();
   const { addToCart, items } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [customer, setCustomer] = useState<any>(null);
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
+  const [sizesLoading, setSizesLoading] = useState(false);
 
   const product = products.find(p => p.id === productId);
   
@@ -43,6 +50,25 @@ const ProductDetails = () => {
       setCustomer(JSON.parse(currentCustomer));
     }
   }, []);
+
+  // Load sizes for Fashion products
+  useEffect(() => {
+    if (product && product.category === 'Fashion') {
+      setSizesLoading(true);
+      fetchProductSizes(product.id).then(sizes => {
+        setProductSizes(sizes);
+        setSizesLoading(false);
+        // Auto-select first available size
+        const availableSize = sizes.find(s => s.quantity > 0);
+        if (availableSize) {
+          setSelectedSize(availableSize.size);
+        }
+      });
+    } else {
+      setProductSizes([]);
+      setSelectedSize('');
+    }
+  }, [product, fetchProductSizes]);
 
   if (loading) {
     return (
@@ -93,8 +119,34 @@ const ProductDetails = () => {
   const images = getProductImages();
   const hasMultipleImages = images.length > 1;
 
+  // Check if product is available
+  const isProductAvailable = () => {
+    if (product.category === 'Fashion') {
+      return productSizes.some(size => size.quantity > 0);
+    }
+    return product.quantity > 0;
+  };
+
+  // Get available quantity for selected size (Fashion) or product quantity
+  const getAvailableQuantity = () => {
+    if (product.category === 'Fashion' && selectedSize) {
+      const sizeData = productSizes.find(s => s.size === selectedSize);
+      return sizeData?.quantity || 0;
+    }
+    return product.quantity;
+  };
+
   const handleAddToCart = () => {
     try {
+      if (product.category === 'Fashion' && !selectedSize) {
+        toast({
+          title: "Please select a size",
+          description: "Please select a size before adding to cart.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       addToCart({
         productId: product.id,
         name: product.name,
@@ -103,12 +155,13 @@ const ProductDetails = () => {
         unit: product.unit,
         category: product.category,
         farmerId: '',
-        imageUrl: images[0] // Add image URL to cart item
+        imageUrl: images[0],
+        size: product.category === 'Fashion' ? selectedSize : undefined
       });
       
       toast({
         title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
+        description: `${product.name}${selectedSize ? ` (Size: ${selectedSize})` : ''} has been added to your cart.`,
       });
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -137,6 +190,9 @@ const ProductDetails = () => {
   const prevImage = () => {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
+
+  const productAvailable = isProductAvailable();
+  const availableQuantity = getAvailableQuantity();
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -207,7 +263,8 @@ const ProductDetails = () => {
                     {product.category === 'Fruits' && '🍎'}
                     {product.category === 'Grains' && '🌾'}
                     {product.category === 'Dairy' && '🥛'}
-                    {!['Vegetables', 'Fruits', 'Grains', 'Dairy'].includes(product.category) && <Package className="h-20 w-20 text-green-600" />}
+                    {product.category === 'Fashion' && '👕'}
+                    {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(product.category) && <Package className="h-20 w-20 text-green-600" />}
                   </div>
                 )}
               </div>
@@ -253,13 +310,33 @@ const ProductDetails = () => {
 
                 <div className="mb-6">
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    product.quantity > 0 
+                    productAvailable 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {product.quantity > 0 ? `${product.quantity} ${product.unit}` : 'Out of stock'}
+                    {productAvailable ? (
+                      product.category === 'Fashion' && productSizes.length > 0 
+                        ? 'Available in multiple sizes' 
+                        : `${product.quantity} ${product.unit} available`
+                    ) : 'Out of stock'}
                   </span>
                 </div>
+
+                {/* Size Selection for Fashion Category */}
+                {product.category === 'Fashion' && (
+                  <div className="mb-6">
+                    {sizesLoading ? (
+                      <div className="text-sm text-muted-foreground">Loading sizes...</div>
+                    ) : (
+                      <SizeSelector
+                        sizes={productSizes}
+                        selectedSize={selectedSize}
+                        onSizeSelect={setSelectedSize}
+                        disabled={!productAvailable}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {product.description && (
                   <div className="mb-6">
@@ -276,7 +353,7 @@ const ProductDetails = () => {
               <div className="space-y-4">
                 <Button 
                   onClick={handleAddToCart}
-                  disabled={product.quantity === 0}
+                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
                   className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-lg"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
@@ -285,7 +362,7 @@ const ProductDetails = () => {
                 
                 <Button 
                   onClick={handleBuyNow}
-                  disabled={product.quantity === 0}
+                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
                   variant="outline"
                   className="w-full border-green-600 text-green-600 hover:bg-green-50 h-12 text-lg"
                 >

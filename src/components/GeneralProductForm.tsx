@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,10 +9,12 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts, Product } from '@/hooks/useProducts';
+import { useProductSizes } from '@/hooks/useProductSizes';
 import { Barcode, AlertCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import MultipleImageUpload from './MultipleImageUpload';
+import ProductSizesManager, { ProductSize } from './ProductSizesManager';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -23,6 +26,7 @@ interface GeneralProductFormProps {
 const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) => {
   const { addProduct, updateProduct } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
+  const { fetchProductSizes, saveProductSizes, loading: sizesLoading } = useProductSizes();
   const { toast } = useToast();
   const [name, setName] = useState(editProduct?.name || '');
   const [description, setDescription] = useState(editProduct?.description || '');
@@ -31,6 +35,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [category, setCategory] = useState(editProduct?.category || '');
   const [isActive, setIsActive] = useState(editProduct?.is_active ?? true);
+  const [sizes, setSizes] = useState<ProductSize[]>([]);
   const [images, setImages] = useState<string[]>(() => {
     if (!editProduct?.image_url) return [];
     try {
@@ -41,6 +46,20 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load sizes for existing Fashion products
+  useEffect(() => {
+    if (editProduct && category === 'Fashion') {
+      fetchProductSizes(editProduct.id).then(setSizes);
+    }
+  }, [editProduct, category, fetchProductSizes]);
+
+  // Clear sizes when category changes away from Fashion
+  useEffect(() => {
+    if (category !== 'Fashion') {
+      setSizes([]);
+    }
+  }, [category]);
 
   // Rich text editor configuration
   const modules = {
@@ -99,6 +118,16 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
       return;
     }
 
+    // For Fashion category, validate sizes
+    if (category === 'Fashion' && sizes.length === 0) {
+      toast({
+        title: "Missing sizes",
+        description: "Please add at least one size for Fashion category products",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Validate numeric fields
     const parsedQuantity = parseFloat(quantity);
     const parsedPrice = parseFloat(pricePerUnit);
@@ -141,52 +170,71 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
     console.log('Submitting general product data:', productData);
     
     try {
+      let productId: string;
+      
       if (editProduct) {
         // Update existing product
         console.log('Updating product with ID:', editProduct.id);
         const result = await updateProduct(editProduct.id, productData);
         console.log('Update result:', result);
         if (result.success) {
-          toast({
-            title: "Success",
-            description: "Product updated successfully",
-          });
-          onCancel(); // Close form
+          productId = editProduct.id;
         } else {
           toast({
             title: "Error",
             description: result.error || "Failed to update product",
             variant: "destructive"
           });
+          return;
         }
       } else {
         // Add new product
         console.log('Adding new product');
         const result = await addProduct(productData);
         console.log('Add result:', result);
-        if (result.success) {
-          toast({
-            title: "Success",
-            description: "Product added successfully",
-          });
-          // Reset form
-          setName('');
-          setDescription('');
-          setQuantity('1');
-          setPricePerUnit('');
-          setImages([]);
-          setIsActive(true);
-          const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
-          setCategory(defaultCategory?.name || '');
-          onCancel(); // Close form
+        if (result.success && result.data) {
+          productId = result.data.id;
         } else {
           toast({
             title: "Error",
             description: result.error || "Failed to add product",
             variant: "destructive"
           });
+          return;
         }
       }
+
+      // Save sizes for Fashion category
+      if (category === 'Fashion' && productId) {
+        const sizesResult = await saveProductSizes(productId, sizes);
+        if (!sizesResult.success) {
+          toast({
+            title: "Warning",
+            description: "Product saved but failed to save sizes: " + sizesResult.error,
+            variant: "destructive"
+          });
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: editProduct ? "Product updated successfully" : "Product added successfully",
+      });
+      
+      if (!editProduct) {
+        // Reset form for new products
+        setName('');
+        setDescription('');
+        setQuantity('1');
+        setPricePerUnit('');
+        setImages([]);
+        setSizes([]);
+        setIsActive(true);
+        const defaultCategory = categories.find(c => c.name === 'General') || categories[0];
+        setCategory(defaultCategory?.name || '');
+      }
+      
+      onCancel(); // Close form
       
     } catch (error) {
       console.error('Error saving general product:', error);
@@ -314,6 +362,15 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
                   </div>
                 </div>
               </div>
+
+              {/* Size Management for Fashion Category */}
+              {category === 'Fashion' && (
+                <ProductSizesManager
+                  sizes={sizes}
+                  onChange={setSizes}
+                  disabled={isSubmitting || sizesLoading}
+                />
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -400,7 +457,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
                 <Button 
                   type="submit" 
                   className="bg-agri-primary hover:bg-agri-secondary"
-                  disabled={isSubmitting || categoriesLoading || categories.length === 0}
+                  disabled={isSubmitting || categoriesLoading || categories.length === 0 || sizesLoading}
                 >
                   {isSubmitting ? 'Saving...' : editProduct ? 'Update' : 'Add'} Product
                 </Button>
