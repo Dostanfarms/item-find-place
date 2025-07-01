@@ -7,26 +7,45 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useCategories } from '@/hooks/useCategories';
 
-const CustomerHeader = () => {
+interface CustomerHeaderProps {
+  customer?: any;
+  onLogout?: () => void;
+}
+
+const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cart } = useCart();
+  const { items } = useCart();
   const { logout } = useAuth();
   const { toast } = useToast();
+  const { categories } = useCategories();
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account",
-    });
-    navigate('/customer/login');
+    if (onLogout) {
+      onLogout();
+    } else {
+      logout();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+      navigate('/customer/login');
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleCategoryClick = (categoryName: string) => {
+    navigate('/customer/products', {
+      state: { selectedCategory: categoryName }
+    });
+  };
+
+  const activeCategories = categories.filter(cat => cat.is_active);
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
@@ -39,7 +58,7 @@ const CustomerHeader = () => {
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-4">
             <Link 
               to="/customer" 
               className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -63,6 +82,30 @@ const CustomerHeader = () => {
               <Package className="h-4 w-4" />
               <span>Products</span>
             </Link>
+
+            {/* Category Dropdown */}
+            {activeCategories.length > 0 && (
+              <div className="relative group">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Categories
+                </Button>
+                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[150px] z-50">
+                  {activeCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategoryClick(category.name)}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </nav>
 
           {/* Right Side Actions */}

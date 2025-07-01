@@ -91,17 +91,11 @@ const CustomerOrderHistory = () => {
     setDialogOpen(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentCustomer');
-    setCustomer(null);
-    navigate('/customer-login');
-  };
-
   if (!customer) return null;
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <CustomerHeader customer={customer} onLogout={handleLogout} />
+      <CustomerHeader />
 
       {/* Content with top padding to account for fixed header */}
       <div className="pt-20 p-4">
@@ -111,7 +105,7 @@ const CustomerOrderHistory = () => {
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={() => navigate('/customer-home')}
+              onClick={() => navigate('/customer')}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -137,7 +131,7 @@ const CustomerOrderHistory = () => {
                 </p>
                 <Button 
                   className="mt-4" 
-                  onClick={() => navigate('/customer-products')}
+                  onClick={() => navigate('/customer/products')}
                 >
                   Browse Products
                 </Button>

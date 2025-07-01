@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,10 +239,6 @@ const CustomerPayment = () => {
     }
   };
 
-  const handleLogout = () => {
-    setCustomer(null);
-  };
-
   if (!customer) {
     return <div>Loading...</div>;
   }
@@ -251,7 +246,7 @@ const CustomerPayment = () => {
   if (items.length === 0) {
     return (
       <>
-        <CustomerHeader customer={customer} onLogout={handleLogout} />
+        <CustomerHeader />
         <div className="min-h-screen flex items-center justify-center p-4 pt-24">
           <Card className="w-full max-w-md">
             <CardHeader>
@@ -259,7 +254,7 @@ const CustomerPayment = () => {
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-muted-foreground mb-4">Your cart is empty.</p>
-              <Button onClick={() => navigate('/customer-home')}>
+              <Button onClick={() => navigate('/customer')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Continue Shopping
               </Button>
@@ -273,14 +268,14 @@ const CustomerPayment = () => {
 
   return (
     <>
-      <CustomerHeader customer={customer} onLogout={handleLogout} />
+      <CustomerHeader />
       <div className="min-h-screen bg-muted/30 pt-20 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => navigate('/customer-home')}
+              onClick={() => navigate('/customer')}
               disabled={isProcessing}
             >
               <ArrowLeft className="h-4 w-4" />
