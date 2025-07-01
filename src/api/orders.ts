@@ -38,7 +38,7 @@ export async function placeOrder(payload: OrderPayload) {
       status: "pending"
     }])
     .select("id")
-    .maybeSingle();
+    .single();
 
   if (error || !order) {
     console.error('Error creating order:', error);

@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useProductSizes } from '@/hooks/useProductSizes';
+import { Shirt, Plus, Minus } from 'lucide-react';
 
 export interface ProductSize {
   size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
@@ -13,89 +14,151 @@ export interface ProductSize {
 }
 
 interface ProductSizesManagerProps {
-  sizes: ProductSize[];
+  productId?: string;
+  initialSizes?: ProductSize[];
   onChange: (sizes: ProductSize[]) => void;
-  disabled?: boolean;
 }
 
-const ProductSizesManager = ({ sizes, onChange, disabled }: ProductSizesManagerProps) => {
-  const [localSizes, setLocalSizes] = useState<ProductSize[]>(sizes);
+const AVAILABLE_SIZES: Array<'S' | 'M' | 'L' | 'XL' | 'XXL'> = ['S', 'M', 'L', 'XL', 'XXL'];
 
+const ProductSizesManager: React.FC<ProductSizesManagerProps> = ({ 
+  productId, 
+  initialSizes = [], 
+  onChange 
+}) => {
+  const [sizes, setSizes] = useState<ProductSize[]>(initialSizes);
+  const { loading, fetchProductSizes, saveProductSizes } = useProductSizes();
+
+  // Initialize sizes with all available sizes set to 0
   useEffect(() => {
-    setLocalSizes(sizes);
-  }, [sizes]);
-
-  const availableSizes: ProductSize['size'][] = ['S', 'M', 'L', 'XL', 'XXL'];
-
-  const handleQuantityChange = (size: ProductSize['size'], quantity: number) => {
-    const updatedSizes = localSizes.filter(s => s.size !== size);
-    if (quantity > 0) {
-      updatedSizes.push({ size, quantity });
+    if (initialSizes.length === 0) {
+      const defaultSizes = AVAILABLE_SIZES.map(size => ({ size, quantity: 0 }));
+      setSizes(defaultSizes);
+      onChange(defaultSizes);
+    } else {
+      setSizes(initialSizes);
     }
-    updatedSizes.sort((a, b) => availableSizes.indexOf(a.size) - availableSizes.indexOf(b.size));
-    setLocalSizes(updatedSizes);
+  }, [initialSizes, onChange]);
+
+  // Load sizes from database if productId is provided
+  useEffect(() => {
+    if (productId) {
+      fetchProductSizes(productId).then(fetchedSizes => {
+        if (fetchedSizes.length > 0) {
+          setSizes(fetchedSizes);
+          onChange(fetchedSizes);
+        }
+      });
+    }
+  }, [productId]);
+
+  const updateQuantity = (targetSize: 'S' | 'M' | 'L' | 'XL' | 'XXL', quantity: number) => {
+    const updatedSizes = sizes.map(size => 
+      size.size === targetSize ? { ...size, quantity: Math.max(0, quantity) } : size
+    );
+    setSizes(updatedSizes);
     onChange(updatedSizes);
   };
 
-  const getSizeQuantity = (size: ProductSize['size']) => {
-    return localSizes.find(s => s.size === size)?.quantity || 0;
+  const incrementQuantity = (size: 'S' | 'M' | 'L' | 'XL' | 'XXL') => {
+    const currentSize = sizes.find(s => s.size === size);
+    updateQuantity(size, (currentSize?.quantity || 0) + 1);
   };
 
-  const removeSize = (size: ProductSize['size']) => {
-    const updatedSizes = localSizes.filter(s => s.size !== size);
-    setLocalSizes(updatedSizes);
-    onChange(updatedSizes);
+  const decrementQuantity = (size: 'S' | 'M' | 'L' | 'XL' | 'XXL') => {
+    const currentSize = sizes.find(s => s.size === size);
+    updateQuantity(size, Math.max(0, (currentSize?.quantity || 0) - 1));
   };
+
+  const handleSave = async () => {
+    if (!productId) return;
+    
+    const result = await saveProductSizes(productId, sizes);
+    if (result.success) {
+      console.log('Sizes saved successfully');
+    } else {
+      console.error('Failed to save sizes:', result.error);
+    }
+  };
+
+  const totalQuantity = sizes.reduce((total, size) => total + size.quantity, 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Size Management</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Shirt className="h-5 w-5" />
+          Size Management
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableSizes.map((size) => (
-            <div key={size} className="space-y-2">
-              <Label htmlFor={`size-${size}`}>Size {size}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={`size-${size}`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={getSizeQuantity(size)}
-                  onChange={(e) => handleQuantityChange(size, parseInt(e.target.value) || 0)}
-                  placeholder="Quantity"
-                  disabled={disabled}
-                  className="flex-1"
-                />
-                {getSizeQuantity(size) > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Total Stock: {totalQuantity} pieces
+          </span>
+          {productId && (
+            <Button 
+              onClick={handleSave} 
+              disabled={loading}
+              size="sm"
+            >
+              {loading ? 'Saving...' : 'Save Sizes'}
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {AVAILABLE_SIZES.map((size) => {
+            const sizeData = sizes.find(s => s.size === size);
+            const quantity = sizeData?.quantity || 0;
+            
+            return (
+              <div key={size} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Size {size}</Label>
+                  <Badge variant={quantity > 0 ? "default" : "secondary"}>
+                    {quantity}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    onClick={() => removeSize(size)}
-                    disabled={disabled}
-                    className="p-2"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => decrementQuantity(size)}
+                    disabled={quantity <= 0}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Minus className="h-3 w-3" />
                   </Button>
-                )}
+                  
+                  <Input
+                    type="number"
+                    min="0"
+                    value={quantity}
+                    onChange={(e) => updateQuantity(size, parseInt(e.target.value) || 0)}
+                    className="text-center h-8"
+                  />
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => incrementQuantity(size)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {localSizes.length > 0 && (
-          <div className="mt-4">
-            <Label className="text-sm font-medium">Available Sizes:</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {localSizes.map(({ size, quantity }) => (
-                <Badge key={size} variant="secondary" className="text-sm">
-                  {size}: {quantity} pcs
-                </Badge>
-              ))}
-            </div>
+        {totalQuantity === 0 && (
+          <div className="text-center py-4 text-muted-foreground">
+            <p className="text-sm">No stock available for any size</p>
           </div>
         )}
       </CardContent>

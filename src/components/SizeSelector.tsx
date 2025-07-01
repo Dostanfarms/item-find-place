@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ProductSize } from '@/components/ProductSizesManager';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ProductSize } from '@/hooks/useProductSizes';
 
 interface SizeSelectorProps {
   sizes: ProductSize[];
@@ -12,47 +12,62 @@ interface SizeSelectorProps {
   disabled?: boolean;
 }
 
-const SizeSelector = ({ sizes, selectedSize, onSizeSelect, disabled }: SizeSelectorProps) => {
+const SizeSelector: React.FC<SizeSelectorProps> = ({
+  sizes,
+  selectedSize,
+  onSizeSelect,
+  disabled = false
+}) => {
+  // Filter out sizes with 0 quantity
   const availableSizes = sizes.filter(size => size.quantity > 0);
 
   if (availableSizes.length === 0) {
     return (
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Size</Label>
-        <p className="text-sm text-muted-foreground">No sizes available</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Size Selection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No sizes available</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <Label className="text-sm font-medium">Select Size</Label>
-      <div className="flex flex-wrap gap-2">
-        {availableSizes.map(({ size, quantity }) => (
-          <Button
-            key={size}
-            variant={selectedSize === size ? "default" : "outline"}
-            size="sm"
-            onClick={() => onSizeSelect(size)}
-            disabled={disabled || quantity === 0}
-            className="relative"
-          >
-            {size}
-            <Badge 
-              variant="secondary" 
-              className="ml-2 text-xs bg-muted text-muted-foreground"
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Select Size</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {availableSizes.map((size) => (
+            <Button
+              key={size.size}
+              variant={selectedSize === size.size ? "default" : "outline"}
+              size="sm"
+              onClick={() => onSizeSelect(size.size)}
+              disabled={disabled}
+              className="flex items-center gap-2"
             >
-              {quantity}
-            </Badge>
-          </Button>
-        ))}
-      </div>
-      {selectedSize && (
-        <p className="text-sm text-muted-foreground">
-          Selected: <span className="font-medium">{selectedSize}</span>
-        </p>
-      )}
-    </div>
+              <span>{size.size}</span>
+              <Badge variant="secondary" className="text-xs">
+                {size.quantity}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+        
+        {selectedSize && (
+          <div className="mt-3 p-2 bg-muted rounded-md">
+            <p className="text-sm text-muted-foreground">
+              Selected: Size {selectedSize} 
+              {' '}({availableSizes.find(s => s.size === selectedSize)?.quantity} available)
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

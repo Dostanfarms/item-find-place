@@ -1,7 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ProductSize } from '@/components/ProductSizesManager';
+
+export interface ProductSize {
+  size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  quantity: number;
+}
 
 export interface ProductSizeData {
   id: string;
@@ -29,7 +33,7 @@ export const useProductSizes = () => {
         return [];
       }
 
-      return data.map(item => ({
+      return (data || []).map(item => ({
         size: item.size as 'S' | 'M' | 'L' | 'XL' | 'XXL',
         quantity: item.quantity
       }));
