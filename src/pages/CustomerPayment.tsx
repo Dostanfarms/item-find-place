@@ -300,9 +300,10 @@ const CustomerPayment = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {items.map((item, index) => (
-                    <div key={`${item.productId}-${index}`} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    <div key={`${item.productId}-${item.size || 'no-size'}-${index}`} className="flex justify-between items-center p-3 bg-muted rounded-lg">
                       <div>
                         <h4 className="font-medium">{item.name}</h4>
+                        {item.size && <p className="text-xs text-blue-600">Size: {item.size}</p>}
                         <p className="text-sm text-muted-foreground">₹{item.pricePerUnit} × {item.quantity}</p>
                       </div>
                       <span className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</span>

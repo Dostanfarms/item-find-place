@@ -72,8 +72,8 @@ const Cart = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {items.map((item) => (
-                    <div key={item.productId} className="flex items-center gap-4 p-4 border rounded-lg">
+                  {items.map((item, index) => (
+                    <div key={`${item.productId}-${item.size || 'no-size'}-${index}`} className="flex items-center gap-4 p-4 border rounded-lg">
                       {/* Product Image */}
                       <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
                         {item.imageUrl ? (
@@ -88,7 +88,8 @@ const Cart = () => {
                             {item.category === 'Fruits' && '🍎'}
                             {item.category === 'Grains' && '🌾'}
                             {item.category === 'Dairy' && '🥛'}
-                            {!['Vegetables', 'Fruits', 'Grains', 'Dairy'].includes(item.category) && <Package className="h-6 w-6 text-green-600" />}
+                            {item.category === 'Fashion' && '👕'}
+                            {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-6 w-6 text-green-600" />}
                           </div>
                         )}
                       </div>
@@ -96,6 +97,9 @@ const Cart = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm truncate">{item.name}</h3>
                         <p className="text-xs text-gray-500">{item.category}</p>
+                        {item.size && (
+                          <p className="text-xs text-blue-600">Size: {item.size}</p>
+                        )}
                         <p className="text-sm font-semibold text-green-600">
                           ₹{item.pricePerUnit.toFixed(2)} / {item.unit}
                         </p>
@@ -110,7 +114,7 @@ const Cart = () => {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -123,7 +127,7 @@ const Cart = () => {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -133,7 +137,7 @@ const Cart = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-red-500 hover:text-red-700"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.productId, item.size)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>

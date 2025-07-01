@@ -30,7 +30,7 @@ export const useProductSizes = () => {
       }
 
       return data.map(item => ({
-        size: item.size,
+        size: item.size as 'S' | 'M' | 'L' | 'XL' | 'XXL',
         quantity: item.quantity
       }));
     } catch (error) {
