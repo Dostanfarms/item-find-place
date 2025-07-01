@@ -156,6 +156,51 @@ export type Database = {
         }
         Relationships: []
       }
+      dairy_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_per_unit: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_per_unit: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           account_holder_name: string | null
@@ -326,6 +371,170 @@ export type Database = {
           state?: string | null
           updated_at?: string
           village?: string | null
+        }
+        Relationships: []
+      }
+      fashion_product_sizes: {
+        Row: {
+          created_at: string
+          fashion_product_id: string
+          id: string
+          pieces: number
+          size: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fashion_product_id: string
+          id?: string
+          pieces?: number
+          size: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fashion_product_id?: string
+          id?: string
+          pieces?: number
+          size?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fashion_product_sizes_fashion_product_id_fkey"
+            columns: ["fashion_product_id"]
+            isOneToOne: false
+            referencedRelation: "fashion_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fashion_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_per_unit: number
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_per_unit: number
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_per_unit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fruit_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_per_unit: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_per_unit: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      grain_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_per_unit: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_per_unit: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -727,6 +936,51 @@ export type Database = {
           status?: string
           subtotal?: number
           total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vegetable_products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_per_unit: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_per_unit: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_per_unit?: number
+          quantity?: number
+          unit?: string
           updated_at?: string
         }
         Relationships: []
