@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -135,6 +136,11 @@ const CustomerProfile = () => {
       });
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentCustomer');
+    navigate('/customer-login');
+  };
   
   if (!initialCustomer) {
     return null; // Redirect handled in useEffect
@@ -142,7 +148,7 @@ const CustomerProfile = () => {
   
   return (
     <div className="min-h-screen bg-muted/30">
-      <CustomerHeader />
+      <CustomerHeader customer={customer} onLogout={handleLogout} />
 
       {/* Content with top padding to account for fixed header */}
       <div className="pt-20 p-4">
