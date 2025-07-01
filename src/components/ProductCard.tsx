@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, ShoppingCart } from 'lucide-react';
-import { Product } from '@/hooks/useProducts';
-import { useProductSizes } from '@/hooks/useProductSizes';
+import { ShoppingCart, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { useToast } from '@/hooks/use-toast';
+import { Product } from '@/hooks/useProducts';
+import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
@@ -15,159 +14,162 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const { addToCart } = useCart();
-  const { fetchProductSizes } = useProductSizes();
-  const [productSizes, setProductSizes] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  useEffect(() => {
-    if (product.category === 'Fashion') {
-      fetchProductSizes(product.id).then(sizes => {
-        setProductSizes(sizes);
-      });
-    }
-  }, [product.id, product.category, fetchProductSizes]);
-
-  const isFashionProduct = product.category === 'Fashion';
-  const totalQuantity = isFashionProduct 
-    ? productSizes.reduce((sum, size) => sum + size.quantity, 0)
-    : product.quantity;
-  
-  const isOutOfStock = totalQuantity === 0;
-
-  const handleQuickAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  // Parse images from image_url - assume it's stored as JSON array string or single URL
+  const getProductImages = (): string[] => {
+    if (!product.image_url) return [];
     
-    if (isFashionProduct) {
-      // For fashion products, redirect to details page for size selection
-      navigate(`/customer/products/${product.id}`);
-      return;
+    try {
+      // Try to parse as JSON array first
+      const parsed = JSON.parse(product.image_url);
+      return Array.isArray(parsed) ? parsed : [product.image_url];
+    } catch {
+      // If parsing fails, treat as single URL
+      return [product.image_url];
     }
-
-    if (isOutOfStock) {
-      toast({
-        title: "Out of Stock",
-        description: "This product is currently out of stock",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      pricePerUnit: product.price_per_unit,
-      quantity: 1,
-      unit: product.unit,
-      category: product.category,
-      farmerId: null
-    });
-
-    toast({
-      title: "Added to Cart",
-      description: `${product.name} has been added to your cart`,
-    });
   };
 
-  const handleViewDetails = () => {
-    navigate(`/customer/products/${product.id}`);
+  const images = getProductImages();
+  const hasMultipleImages = images.length > 1;
+
+  const handleAddToCart = () => {
+    try {
+      addToCart({
+        productId: product.id,
+        name: product.name,
+        quantity: 1,
+        pricePerUnit: Number(product.price_per_unit),
+        unit: product.unit,
+        category: product.category,
+        farmerId: '',
+        imageUrl: images[0] // Add image URL to cart item
+      });
+      
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewProduct = () => {
+    navigate(`/product-details/${product.id}`);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleViewDetails}>
-      <CardHeader className="pb-2">
-        <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-2">
-          {product.image_url ? (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      {/* Product Image or Fallback */}
+      <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center relative overflow-hidden">
+        {images.length > 0 ? (
+          <>
             <img 
-              src={product.image_url} 
-              alt={product.name}
-              className="w-full h-full object-cover rounded-lg"
+              src={images[currentImageIndex]} 
+              alt={`${product.name} - Image ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover"
             />
-          ) : (
-            <Package className="h-12 w-12 text-gray-400" />
-          )}
-        </div>
-        <CardTitle className="text-lg truncate" title={product.name}>
-          {product.name}
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
+            
+            {/* Navigation arrows for multiple images */}
+            {hasMultipleImages && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                {/* Image indicators */}
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
+                      onClick={() => setCurrentImageIndex(index)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-4xl">
+            {product.category === 'Vegetables' && '🥬'}
+            {product.category === 'Fruits' && '🍎'}
+            {product.category === 'Grains' && '🌾'}
+            {product.category === 'Dairy' && '🥛'}
+            {!['Vegetables', 'Fruits', 'Grains', 'Dairy'].includes(product.category) && <Package className="h-12 w-12 text-green-600" />}
+          </div>
+        )}
+      </div>
+      
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-semibold text-lg text-gray-900 leading-tight">
+            {product.name}
+          </h3>
+          <Badge variant="secondary" className="ml-2 flex-shrink-0">
             {product.category}
           </Badge>
-          {isOutOfStock && (
-            <Badge variant="destructive" className="text-xs">
-              Out of Stock
-            </Badge>
-          )}
         </div>
-      </CardHeader>
-      
-      <CardContent className="pt-2">
-        <div className="space-y-3">
-          {/* Price */}
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-green-600">
-              ₹{product.price_per_unit}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              per {product.unit}
-            </span>
-          </div>
-
-          {/* Stock Info */}
-          <div className="text-sm text-muted-foreground">
-            {isFashionProduct ? (
-              <div>
-                <span>Total Stock: {totalQuantity} pieces</span>
-                {productSizes.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {productSizes.map(size => (
-                      <Badge 
-                        key={size.size} 
-                        variant={size.quantity > 0 ? "secondary" : "outline"}
-                        className="text-xs"
-                      >
-                        {size.size}: {size.quantity}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <span>Stock: {product.quantity} {product.unit}</span>
-            )}
-          </div>
-
-          {/* Description */}
-          {product.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {product.description}
-            </p>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1"
-              onClick={handleViewDetails}
-            >
-              View Details
-            </Button>
-            <Button 
-              size="sm" 
-              className="flex-1"
-              onClick={handleQuickAdd}
-              disabled={!isFashionProduct && isOutOfStock}
-            >
-              <ShoppingCart className="mr-1 h-3 w-3" />
-              {isFashionProduct ? "Select Size" : isOutOfStock ? "Out of Stock" : "Add to Cart"}
-            </Button>
-          </div>
+        
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-2xl font-bold text-green-600">
+            ₹{Number(product.price_per_unit).toFixed(2)}
+          </p>
+          <p className="text-sm text-gray-500">
+            per {product.unit}
+          </p>
         </div>
       </CardContent>
+      
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        <Button 
+          onClick={handleViewProduct}
+          variant="outline"
+          className="w-full"
+        >
+          <Eye className="w-4 h-4 mr-2" />
+          View Details
+        </Button>
+        <Button 
+          onClick={handleAddToCart}
+          disabled={product.quantity === 0}
+          className="w-full bg-green-600 hover:bg-green-700 text-white"
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          Add to Cart
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
