@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,7 +111,7 @@ const Products = () => {
             <div class="barcode-container">
               <div class="product-info">
                 <span>${product.name}</span>
-                <span>${product.quantity} ${product.unit}</span>
+                <span>${product.category === 'Fashion' ? (product.total_size_quantity || 0) : product.quantity} ${product.unit}</span>
               </div>
               <svg id="barcode" class="barcode-image"></svg>
             </div>
@@ -237,7 +236,7 @@ const Products = () => {
                     <TableRow>
                       <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
                       <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
-                      <TableHead className="min-w-[80px] font-semibold">Quantity</TableHead>
+                      <TableHead className="min-w-[80px] font-semibold">Stock</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
                       <TableHead className="min-w-[140px] font-semibold">Barcode</TableHead>
@@ -245,70 +244,92 @@ const Products = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id} className="hover:bg-gray-50 border-b">
-                        <TableCell className="font-medium">
-                          <div className="max-w-[150px] truncate" title={product.name}>
-                            {product.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[100px] truncate" title={product.category}>
-                            {product.category}
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {product.quantity} {product.unit}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          ₹{product.price_per_unit}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={product.is_active !== false ? "default" : "secondary"}
-                            className={product.is_active !== false ? "bg-green-500" : "bg-gray-500"}
-                          >
-                            {product.is_active !== false ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {product.barcode ? (
-                            <div className="flex items-center gap-2 max-w-[140px]">
-                              <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
-                                {product.barcode}
-                              </div>
-                              <ProtectedAction resource="products" action="view">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => printBarcode(product)}
-                                  className="h-7 w-7 p-0 flex-shrink-0"
-                                  title="Print Barcode"
-                                >
-                                  <Printer className="h-3 w-3" />
-                                </Button>
-                              </ProtectedAction>
+                    {filteredProducts.map((product) => {
+                      const displayQuantity = product.category === 'Fashion' 
+                        ? (product.total_size_quantity || 0)
+                        : product.quantity;
+                      
+                      const isOutOfStock = displayQuantity === 0;
+                      
+                      return (
+                        <TableRow key={product.id} className="hover:bg-gray-50 border-b">
+                          <TableCell className="font-medium">
+                            <div className="max-w-[150px] truncate" title={product.name}>
+                              {product.name}
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">No barcode</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <ProtectedAction resource="products" action="edit">
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditProduct(product)}
-                              className="h-7 px-2"
-                              title="Edit Product"
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="max-w-[100px] truncate" title={product.category}>
+                                {product.category}
+                              </div>
+                              {product.category === 'Fashion' && (
+                                <Badge variant="outline" className="text-xs">Sizes</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span className={isOutOfStock ? "text-red-600 font-medium" : ""}>
+                                {displayQuantity} {product.unit}
+                              </span>
+                              {isOutOfStock && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Out of Stock
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            ₹{product.price_per_unit}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={product.is_active !== false ? "default" : "secondary"}
+                              className={product.is_active !== false ? "bg-green-500" : "bg-gray-500"}
                             >
-                              <Edit className="h-3 w-3 mr-1" />
-                              <span className="hidden sm:inline">Edit</span>
-                            </Button>
-                          </ProtectedAction>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                              {product.is_active !== false ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {product.barcode ? (
+                              <div className="flex items-center gap-2 max-w-[140px]">
+                                <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
+                                  {product.barcode}
+                                </div>
+                                <ProtectedAction resource="products" action="view">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => printBarcode(product)}
+                                    className="h-7 w-7 p-0 flex-shrink-0"
+                                    title="Print Barcode"
+                                  >
+                                    <Printer className="h-3 w-3" />
+                                  </Button>
+                                </ProtectedAction>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">No barcode</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <ProtectedAction resource="products" action="edit">
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditProduct(product)}
+                                className="h-7 px-2"
+                                title="Edit Product"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </Button>
+                            </ProtectedAction>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

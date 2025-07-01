@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,6 +14,7 @@ export interface Product {
   is_active?: boolean;
   created_at: string;
   updated_at: string;
+  total_size_quantity?: number; // For fashion products
 }
 
 export const useProducts = () => {
@@ -34,7 +34,27 @@ export const useProducts = () => {
         return;
       }
 
-      setProducts(data || []);
+      // For fashion products, fetch and aggregate size quantities
+      const productsWithSizes = await Promise.all(
+        (data || []).map(async (product) => {
+          if (product.category === 'Fashion') {
+            const { data: sizesData } = await supabase
+              .from('product_sizes')
+              .select('quantity')
+              .eq('product_id', product.id);
+            
+            const totalSizeQuantity = sizesData?.reduce((sum, size) => sum + size.quantity, 0) || 0;
+            
+            return {
+              ...product,
+              total_size_quantity: totalSizeQuantity
+            };
+          }
+          return product;
+        })
+      );
+
+      setProducts(productsWithSizes);
     } catch (error) {
       console.error('Error in fetchProducts:', error);
     } finally {
@@ -42,7 +62,6 @@ export const useProducts = () => {
     }
   };
 
-  // Note: the form always sends is_active, so no changes needed here except for the type
   const addProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Adding product:', productData);
@@ -58,7 +77,7 @@ export const useProducts = () => {
       }
 
       console.log('Product added successfully:', data);
-      setProducts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      await fetchProducts(); // Refresh to get updated data with size quantities
       return { success: true, data };
     } catch (error) {
       console.error('Error in addProduct:', error);
@@ -80,6 +99,7 @@ export const useProducts = () => {
       if (productData.barcode !== undefined) updateData.barcode = productData.barcode;
       if (productData.image_url !== undefined) updateData.image_url = productData.image_url;
       if (productData.is_active !== undefined) updateData.is_active = productData.is_active;
+      if (productData.description !== undefined) updateData.description = productData.description;
 
       const { data, error } = await supabase
         .from('products')
@@ -94,11 +114,7 @@ export const useProducts = () => {
       }
 
       console.log('Product updated successfully:', data);
-
-      setProducts(prev => 
-        prev.map(product => product.id === id ? data : product)
-        .sort((a, b) => a.name.localeCompare(b.name))
-      );
+      await fetchProducts(); // Refresh to get updated data with size quantities
       return { success: true, data };
     } catch (error) {
       console.error('Error in updateProduct:', error);

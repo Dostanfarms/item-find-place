@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ProductSize {
-  size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  size: 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL';
   quantity: number;
 }
 
 export interface ProductSizeData {
   id: string;
   product_id: string;
-  size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  size: 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL';
   quantity: number;
   created_at: string;
   updated_at: string;
@@ -34,7 +34,7 @@ export const useProductSizes = () => {
       }
 
       return (data || []).map(item => ({
-        size: item.size as 'S' | 'M' | 'L' | 'XL' | 'XXL',
+        size: item.size as 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL',
         quantity: item.quantity
       }));
     } catch (error) {
@@ -60,8 +60,10 @@ export const useProductSizes = () => {
         return { success: false, error: deleteError.message };
       }
 
-      // Then insert new sizes
-      if (sizes.length > 0) {
+      // Then insert new sizes (only those with quantity > 0)
+      const sizesToInsert = sizes.filter(size => size.quantity > 0);
+      
+      if (sizesToInsert.length > 0) {
         const sizesToInsert = sizes.map(size => ({
           product_id: productId,
           size: size.size,
@@ -87,9 +89,44 @@ export const useProductSizes = () => {
     }
   };
 
+  const updateSizeQuantity = async (productId: string, size: string, quantityChange: number) => {
+    try {
+      const { data: currentSize, error: fetchError } = await supabase
+        .from('product_sizes')
+        .select('quantity')
+        .eq('product_id', productId)
+        .eq('size', size)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current size quantity:', fetchError);
+        return { success: false, error: fetchError.message };
+      }
+
+      const newQuantity = Math.max(0, currentSize.quantity + quantityChange);
+
+      const { error: updateError } = await supabase
+        .from('product_sizes')
+        .update({ quantity: newQuantity })
+        .eq('product_id', productId)
+        .eq('size', size);
+
+      if (updateError) {
+        console.error('Error updating size quantity:', updateError);
+        return { success: false, error: updateError.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in updateSizeQuantity:', error);
+      return { success: false, error: 'Failed to update size quantity' };
+    }
+  };
+
   return {
     loading,
     fetchProductSizes,
-    saveProductSizes
+    saveProductSizes,
+    updateSizeQuantity
   };
 };

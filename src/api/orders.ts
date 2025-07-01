@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
+import { updateInventoryOnOrder } from "@/utils/inventoryManager";
 
 export interface OrderPayload {
   customerId: string;
@@ -50,13 +50,13 @@ export async function placeOrder(payload: OrderPayload) {
   // Insert each item to order_items
   const itemsToInsert = items.map((item) => ({
     order_id: order.id,
-    product_id: item.productId || null, // Handle case where productId might be empty
+    product_id: item.productId || null,
     name: item.name,
     price_per_unit: item.pricePerUnit,
     quantity: item.quantity,
     unit: item.unit,
     category: item.category,
-    farmer_id: item.farmerId || null, // Handle case where farmerId might be empty
+    farmer_id: item.farmerId || null,
   }));
 
   console.log('Inserting order items:', itemsToInsert);
@@ -69,6 +69,25 @@ export async function placeOrder(payload: OrderPayload) {
   }
 
   console.log('Order items inserted successfully');
+
+  // Update inventory based on ordered items
+  const inventoryItems = items.map(item => ({
+    productId: item.productId,
+    quantity: item.quantity,
+    size: item.size, // This will be undefined for non-fashion products
+    category: item.category
+  }));
+
+  const inventoryResult = await updateInventoryOnOrder(inventoryItems);
+  
+  if (!inventoryResult.success) {
+    console.error('Inventory update failed:', inventoryResult.error);
+    // Note: We don't fail the order if inventory update fails, but we log it
+    // In a production environment, you might want to implement compensation logic
+  } else {
+    console.log('Inventory updated successfully for order:', order.id);
+  }
+
   return { success: true, id: order.id };
 }
 
