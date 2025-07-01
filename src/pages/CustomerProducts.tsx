@@ -1,129 +1,98 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Package, 
-  ChevronLeft, 
-  Search,
-  Filter
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import ProductGrid from '@/components/ProductGrid';
-import Cart from '@/components/Cart';
-import CustomerHeader from '@/components/CustomerHeader';
+import CategoryFilter from '@/components/CategoryFilter';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 const CustomerProducts = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { products, loading } = useProducts();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [customer, setCustomer] = useState<any>(null);
-  
-  // Filter out inactive products
-  const activeProducts = products.filter(product => product.is_active !== false);
-  
-  const categories = ['all', ...Array.from(new Set(activeProducts.map(p => p.category)))];
-  
-  const filteredProducts = activeProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory && product.quantity > 0;
-  });
 
-  useEffect(() => {
-    const currentCustomer = localStorage.getItem('currentCustomer');
-    if (currentCustomer) {
-      setCustomer(JSON.parse(currentCustomer));
+  // Filter products based on category and search term
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter(product => product.is_active !== false);
+
+    if (selectedCategory) {
+      filtered = filtered.filter(product => product.category === selectedCategory);
     }
-    // Don't redirect to login if not authenticated - allow browsing
-  }, []);
 
-  // Handle category selection from navigation state
-  useEffect(() => {
-    if (location.state?.selectedCategory) {
-      setSelectedCategory(location.state.selectedCategory);
-      // Clear the navigation state to prevent it from persisting
-      navigate(location.pathname, { replace: true });
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-  }, [location.state, navigate, location.pathname]);
 
-  const handleLogout = () => {
-    setCustomer(null);
-  };
+    return filtered;
+  }, [products, selectedCategory, searchTerm]);
+
+  // Calculate product counts by category
+  const productCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const activeProducts = products.filter(product => product.is_active !== false);
+    
+    counts.total = activeProducts.length;
+    
+    activeProducts.forEach(product => {
+      counts[product.category] = (counts[product.category] || 0) + 1;
+    });
+
+    return counts;
+  }, [products]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/30 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="text-muted-foreground text-lg">Loading products...</div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-muted-foreground">Loading products...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <CustomerHeader customer={customer} onLogout={handleLogout} />
-
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-20 p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-6">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => navigate('/customer-home')}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-agri-primary" />
-              <span className="text-lg font-bold">
-                {selectedCategory === 'all' ? 'Browse Products' : `${selectedCategory} Products`}
-              </span>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Our Products</h1>
+          
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+        </div>
 
-          {/* Search and Filter */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="flex-1 rounded-md border border-input bg-background px-3 py-2"
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        {/* Category Filter */}
+        <CategoryFilter
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+          productCounts={productCounts}
+        />
 
-          {/* Products Grid */}
-          <ProductGrid products={filteredProducts} />
+        {/* Products Grid */}
+        <div className="mt-6">
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">
+                {searchTerm || selectedCategory 
+                  ? "No products found matching your criteria." 
+                  : "No products available at the moment."
+                }
+              </p>
+            </div>
+          ) : (
+            <ProductGrid products={filteredProducts} />
+          )}
         </div>
       </div>
-
-      {/* Cart Component */}
-      <Cart />
     </div>
   );
 };

@@ -1,389 +1,224 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  ArrowLeft, 
-  ShoppingCart, 
-  CreditCard, 
-  ChevronLeft, 
-  ChevronRight,
-  Package 
-} from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductSizes } from '@/hooks/useProductSizes';
 import { useCart } from '@/contexts/CartContext';
-import { toast } from '@/hooks/use-toast';
-import CustomerHeader from '@/components/CustomerHeader';
-import ProductGrid from '@/components/ProductGrid';
-import SizeSelector from '@/components/SizeSelector';
-import Cart from '@/components/Cart';
-import { ProductSize } from '@/components/ProductSizesManager';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ShoppingCart, Package } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import ProductSizeDisplay from '@/components/ProductSizeDisplay';
 
 const ProductDetails = () => {
-  const { productId } = useParams<{ productId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, loading } = useProducts();
+  const { toast } = useToast();
+  const { products } = useProducts();
   const { fetchProductSizes } = useProductSizes();
-  const { addToCart, items } = useCart();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [customer, setCustomer] = useState<any>(null);
-  const [selectedSize, setSelectedSize] = useState<string>('');
-  const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
-  const [sizesLoading, setSizesLoading] = useState(false);
-
-  const product = products.find(p => p.id === productId);
+  const { addToCart } = useCart();
   
-  // Get similar products (same category, excluding current product)
-  const similarProducts = products.filter(p => 
-    p.category === product?.category && 
-    p.id !== productId && 
-    p.is_active !== false &&
-    p.quantity > 0
-  ).slice(0, 8);
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [productSizes, setProductSizes] = useState<any[]>([]);
+  const [quantity, setQuantity] = useState(1);
 
-  useEffect(() => {
-    const currentCustomer = localStorage.getItem('currentCustomer');
-    if (currentCustomer) {
-      setCustomer(JSON.parse(currentCustomer));
-    }
-  }, []);
+  const product = products.find(p => p.id === id);
 
-  // Load sizes for Fashion products
   useEffect(() => {
     if (product && product.category === 'Fashion') {
-      setSizesLoading(true);
       fetchProductSizes(product.id).then(sizes => {
         setProductSizes(sizes);
-        setSizesLoading(false);
-        // Auto-select first available size
-        const availableSize = sizes.find(s => s.quantity > 0);
-        if (availableSize) {
-          setSelectedSize(availableSize.size);
-        }
       });
-    } else {
-      setProductSizes([]);
-      setSelectedSize('');
     }
   }, [product, fetchProductSizes]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
-        <div className="pt-20 p-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center py-12">
-              <div className="text-muted-foreground text-lg">Loading product...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (!product) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
-        <div className="pt-20 p-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
-              <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
-              <Button onClick={() => navigate('/customer-products')}>
-                Browse Products
-              </Button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
+          <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate('/customer/products')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Products
+          </Button>
         </div>
       </div>
     );
   }
 
-  // Parse images
-  const getProductImages = (): string[] => {
-    if (!product.image_url) return [];
-    
-    try {
-      const parsed = JSON.parse(product.image_url);
-      return Array.isArray(parsed) ? parsed : [product.image_url];
-    } catch {
-      return [product.image_url];
-    }
-  };
+  const isFashionProduct = product.category === 'Fashion';
+  const availableQuantity = isFashionProduct 
+    ? (selectedSize ? productSizes.find(s => s.size === selectedSize)?.quantity || 0 : 0)
+    : product.quantity;
 
-  const images = getProductImages();
-  const hasMultipleImages = images.length > 1;
-
-  // Check if product is available
-  const isProductAvailable = () => {
-    if (product.category === 'Fashion') {
-      return productSizes.some(size => size.quantity > 0);
-    }
-    return product.quantity > 0;
-  };
-
-  // Get available quantity for selected size (Fashion) or product quantity
-  const getAvailableQuantity = () => {
-    if (product.category === 'Fashion' && selectedSize) {
-      const sizeData = productSizes.find(s => s.size === selectedSize);
-      return sizeData?.quantity || 0;
-    }
-    return product.quantity;
-  };
+  const isOutOfStock = availableQuantity === 0;
 
   const handleAddToCart = () => {
-    try {
-      if (product.category === 'Fashion' && !selectedSize) {
-        toast({
-          title: "Please select a size",
-          description: "Please select a size before adding to cart.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      addToCart({
-        productId: product.id,
-        name: product.name,
-        quantity: 1,
-        pricePerUnit: Number(product.price_per_unit),
-        unit: product.unit,
-        category: product.category,
-        farmerId: '',
-        imageUrl: images[0],
-        size: product.category === 'Fashion' ? selectedSize : undefined
-      });
-      
+    if (isFashionProduct && !selectedSize) {
       toast({
-        title: "Added to cart",
-        description: `${product.name}${selectedSize ? ` (Size: ${selectedSize})` : ''} has been added to your cart.`,
+        title: "Size Required",
+        description: "Please select a size before adding to cart",
+        variant: "destructive"
       });
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart. Please try again.",
-        variant: "destructive",
-      });
+      return;
     }
-  };
 
-  const handleBuyNow = () => {
-    // Add to cart first
-    handleAddToCart();
-    
-    // Navigate to payment page
-    setTimeout(() => {
-      navigate('/customer-payment');
-    }, 100);
-  };
+    if (isOutOfStock) {
+      toast({
+        title: "Out of Stock",
+        description: "This product is currently out of stock",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % images.length);
-  };
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      pricePerUnit: product.price_per_unit,
+      quantity,
+      unit: product.unit,
+      category: product.category,
+      size: isFashionProduct ? selectedSize : undefined,
+      farmerId: null
+    });
 
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    toast({
+      title: "Added to Cart",
+      description: `${product.name} has been added to your cart`,
+    });
   };
-
-  const productAvailable = isProductAvailable();
-  const availableQuantity = getAvailableQuantity();
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/customer/products')}
+          className="mb-6"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Products
+        </Button>
 
-      <div className="pt-20 p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Back Button */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate(-1)}
-            className="mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Product Image */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                {product.image_url ? (
+                  <img 
+                    src={product.image_url} 
+                    alt={product.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <Package className="h-24 w-24 text-gray-400" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Product Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {/* Product Images */}
-            <div className="space-y-4">
-              <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden relative">
-                {images.length > 0 ? (
-                  <>
-                    <img 
-                      src={images[currentImageIndex]} 
-                      alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    {hasMultipleImages && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="absolute left-4 top-1/2 transform -translate-y-1/2 h-10 w-10 p-0 bg-white/80 hover:bg-white"
-                          onClick={prevImage}
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 h-10 w-10 p-0 bg-white/80 hover:bg-white"
-                          onClick={nextImage}
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </Button>
-                        
-                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                          {images.map((_, index) => (
-                            <button
-                              key={index}
-                              className={`w-3 h-3 rounded-full transition-colors ${
-                                index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                              }`}
-                              onClick={() => setCurrentImageIndex(index)}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-6xl">
-                    {product.category === 'Vegetables' && '🥬'}
-                    {product.category === 'Fruits' && '🍎'}
-                    {product.category === 'Grains' && '🌾'}
-                    {product.category === 'Dairy' && '🥛'}
-                    {product.category === 'Fashion' && '👕'}
-                    {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(product.category) && <Package className="h-20 w-20 text-green-600" />}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">{product.name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline">{product.category}</Badge>
+                      <Badge variant={product.is_active !== false ? "default" : "secondary"}>
+                        {product.is_active !== false ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Thumbnail images */}
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
-                  {images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === currentImageIndex ? 'border-green-500' : 'border-gray-200'
-                      }`}
-                    >
-                      <img 
-                        src={image} 
-                        alt={`${product.name} - Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Product Information */}
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-start justify-between mb-4">
-                  <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-                  <Badge variant="secondary" className="text-sm">
-                    {product.category}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-bold text-green-600">
-                    ₹{Number(product.price_per_unit).toFixed(2)}
-                  </span>
-                  <span className="text-lg text-gray-500">per {product.unit}</span>
-                </div>
-
-                <div className="mb-6">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    productAvailable 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {productAvailable ? (
-                      product.category === 'Fashion' && productSizes.length > 0 
-                        ? 'Available in multiple sizes' 
-                        : `${product.quantity} ${product.unit} available`
-                    ) : 'Out of stock'}
-                  </span>
-                </div>
-
-                {/* Size Selection for Fashion Category */}
-                {product.category === 'Fashion' && (
-                  <div className="mb-6">
-                    {sizesLoading ? (
-                      <div className="text-sm text-muted-foreground">Loading sizes...</div>
-                    ) : (
-                      <SizeSelector
-                        sizes={productSizes}
-                        selectedSize={selectedSize}
-                        onSizeSelect={setSelectedSize}
-                        disabled={!productAvailable}
-                      />
-                    )}
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-green-600">
+                      ₹{product.price_per_unit}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      per {product.unit}
+                    </div>
                   </div>
-                )}
-
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Description */}
                 {product.description && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2">Description</h3>
-                    <div 
-                      className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
+                  <div>
+                    <h3 className="font-semibold mb-2">Description</h3>
+                    <p className="text-muted-foreground">{product.description}</p>
+                  </div>
+                )}
+
+                {/* Size Selection for Fashion Products */}
+                {isFashionProduct && (
+                  <div>
+                    <ProductSizeDisplay
+                      sizes={productSizes}
+                      selectedSize={selectedSize}
+                      onSizeSelect={setSelectedSize}
                     />
                   </div>
                 )}
-              </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-4">
-                <Button 
+                {/* Stock Status */}
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Stock:</span>
+                  {isOutOfStock ? (
+                    <Badge variant="destructive">Out of Stock</Badge>
+                  ) : (
+                    <Badge variant="default">
+                      {availableQuantity} {product.unit} available
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Quantity Selector */}
+                {!isOutOfStock && (
+                  <div className="flex items-center gap-4">
+                    <label className="font-medium">Quantity:</label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        -
+                      </Button>
+                      <span className="w-12 text-center">{quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuantity(Math.min(availableQuantity, quantity + 1))}
+                        disabled={quantity >= availableQuantity}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Add to Cart Button */}
+                <Button
                   onClick={handleAddToCart}
-                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-lg"
+                  disabled={isOutOfStock || (isFashionProduct && !selectedSize)}
+                  className="w-full"
+                  size="lg"
                 >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  Add to Cart
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  {isOutOfStock ? "Out of Stock" : "Add to Cart"}
                 </Button>
-                
-                <Button 
-                  onClick={handleBuyNow}
-                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
-                  variant="outline"
-                  className="w-full border-green-600 text-green-600 hover:bg-green-50 h-12 text-lg"
-                >
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Buy Now
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Similar Products */}
-          {similarProducts.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Similar Products</h2>
-              <ProductGrid products={similarProducts} />
-            </div>
-          )}
         </div>
       </div>
-
-      <Cart />
     </div>
   );
 };
