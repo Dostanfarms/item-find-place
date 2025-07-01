@@ -366,9 +366,9 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
               {/* Size Management for Fashion Category */}
               {category === 'Fashion' && (
                 <ProductSizesManager
-                  sizes={sizes}
+                  productId={editProduct?.id}
+                  initialSizes={sizes}
                   onChange={setSizes}
-                  disabled={isSubmitting || sizesLoading}
                 />
               )}
               
