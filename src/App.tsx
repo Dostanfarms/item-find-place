@@ -18,6 +18,8 @@ import Banners from '@/pages/Banners';
 import Employees from '@/pages/Employees';
 import Roles from '@/pages/Roles';
 import Customers from '@/pages/Customers';
+import Sales from '@/pages/Sales';
+import Farmers from '@/pages/Farmers';
 import EmployeeLogin from '@/pages/EmployeeLogin';
 import AppLanding from '@/pages/AppLanding';
 
@@ -50,6 +52,16 @@ function App() {
                 <Route path="/category-products" element={
                   <SidebarProvider>
                     <Layout><CategoryProducts /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/sales" element={
+                  <SidebarProvider>
+                    <Layout><Sales /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/farmers" element={
+                  <SidebarProvider>
+                    <Layout><Farmers /></Layout>
                   </SidebarProvider>
                 } />
                 <Route path="/coupons" element={

@@ -70,11 +70,44 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     return 'piece';
   };
 
+  const generateUniqueBarcode = async () => {
+    let isUnique = false;
+    let barcode = '';
+    
+    while (!isUnique) {
+      barcode = `BAR${Date.now()}${Math.floor(Math.random() * 10000)}`;
+      
+      // Check if barcode exists in products table
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('id')
+        .eq('barcode', barcode)
+        .limit(1);
+      
+      // Check if barcode exists in fashion_products table
+      const { data: fashionData } = await supabase
+        .from('fashion_products')
+        .select('id')
+        .eq('barcode', barcode)
+        .limit(1);
+      
+      isUnique = (!productsData || productsData.length === 0) && (!fashionData || fashionData.length === 0);
+    }
+    
+    return barcode;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Generate unique barcode if not editing or barcode is empty
+      let barcode = formData.barcode;
+      if (!editProduct || !barcode) {
+        barcode = await generateUniqueBarcode();
+      }
+
       if (category.toLowerCase() === 'fashion') {
         // Handle fashion products
         const productData = {
@@ -82,7 +115,7 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
           description: formData.description || null,
           price_per_unit: formData.price_per_unit,
           category: category,
-          barcode: formData.barcode || null,
+          barcode: barcode,
           is_active: formData.is_active
         };
 
@@ -132,7 +165,7 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
           if (sizesError) throw sizesError;
         }
       } else {
-        // Handle other category products with specific table queries
+        // Handle all other categories using general products table
         const productData = {
           name: formData.name,
           description: formData.description || null,
@@ -140,64 +173,21 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
           unit: formData.unit,
           price_per_unit: formData.price_per_unit,
           category: category,
-          barcode: formData.barcode || null,
+          barcode: barcode,
           is_active: formData.is_active
         };
 
-        if (category.toLowerCase() === 'vegetables') {
-          if (editProduct) {
-            const { error } = await supabase
-              .from('vegetable_products')
-              .update(productData)
-              .eq('id', editProduct.id);
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('vegetable_products')
-              .insert([productData]);
-            if (error) throw error;
-          }
-        } else if (category.toLowerCase() === 'fruits') {
-          if (editProduct) {
-            const { error } = await supabase
-              .from('fruit_products')
-              .update(productData)
-              .eq('id', editProduct.id);
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('fruit_products')
-              .insert([productData]);
-            if (error) throw error;
-          }
-        } else if (category.toLowerCase() === 'grains') {
-          if (editProduct) {
-            const { error } = await supabase
-              .from('grain_products')
-              .update(productData)
-              .eq('id', editProduct.id);
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('grain_products')
-              .insert([productData]);
-            if (error) throw error;
-          }
-        } else if (category.toLowerCase() === 'dairy') {
-          if (editProduct) {
-            const { error } = await supabase
-              .from('dairy_products')
-              .update(productData)
-              .eq('id', editProduct.id);
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('dairy_products')
-              .insert([productData]);
-            if (error) throw error;
-          }
+        if (editProduct) {
+          const { error } = await supabase
+            .from('products')
+            .update(productData)
+            .eq('id', editProduct.id);
+          if (error) throw error;
         } else {
-          throw new Error(`Category ${category} is not supported yet`);
+          const { error } = await supabase
+            .from('products')
+            .insert([productData]);
+          if (error) throw error;
         }
       }
 
@@ -353,11 +343,12 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode</Label>
+              <Label htmlFor="barcode">Barcode (Auto-generated)</Label>
               <Input
                 id="barcode"
                 value={formData.barcode}
                 onChange={(e) => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
+                placeholder="Auto-generated if left empty"
               />
             </div>
 
