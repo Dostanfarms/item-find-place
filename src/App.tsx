@@ -1,201 +1,142 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AuthProvider } from "./context/AuthContext";
-import { CartProvider } from "./contexts/CartContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import CustomerProtectedRoute from "./components/CustomerProtectedRoute";
-import { Sidebar } from "./components/sidebar/Sidebar";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Farmers from "./pages/Farmers";
-import FarmerDashboard from "./pages/FarmerDashboard";
-import FarmerDetails from "./pages/FarmerDetails";
-import FarmerLogin from "./pages/FarmerLogin";
-import FarmerTicketHistory from "./pages/FarmerTicketHistory";
-import Customers from "./pages/Customers";
-import CustomerLogin from "./pages/CustomerLogin";
-import CustomerRegister from "./pages/CustomerRegister";
-import CustomerHome from "./pages/CustomerHome";
-import CustomerProducts from "./pages/CustomerProducts";
-import CustomerProfile from "./pages/CustomerProfile";
-import CustomerOrderHistory from "./pages/CustomerOrderHistory";
-import CustomerTicketHistory from "./pages/CustomerTicketHistory";
-import CartPage from "./pages/CartPage";
-import CustomerPayment from "./pages/CustomerPayment";
-import PaymentPage from "./pages/PaymentPage";
-import OrderReceiptPage from "./pages/OrderReceiptPage";
-import OrderTracking from "./pages/OrderTracking";
-import OrderHistory from "./pages/OrderHistory";
-import Products from "./pages/Products";
-import Categories from "./pages/Categories";
-import Sales from "./pages/Sales";
-import SalesDashboard from "./pages/SalesDashboard";
-import Transactions from "./pages/Transactions";
-import Tickets from "./pages/Tickets";
-import Coupons from "./pages/Coupons";
-import Employees from "./pages/Employees";
-import Roles from "./pages/Roles";
-import Settlements from "./pages/Settlements";
-import Banners from "./pages/Banners";
-import EmployeeLogin from "./pages/EmployeeLogin";
-import EmployeeRegister from "./pages/EmployeeRegister";
-import AccessDenied from "./pages/AccessDenied";
-import AppLanding from "./pages/AppLanding";
-import NotFound from "./pages/NotFound";
-import OrdersManagement from "./pages/OrdersManagement";
-import ProductDetails from "./pages/ProductDetails";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
+import { Toaster } from '@/components/ui/toaster';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Layout from '@/components/Sidebar';
+
+// Import pages
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import Products from '@/pages/Products';
+import CategoryProducts from '@/pages/CategoryProducts';
+import Coupons from '@/pages/Coupons';
+import Categories from '@/pages/Categories';
+import Banners from '@/pages/Banners';
+import Employees from '@/pages/Employees';
+import Roles from '@/pages/Roles';
+import SettingsPage from '@/pages/SettingsPage';
+import Orders from '@/pages/Orders';
+import Customers from '@/pages/Customers';
+import Login from '@/pages/Login';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 
 const queryClient = new QueryClient();
 
-// Layout component for employee routes with sidebar
-const EmployeeLayout = () => {
+function App() {
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <AuthProvider>
+      <CartProvider>
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Toaster />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                
+                {/* Employee/Admin Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/products" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Products />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/category-products" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <CategoryProducts />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/coupons" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Coupons />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/categories" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Categories />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/banners" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Banners />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/employees" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Employees />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/roles" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Roles />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SettingsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/orders" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Orders />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/customers" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Customers />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+
+                {/* Authentication Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+              </Routes>
+            </div>
+          </Router>
+        </QueryClientProvider>
+      </CartProvider>
+    </AuthProvider>
   );
-};
-
-// Layout component for customer routes with cart provider
-const CustomerLayout = () => {
-  return (
-    <CartProvider>
-      <Outlet />
-    </CartProvider>
-  );
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/app" replace />} />
-            <Route path="/index" element={<Index />} />
-            <Route path="/app" element={<AppLanding />} />
-            <Route path="/employee-login" element={<EmployeeLogin />} />
-            <Route path="/employee-register" element={<EmployeeRegister />} />
-            <Route path="/farmer-login" element={<FarmerLogin />} />
-            <Route path="/customer-login" element={<CustomerLogin />} />
-            <Route path="/customer-register" element={<CustomerRegister />} />
-            <Route path="/access-denied" element={<AccessDenied />} />
-            
-            {/* Protected Employee Routes with Sidebar */}
-            <Route element={<EmployeeLayout />}>
-              <Route element={<ProtectedRoute resource="dashboard" action="view" />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="farmers" action="view" />}>
-                <Route path="/farmers" element={<Farmers />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="customers" action="view" />}>
-                <Route path="/customers" element={<Customers />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="products" action="view" />}>
-                <Route path="/products" element={<Products />} />
-              </Route>
-
-              <Route element={<ProtectedRoute resource="categories" action="view" />}>
-                <Route path="/categories" element={<Categories />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="sales" action="view" />}>
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/payment" element={<PaymentPage />} />
-                <Route path="/order-receipt" element={<OrderReceiptPage />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="sales-dashboard" action="view" />}>
-                <Route path="/sales-dashboard" element={<SalesDashboard />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="transactions" action="view" />}>
-                <Route path="/transactions" element={<Transactions />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="tickets" action="view" />}>
-                <Route path="/tickets" element={<Tickets />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="coupons" action="view" />}>
-                <Route path="/coupons" element={<Coupons />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="banners" action="view" />}>
-                <Route path="/banners" element={<Banners />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="employees" action="view" />}>
-                <Route path="/employees" element={<Employees />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="roles" action="view" />}>
-                <Route path="/roles" element={<Roles />} />
-              </Route>
-              
-              <Route element={<ProtectedRoute resource="settlements" action="view" />}>
-                <Route path="/settlements" element={<Settlements />} />
-              </Route>
-              
-              {/* Farmer Details - accessible by employees */}
-              <Route element={<ProtectedRoute resource="farmers" action="view" />}>
-                <Route path="/farmer/:id" element={<FarmerDetails />} />
-              </Route>
-              
-              {/* Add the OrdersManagement route under ProtectedRoute */}
-              <Route element={<ProtectedRoute resource="orders" action="view" />}>
-                <Route path="/orders" element={<OrdersManagement />} />
-              </Route>
-            </Route>
-            
-            {/* Farmer Routes - No authentication wrapper needed since components handle their own auth */}
-            <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-            <Route path="/farmer-tickets/:id" element={<FarmerTicketHistory />} />
-            
-            {/* Customer Routes - Mixed authentication requirements */}
-            <Route element={<CustomerLayout />}>
-              {/* Public customer routes - no authentication required */}
-              <Route path="/customer-home" element={<CustomerHome />} />
-              <Route path="/customer-products" element={<CustomerProducts />} />
-              <Route path="/product-details/:productId" element={<ProductDetails />} />
-              
-              {/* Protected customer routes - authentication required */}
-              <Route element={<CustomerProtectedRoute />}>
-                <Route path="/customer-profile" element={<CustomerProfile />} />
-                <Route path="/customer-orders" element={<CustomerOrderHistory />} />
-                <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
-                <Route path="/customer-payment" element={<CustomerPayment />} />
-                <Route path="/order-tracking" element={<OrderTracking />} />
-                <Route path="/order-history" element={<OrderHistory />} />
-              </Route>
-              
-              {/* Cart page - accessible without authentication but will prompt for login on checkout */}
-              <Route path="/cart" element={<CartPage />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+}
 
 export default App;

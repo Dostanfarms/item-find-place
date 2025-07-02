@@ -1,23 +1,19 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Plus, Package } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import CategoryHeader from '@/components/CategoryHeader';
 import CategoryProductTable from '@/components/CategoryProductTable';
 import FashionProductForm from '@/components/FashionProductForm';
-import ProtectedAction from '@/components/ProtectedAction';
+import { FashionProduct, CategoryProduct } from '@/hooks/useCategoryProducts';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
 const CategoryProducts = () => {
+  const { toast } = useToast();
   const { hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showFashionForm, setShowFashionForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editProduct, setEditProduct] = useState<FashionProduct | CategoryProduct | undefined>(undefined);
   
   const {
     fashionProducts,
@@ -34,30 +30,24 @@ const CategoryProducts = () => {
     vegetables: vegetableProducts.length,
     fruits: fruitProducts.length,
     grains: grainProducts.length,
-    dairy: dairyProducts.length
+    dairy: dairyProducts.length,
   };
 
   const getFilteredProducts = () => {
-    let products: any[] = [];
-    
     switch (selectedCategory) {
       case 'Fashion':
-        products = fashionProducts;
-        break;
+        return fashionProducts;
       case 'Vegetables':
-        products = vegetableProducts;
-        break;
+        return vegetableProducts;
       case 'Fruits':
-        products = fruitProducts;
-        break;
+        return fruitProducts;
       case 'Grains':
-        products = grainProducts;
-        break;
+        return grainProducts;
       case 'Dairy':
-        products = dairyProducts;
-        break;
+        return dairyProducts;
+      case 'all':
       default:
-        products = [
+        return [
           ...fashionProducts,
           ...vegetableProducts,
           ...fruitProducts,
@@ -65,18 +55,13 @@ const CategoryProducts = () => {
           ...dairyProducts
         ];
     }
-
-    if (searchTerm) {
-      products = products.filter(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    return products;
   };
 
-  const handleEditProduct = (product: any) => {
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const handleEditProduct = (product: FashionProduct | CategoryProduct) => {
     if (!hasPermission('products', 'edit')) {
       toast({
         title: "Access Denied",
@@ -85,20 +70,11 @@ const CategoryProducts = () => {
       });
       return;
     }
-    
-    if (selectedCategory === 'Fashion' || product.category === 'Fashion') {
-      setEditingProduct(product);
-      setShowFashionForm(true);
-    } else {
-      // Handle other category products
-      toast({
-        title: "Feature Coming Soon",
-        description: "Editing for this category will be available soon.",
-      });
-    }
+    setEditProduct(product);
+    setShowForm(true);
   };
 
-  const handleCreateProduct = () => {
+  const handleAddProduct = () => {
     if (!hasPermission('products', 'create')) {
       toast({
         title: "Access Denied",
@@ -107,30 +83,31 @@ const CategoryProducts = () => {
       });
       return;
     }
-
-    if (selectedCategory === 'Fashion') {
-      setEditingProduct(null);
-      setShowFashionForm(true);
-    } else {
+    
+    if (selectedCategory === 'all') {
       toast({
-        title: "Select Fashion Category",
-        description: "Please select Fashion category to add fashion products with sizes.",
+        title: "Select Category",
+        description: "Please select a specific category to add products",
+        variant: "destructive"
       });
+      return;
     }
+    
+    setEditProduct(undefined);
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditProduct(undefined);
   };
 
   const handleFormSuccess = () => {
-    setShowFashionForm(false);
-    setEditingProduct(null);
     refetch();
+    handleCloseForm();
   };
 
-  const handleFormCancel = () => {
-    setShowFashionForm(false);
-    setEditingProduct(null);
-  };
-
-  const printBarcode = (product: any) => {
+  const handlePrintBarcode = (product: FashionProduct | CategoryProduct) => {
     if (!hasPermission('products', 'view')) {
       toast({
         title: "Access Denied",
@@ -185,7 +162,6 @@ const CategoryProducts = () => {
             <div class="barcode-container">
               <div class="product-info">
                 <span>${product.name}</span>
-                <span>${selectedCategory === 'Fashion' ? (product.total_pieces || 0) : (product.quantity || 0)} ${selectedCategory === 'Fashion' ? 'pieces' : (product.unit || 'unit')}</span>
               </div>
               <svg id="barcode" class="barcode-image"></svg>
             </div>
@@ -211,6 +187,12 @@ const CategoryProducts = () => {
         title: "Barcode printed",
         description: `Barcode for ${product.name} has been sent to printer`,
       });
+    } else {
+      toast({
+        title: "Unable to print",
+        description: "Please check your browser settings and try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -227,12 +209,12 @@ const CategoryProducts = () => {
   }
 
   // Show form if requested
-  if (showFashionForm) {
+  if (showForm && selectedCategory === 'Fashion') {
     return (
       <FashionProductForm 
-        onCancel={handleFormCancel}
+        onCancel={handleCloseForm}
         onSuccess={handleFormSuccess}
-        editProduct={editingProduct}
+        editProduct={editProduct as FashionProduct}
       />
     );
   }
@@ -252,76 +234,58 @@ const CategoryProducts = () => {
       {/* Fixed Header */}
       <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
         <div className="p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Category Products Management</h1>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products or barcodes..."
-                  className="pl-8 w-full sm:w-80"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <ProtectedAction resource="products" action="create">
-                <Button 
-                  className="bg-agri-primary hover:bg-agri-secondary" 
-                  onClick={handleCreateProduct}
-                  disabled={selectedCategory !== 'Fashion' && selectedCategory !== 'all'}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> 
-                  Add {selectedCategory === 'Fashion' ? 'Fashion Product' : 'Product'}
-                </Button>
-              </ProtectedAction>
-            </div>
           </div>
+          
+          <CategoryHeader
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryChange}
+            productCounts={productCounts}
+          />
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-4 md:p-6">
-        <CategoryHeader
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          productCounts={productCounts}
-        />
-
         {filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-300px)] bg-white rounded-lg border">
-            <Package className="h-16 w-16 text-muted-foreground mb-6" />
-            {searchTerm ? (
-              <>
-                <h3 className="text-xl font-medium mb-2">No products found</h3>
-                <p className="text-muted-foreground text-center">
-                  No products match your search criteria. Try with a different name or barcode.
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-medium mb-2">No products in {selectedCategory === 'all' ? 'any category' : selectedCategory}</h3>
-                <p className="text-muted-foreground text-center">
-                  Get started by adding your first {selectedCategory === 'all' ? '' : selectedCategory.toLowerCase()} product.
-                </p>
-              </>
-            )}
+            <h3 className="text-xl font-medium mb-2">No products found</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {selectedCategory === 'all' 
+                ? "No products available in any category."
+                : `No products found in ${selectedCategory} category.`
+              }
+            </p>
           </div>
         ) : (
-          <Card className="border shadow-sm">
-            <CardHeader className="bg-gray-50 border-b">
-              <CardTitle className="text-xl">
-                {selectedCategory === 'all' ? 'All Products' : `${selectedCategory} Products`} ({filteredProducts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <CategoryProductTable
-                products={filteredProducts}
-                category={selectedCategory}
-                onEdit={handleEditProduct}
-                onPrintBarcode={printBarcode}
-              />
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <div className="p-4 border-b bg-gray-50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  {selectedCategory === 'all' ? 'All Products' : `${selectedCategory} Products`}
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    ({filteredProducts.length} items)
+                  </span>
+                </h2>
+                {selectedCategory !== 'all' && (
+                  <button
+                    onClick={handleAddProduct}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  >
+                    Add {selectedCategory} Product
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <CategoryProductTable
+              products={filteredProducts}
+              category={selectedCategory}
+              onEdit={handleEditProduct}
+              onPrintBarcode={handlePrintBarcode}
+            />
+          </div>
         )}
       </div>
     </div>

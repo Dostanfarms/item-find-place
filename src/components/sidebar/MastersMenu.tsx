@@ -33,7 +33,7 @@ const MastersMenu = () => {
   const [mastersOpen, setMastersOpen] = useState(false);
 
   useEffect(() => {
-    const mastersPathsToCheck = ['/products', '/coupons', '/categories', '/banners', '/employees', '/roles'];
+    const mastersPathsToCheck = ['/products', '/category-products', '/coupons', '/categories', '/banners', '/employees', '/roles'];
     if (mastersPathsToCheck.some(path => location.pathname.startsWith(path))) {
       setMastersOpen(true);
     }
@@ -44,7 +44,7 @@ const MastersMenu = () => {
     {
       title: 'Products',
       icon: Package,
-      path: '/products',
+      path: '/category-products',
       resource: 'products'
     },
     {
