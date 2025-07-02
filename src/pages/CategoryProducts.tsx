@@ -1,59 +1,37 @@
 
 import React, { useState } from 'react';
-import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import CategoryHeader from '@/components/CategoryHeader';
 import CategoryProductTable from '@/components/CategoryProductTable';
-import FashionProductForm from '@/components/FashionProductForm';
-import { FashionProduct, CategoryProduct } from '@/hooks/useCategoryProducts';
+import DynamicProductForm from '@/components/DynamicProductForm';
+import { DynamicProduct, useDynamicCategoryProducts } from '@/hooks/useDynamicCategoryProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
 const CategoryProducts = () => {
   const { toast } = useToast();
   const { hasPermission } = useAuth();
+  const { categories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showForm, setShowForm] = useState(false);
-  const [editProduct, setEditProduct] = useState<FashionProduct | CategoryProduct | undefined>(undefined);
+  const [editProduct, setEditProduct] = useState<DynamicProduct | undefined>(undefined);
   
   const {
-    fashionProducts,
-    vegetableProducts,
-    fruitProducts,
-    grainProducts,
-    dairyProducts,
+    productsByCategory,
     loading,
+    getAllProducts,
+    getProductsByCategory,
+    getProductCounts,
     refetch
-  } = useCategoryProducts();
+  } = useDynamicCategoryProducts();
 
-  const productCounts = {
-    fashion: fashionProducts.length,
-    vegetables: vegetableProducts.length,
-    fruits: fruitProducts.length,
-    grains: grainProducts.length,
-    dairy: dairyProducts.length,
-  };
+  const productCounts = getProductCounts();
 
   const getFilteredProducts = () => {
-    switch (selectedCategory) {
-      case 'Fashion':
-        return fashionProducts;
-      case 'Vegetables':
-        return vegetableProducts;
-      case 'Fruits':
-        return fruitProducts;
-      case 'Grains':
-        return grainProducts;
-      case 'Dairy':
-        return dairyProducts;
-      case 'all':
-      default:
-        return [
-          ...fashionProducts,
-          ...vegetableProducts,
-          ...fruitProducts,
-          ...grainProducts,
-          ...dairyProducts
-        ];
+    if (selectedCategory === 'all') {
+      return getAllProducts();
+    } else {
+      return getProductsByCategory(selectedCategory);
     }
   };
 
@@ -61,7 +39,7 @@ const CategoryProducts = () => {
     setSelectedCategory(category);
   };
 
-  const handleEditProduct = (product: FashionProduct | CategoryProduct) => {
+  const handleEditProduct = (product: DynamicProduct) => {
     if (!hasPermission('products', 'edit')) {
       toast({
         title: "Access Denied",
@@ -107,7 +85,7 @@ const CategoryProducts = () => {
     handleCloseForm();
   };
 
-  const handlePrintBarcode = (product: FashionProduct | CategoryProduct) => {
+  const handlePrintBarcode = (product: DynamicProduct) => {
     if (!hasPermission('products', 'view')) {
       toast({
         title: "Access Denied",
@@ -166,7 +144,7 @@ const CategoryProducts = () => {
               <svg id="barcode" class="barcode-image"></svg>
             </div>
             <script>
-              JsBarcode("#barcode", "${product.barcode}", {
+              JsBarcode("#barcode", "${product.barcode || product.id}", {
                 format: "CODE128",
                 width: 3,
                 height: 100,
@@ -209,12 +187,13 @@ const CategoryProducts = () => {
   }
 
   // Show form if requested
-  if (showForm && selectedCategory === 'Fashion') {
+  if (showForm && selectedCategory !== 'all') {
     return (
-      <FashionProductForm 
+      <DynamicProductForm 
+        category={selectedCategory}
         onCancel={handleCloseForm}
         onSuccess={handleFormSuccess}
-        editProduct={editProduct as FashionProduct}
+        editProduct={editProduct}
       />
     );
   }
@@ -257,6 +236,14 @@ const CategoryProducts = () => {
                 : `No products found in ${selectedCategory} category.`
               }
             </p>
+            {selectedCategory !== 'all' && categories.some(c => c.name === selectedCategory) && (
+              <button
+                onClick={handleAddProduct}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Add First {selectedCategory} Product
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-lg border shadow-sm">
@@ -268,7 +255,7 @@ const CategoryProducts = () => {
                     ({filteredProducts.length} items)
                   </span>
                 </h2>
-                {selectedCategory !== 'all' && (
+                {selectedCategory !== 'all' && categories.some(c => c.name === selectedCategory) && (
                   <button
                     onClick={handleAddProduct}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"

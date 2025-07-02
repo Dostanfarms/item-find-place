@@ -990,7 +990,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_category_product_table: {
+        Args: { category_name: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
