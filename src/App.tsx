@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from '@/components/ui/toaster';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import Layout from '@/components/Sidebar';
 
 // Import pages
@@ -18,6 +19,7 @@ import Employees from '@/pages/Employees';
 import Roles from '@/pages/Roles';
 import Customers from '@/pages/Customers';
 import EmployeeLogin from '@/pages/EmployeeLogin';
+import AppLanding from '@/pages/AppLanding';
 
 const queryClient = new QueryClient();
 
@@ -30,21 +32,56 @@ function App() {
             <div className="min-h-screen bg-background">
               <Toaster />
               <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* Employee/Admin Routes with Layout */}
-                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                <Route path="/products" element={<Layout><CategoryProducts /></Layout>} />
-                <Route path="/category-products" element={<Layout><CategoryProducts /></Layout>} />
-                <Route path="/coupons" element={<Layout><Coupons /></Layout>} />
-                <Route path="/categories" element={<Layout><Categories /></Layout>} />
-                <Route path="/banners" element={<Layout><Banners /></Layout>} />
-                <Route path="/employees" element={<Layout><Employees /></Layout>} />
-                <Route path="/roles" element={<Layout><Roles /></Layout>} />
-                <Route path="/customers" element={<Layout><Customers /></Layout>} />
-
-                {/* Authentication Routes */}
+                {/* Public Routes */}
+                <Route path="/" element={<AppLanding />} />
                 <Route path="/employee-login" element={<EmployeeLogin />} />
+                
+                {/* Protected Routes with Sidebar */}
+                <Route path="/dashboard" element={
+                  <SidebarProvider>
+                    <Layout><Dashboard /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/products" element={
+                  <SidebarProvider>
+                    <Layout><CategoryProducts /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/category-products" element={
+                  <SidebarProvider>
+                    <Layout><CategoryProducts /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/coupons" element={
+                  <SidebarProvider>
+                    <Layout><Coupons /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/categories" element={
+                  <SidebarProvider>
+                    <Layout><Categories /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/banners" element={
+                  <SidebarProvider>
+                    <Layout><Banners /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/employees" element={
+                  <SidebarProvider>
+                    <Layout><Employees /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/roles" element={
+                  <SidebarProvider>
+                    <Layout><Roles /></Layout>
+                  </SidebarProvider>
+                } />
+                <Route path="/customers" element={
+                  <SidebarProvider>
+                    <Layout><Customers /></Layout>
+                  </SidebarProvider>
+                } />
               </Routes>
             </div>
           </Router>
