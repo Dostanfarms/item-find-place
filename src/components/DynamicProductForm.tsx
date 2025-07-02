@@ -70,17 +70,11 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     return 'piece';
   };
 
-  const getTableName = (categoryName: string) => {
-    return `${categoryName.toLowerCase().replace(/\s+/g, '_')}_products`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const tableName = getTableName(category);
-      
       if (category.toLowerCase() === 'fashion') {
         // Handle fashion products
         const productData = {
@@ -138,7 +132,7 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
           if (sizesError) throw sizesError;
         }
       } else {
-        // Handle other category products
+        // Handle other category products with specific table queries
         const productData = {
           name: formData.name,
           description: formData.description || null,
@@ -150,19 +144,60 @@ const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
           is_active: formData.is_active
         };
 
-        if (editProduct) {
-          const { error } = await supabase
-            .from(tableName)
-            .update(productData)
-            .eq('id', editProduct.id);
-
-          if (error) throw error;
+        if (category.toLowerCase() === 'vegetables') {
+          if (editProduct) {
+            const { error } = await supabase
+              .from('vegetable_products')
+              .update(productData)
+              .eq('id', editProduct.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('vegetable_products')
+              .insert([productData]);
+            if (error) throw error;
+          }
+        } else if (category.toLowerCase() === 'fruits') {
+          if (editProduct) {
+            const { error } = await supabase
+              .from('fruit_products')
+              .update(productData)
+              .eq('id', editProduct.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('fruit_products')
+              .insert([productData]);
+            if (error) throw error;
+          }
+        } else if (category.toLowerCase() === 'grains') {
+          if (editProduct) {
+            const { error } = await supabase
+              .from('grain_products')
+              .update(productData)
+              .eq('id', editProduct.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('grain_products')
+              .insert([productData]);
+            if (error) throw error;
+          }
+        } else if (category.toLowerCase() === 'dairy') {
+          if (editProduct) {
+            const { error } = await supabase
+              .from('dairy_products')
+              .update(productData)
+              .eq('id', editProduct.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('dairy_products')
+              .insert([productData]);
+            if (error) throw error;
+          }
         } else {
-          const { error } = await supabase
-            .from(tableName)
-            .insert([productData]);
-
-          if (error) throw error;
+          throw new Error(`Category ${category} is not supported yet`);
         }
       }
 

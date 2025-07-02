@@ -30,10 +30,8 @@ export const useDynamicCategoryProducts = () => {
   const [productsByCategory, setProductsByCategory] = useState<Record<string, DynamicProduct[]>>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchProductsForCategory = async (categoryName: string) => {
+  const fetchProductsForCategory = async (categoryName: string): Promise<DynamicProduct[]> => {
     try {
-      const tableName = `${categoryName.toLowerCase().replace(/\s+/g, '_')}_products`;
-      
       // Special handling for fashion products (with sizes)
       if (categoryName.toLowerCase() === 'fashion') {
         const { data: fashionData, error: fashionError } = await supabase
@@ -61,24 +59,54 @@ export const useDynamicCategoryProducts = () => {
               ...product,
               sizes: sizesData || [],
               total_pieces: totalPieces
-            };
+            } as DynamicProduct;
           })
         );
 
         return productsWithSizes;
       } else {
-        // For other categories, try to fetch from their specific table
-        const { data, error } = await supabase
-          .from(tableName)
-          .select('*')
-          .order('name', { ascending: true });
-
-        if (error) {
-          console.error(`Error fetching ${categoryName} products:`, error);
+        // For other categories, use specific table queries
+        let data: any[] = [];
+        
+        if (categoryName.toLowerCase() === 'vegetables') {
+          const { data: vegData, error } = await supabase
+            .from('vegetable_products')
+            .select('*')
+            .order('name', { ascending: true });
+          if (error) throw error;
+          data = vegData || [];
+        } else if (categoryName.toLowerCase() === 'fruits') {
+          const { data: fruitData, error } = await supabase
+            .from('fruit_products')
+            .select('*')
+            .order('name', { ascending: true });
+          if (error) throw error;
+          data = fruitData || [];
+        } else if (categoryName.toLowerCase() === 'grains') {
+          const { data: grainData, error } = await supabase
+            .from('grain_products')
+            .select('*')
+            .order('name', { ascending: true });
+          if (error) throw error;
+          data = grainData || [];
+        } else if (categoryName.toLowerCase() === 'dairy') {
+          const { data: dairyData, error } = await supabase
+            .from('dairy_products')
+            .select('*')
+            .order('name', { ascending: true });
+          if (error) throw error;
+          data = dairyData || [];
+        } else {
+          // For new categories, try to use RPC function to query dynamically
+          console.log(`No specific handler for category: ${categoryName}`);
           return [];
         }
 
-        return data || [];
+        return data.map(item => ({
+          ...item,
+          quantity: item.quantity || 0,
+          unit: item.unit || 'piece'
+        })) as DynamicProduct[];
       }
     } catch (error) {
       console.error(`Error in fetchProductsForCategory for ${categoryName}:`, error);
