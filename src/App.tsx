@@ -21,11 +21,6 @@ import EmployeeLogin from '@/pages/EmployeeLogin';
 
 const queryClient = new QueryClient();
 
-// Simple wrapper component for protected routes
-const ProtectedWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
-};
-
 function App() {
   return (
     <AuthProvider>
@@ -37,78 +32,16 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 
-                {/* Employee/Admin Routes */}
-                <Route path="/dashboard" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/products" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <CategoryProducts />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/category-products" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <CategoryProducts />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/coupons" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Coupons />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/categories" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Categories />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/banners" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Banners />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/employees" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Employees />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-                
-                <Route path="/roles" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Roles />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
-
-                <Route path="/customers" element={
-                  <ProtectedWrapper>
-                    <Layout>
-                      <Customers />
-                    </Layout>
-                  </ProtectedWrapper>
-                } />
+                {/* Employee/Admin Routes with Layout */}
+                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="/products" element={<Layout><CategoryProducts /></Layout>} />
+                <Route path="/category-products" element={<Layout><CategoryProducts /></Layout>} />
+                <Route path="/coupons" element={<Layout><Coupons /></Layout>} />
+                <Route path="/categories" element={<Layout><Categories /></Layout>} />
+                <Route path="/banners" element={<Layout><Banners /></Layout>} />
+                <Route path="/employees" element={<Layout><Employees /></Layout>} />
+                <Route path="/roles" element={<Layout><Roles /></Layout>} />
+                <Route path="/customers" element={<Layout><Customers /></Layout>} />
 
                 {/* Authentication Routes */}
                 <Route path="/employee-login" element={<EmployeeLogin />} />
