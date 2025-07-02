@@ -1,30 +1,30 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from '@/components/ui/toaster';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Sidebar';
 
 // Import pages
 import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
-import Products from '@/pages/Products';
 import CategoryProducts from '@/pages/CategoryProducts';
 import Coupons from '@/pages/Coupons';
 import Categories from '@/pages/Categories';
 import Banners from '@/pages/Banners';
 import Employees from '@/pages/Employees';
 import Roles from '@/pages/Roles';
-import SettingsPage from '@/pages/SettingsPage';
-import Orders from '@/pages/Orders';
 import Customers from '@/pages/Customers';
-import Login from '@/pages/Login';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
+import EmployeeLogin from '@/pages/EmployeeLogin';
 
 const queryClient = new QueryClient();
+
+// Simple wrapper component for protected routes
+const ProtectedWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <>{children}</>;
+};
 
 function App() {
   return (
@@ -39,97 +39,79 @@ function App() {
                 
                 {/* Employee/Admin Routes */}
                 <Route path="/dashboard" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Dashboard />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/products" element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Products />
-                    </Layout>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/category-products" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <CategoryProducts />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
+                } />
+                
+                <Route path="/category-products" element={
+                  <ProtectedWrapper>
+                    <Layout>
+                      <CategoryProducts />
+                    </Layout>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/coupons" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Coupons />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/categories" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Categories />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/banners" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Banners />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/employees" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Employees />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
                 
                 <Route path="/roles" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Roles />
                     </Layout>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <SettingsPage />
-                    </Layout>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/orders" element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Orders />
-                    </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
 
                 <Route path="/customers" element={
-                  <ProtectedRoute>
+                  <ProtectedWrapper>
                     <Layout>
                       <Customers />
                     </Layout>
-                  </ProtectedRoute>
+                  </ProtectedWrapper>
                 } />
 
                 {/* Authentication Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/employee-login" element={<EmployeeLogin />} />
               </Routes>
             </div>
           </Router>
