@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,9 @@ const Products = () => {
 
   const loading = productsLoading || fashionLoading;
 
+  console.log('Fashion products in Products page:', fashionProducts);
+  console.log('Categories:', categories);
+
   // Combine all products based on selected category
   const getAllProducts = () => {
     if (selectedCategory === 'all') {
@@ -57,6 +59,7 @@ const Products = () => {
   };
 
   const allProducts = getAllProducts();
+  console.log('All products for display:', allProducts);
 
   const filteredProducts = allProducts.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -276,11 +279,10 @@ const Products = () => {
                 onClick={() => setSelectedCategory(category.name)}
                 className="flex items-center gap-1"
               >
-                {category.name === 'Fashion' && <Shirt className="h-3 w-3" />}
                 {category.name}
               </Button>
             ))}
-            {/* Add Fashion category button if there are fashion products */}
+            {/* Always add Fashion category button if there are fashion products */}
             {fashionProducts.length > 0 && (
               <Button
                 variant={selectedCategory === 'Fashion' ? 'default' : 'outline'}

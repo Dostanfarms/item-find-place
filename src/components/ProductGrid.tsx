@@ -13,21 +13,40 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, category }) => {
 
   // Combine all products - general products and fashion products
   const getAllProducts = () => {
+    console.log('Fashion products from hook:', fashionProducts);
+    console.log('General products:', products);
+    console.log('Selected category:', category);
+
     if (category === 'Fashion') {
       // Only show fashion products
-      return fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0));
+      const activeFashionProducts = fashionProducts.filter(p => 
+        p.is_active && p.sizes && p.sizes.some(s => s.pieces > 0)
+      );
+      console.log('Active fashion products:', activeFashionProducts);
+      return activeFashionProducts.map(p => ({ ...p, type: 'fashion' }));
     } else if (category && category !== 'all') {
       // Show only products from specific category (non-fashion)
-      return products.filter(p => p.category === category && p.is_active !== false && p.quantity > 0);
+      return products.filter(p => 
+        p.category === category && 
+        p.is_active !== false && 
+        p.quantity > 0
+      ).map(p => ({ ...p, type: 'general' }));
     } else {
       // Show all products - combine general and fashion
-      const activeGeneralProducts = products.filter(p => p.is_active !== false && p.quantity > 0);
-      const activeFashionProducts = fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0));
+      const activeGeneralProducts = products.filter(p => 
+        p.is_active !== false && p.quantity > 0
+      ).map(p => ({ ...p, type: 'general' }));
+      
+      const activeFashionProducts = fashionProducts.filter(p => 
+        p.is_active && p.sizes && p.sizes.some(s => s.pieces > 0)
+      ).map(p => ({ ...p, type: 'fashion' }));
+      
       return [...activeGeneralProducts, ...activeFashionProducts];
     }
   };
 
   const displayProducts = getAllProducts();
+  console.log('Display products:', displayProducts);
 
   if (displayProducts.length === 0) {
     return (
@@ -45,7 +64,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, category }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {displayProducts.map((product) => (
-        <ProductCard key={product.id} product={product} />
+        <ProductCard key={`${product.type}-${product.id}`} product={product} />
       ))}
     </div>
   );

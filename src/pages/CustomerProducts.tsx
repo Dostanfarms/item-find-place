@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,29 +25,40 @@ const CustomerProducts = () => {
   
   const loading = productsLoading || fashionLoading;
   
+  console.log('Fashion products in CustomerProducts:', fashionProducts);
+  console.log('General products in CustomerProducts:', products);
+  
   // Filter out inactive products
   const activeProducts = products.filter(product => product.is_active !== false && product.quantity > 0);
   const activeFashionProducts = fashionProducts.filter(product => 
-    product.is_active && product.sizes?.some(size => size.pieces > 0)
+    product.is_active && product.sizes && product.sizes.some(size => size.pieces > 0)
   );
   
   // Get all categories including Fashion
   const generalCategories = Array.from(new Set(activeProducts.map(p => p.category)));
   const categories = ['all', ...generalCategories];
-  if (activeFashionProducts.length > 0) {
+  
+  // Always add Fashion category if there are active fashion products
+  if (activeFashionProducts.length > 0 && !categories.includes('Fashion')) {
     categories.push('Fashion');
   }
+  
+  console.log('Available categories:', categories);
+  console.log('Active fashion products:', activeFashionProducts);
   
   // Combine and filter products based on search and category
   const getAllFilteredProducts = () => {
     let allProducts: any[] = [];
     
     if (selectedCategory === 'all') {
-      allProducts = [...activeProducts, ...activeFashionProducts];
+      allProducts = [
+        ...activeProducts.map(p => ({ ...p, type: 'general' })), 
+        ...activeFashionProducts.map(p => ({ ...p, type: 'fashion' }))
+      ];
     } else if (selectedCategory === 'Fashion') {
-      allProducts = activeFashionProducts;
+      allProducts = activeFashionProducts.map(p => ({ ...p, type: 'fashion' }));
     } else {
-      allProducts = activeProducts.filter(product => product.category === selectedCategory);
+      allProducts = activeProducts.filter(product => product.category === selectedCategory).map(p => ({ ...p, type: 'general' }));
     }
     
     // Apply search filter
@@ -58,6 +68,7 @@ const CustomerProducts = () => {
   };
 
   const filteredProducts = getAllFilteredProducts();
+  console.log('Filtered products:', filteredProducts);
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');

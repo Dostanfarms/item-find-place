@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -37,11 +36,15 @@ const CustomerHome = () => {
 
   const loading = productsLoading || fashionLoading;
 
+  console.log('Fashion products in CustomerHome:', fashionProducts);
+  
   // Combine all products for search
   const allProducts = [
-    ...products.filter(p => p.quantity > 0),
-    ...fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0))
+    ...products.filter(p => p.quantity > 0).map(p => ({ ...p, type: 'general' })),
+    ...fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).map(p => ({ ...p, type: 'fashion' }))
   ];
+
+  console.log('All products for display:', allProducts);
 
   // Filter products based on search term and availability
   const filteredProducts = allProducts.filter(product => {
@@ -112,18 +115,19 @@ const CustomerHome = () => {
                     {category.name}
                   </Button>
                 ))}
-                {/* Add Fashion category button if there are fashion products */}
-                {fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleCategoryClick('Fashion')} 
-                    className="text-xs hover:bg-green-50 hover:border-green-300"
-                  >
-                    Fashion
-                  </Button>
-                )}
               </>
+            )}
+            
+            {/* Always show Fashion category button if there are fashion products */}
+            {fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleCategoryClick('Fashion')} 
+                className="text-xs hover:bg-green-50 hover:border-green-300"
+              >
+                Fashion
+              </Button>
             )}
           </div>
         </div>

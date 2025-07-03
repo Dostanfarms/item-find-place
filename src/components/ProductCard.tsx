@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { toast } = useToast();
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
+
+  console.log('ProductCard received product:', product);
 
   const isFashionProduct = product.category === 'Fashion' || product.type === 'fashion';
   const isOutOfStock = isFashionProduct 
@@ -76,6 +77,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       type: isFashionProduct ? 'fashion' as const : 'general' as const,
       ...(isFashionProduct && { size: selectedSize })
     };
+
+    console.log('Adding to cart:', cartItem);
 
     addItem(cartItem);
     
