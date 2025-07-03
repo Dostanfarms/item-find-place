@@ -10,6 +10,7 @@ import {
   Filter
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
+import { useFashionProducts } from '@/hooks/useFashionProducts';
 import ProductGrid from '@/components/ProductGrid';
 import Cart from '@/components/Cart';
 import CustomerHeader from '@/components/CustomerHeader';
@@ -17,28 +18,52 @@ import CustomerHeader from '@/components/CustomerHeader';
 const CustomerProducts = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { products, loading } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
+  const { fashionProducts, loading: fashionLoading } = useFashionProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [customer, setCustomer] = useState<any>(null);
   
+  const loading = productsLoading || fashionLoading;
+  
   // Filter out inactive products
-  const activeProducts = products.filter(product => product.is_active !== false);
+  const activeProducts = products.filter(product => product.is_active !== false && product.quantity > 0);
+  const activeFashionProducts = fashionProducts.filter(product => 
+    product.is_active && product.sizes?.some(size => size.pieces > 0)
+  );
   
-  const categories = ['all', ...Array.from(new Set(activeProducts.map(p => p.category)))];
+  // Get all categories including Fashion
+  const generalCategories = Array.from(new Set(activeProducts.map(p => p.category)));
+  const categories = ['all', ...generalCategories];
+  if (activeFashionProducts.length > 0) {
+    categories.push('Fashion');
+  }
   
-  const filteredProducts = activeProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory && product.quantity > 0;
-  });
+  // Combine and filter products based on search and category
+  const getAllFilteredProducts = () => {
+    let allProducts: any[] = [];
+    
+    if (selectedCategory === 'all') {
+      allProducts = [...activeProducts, ...activeFashionProducts];
+    } else if (selectedCategory === 'Fashion') {
+      allProducts = activeFashionProducts;
+    } else {
+      allProducts = activeProducts.filter(product => product.category === selectedCategory);
+    }
+    
+    // Apply search filter
+    return allProducts.filter(product => 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const filteredProducts = getAllFilteredProducts();
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
     if (currentCustomer) {
       setCustomer(JSON.parse(currentCustomer));
     }
-    // Don't redirect to login if not authenticated - allow browsing
   }, []);
 
   // Handle category selection from navigation state
@@ -118,7 +143,7 @@ const CustomerProducts = () => {
           </div>
 
           {/* Products Grid */}
-          <ProductGrid products={filteredProducts} />
+          <ProductGrid products={filteredProducts} category={selectedCategory} />
         </div>
       </div>
 

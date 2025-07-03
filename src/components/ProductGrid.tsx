@@ -11,10 +11,23 @@ interface ProductGridProps {
 const ProductGrid: React.FC<ProductGridProps> = ({ products, category }) => {
   const { fashionProducts } = useFashionProducts();
 
-  // If category is Fashion, show fashion products, otherwise show general products
-  const displayProducts = category === 'Fashion' 
-    ? fashionProducts.filter(p => p.is_active)
-    : products.filter(p => p.is_active !== false);
+  // Combine all products - general products and fashion products
+  const getAllProducts = () => {
+    if (category === 'Fashion') {
+      // Only show fashion products
+      return fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0));
+    } else if (category && category !== 'all') {
+      // Show only products from specific category (non-fashion)
+      return products.filter(p => p.category === category && p.is_active !== false && p.quantity > 0);
+    } else {
+      // Show all products - combine general and fashion
+      const activeGeneralProducts = products.filter(p => p.is_active !== false && p.quantity > 0);
+      const activeFashionProducts = fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0));
+      return [...activeGeneralProducts, ...activeFashionProducts];
+    }
+  };
+
+  const displayProducts = getAllProducts();
 
   if (displayProducts.length === 0) {
     return (

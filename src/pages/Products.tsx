@@ -34,10 +34,10 @@ const Products = () => {
   const getAllProducts = () => {
     if (selectedCategory === 'all') {
       return [
-        ...products.map(p => ({ ...p, type: 'general' })),
+        ...products.map(p => ({ ...p, type: 'general' as const })),
         ...fashionProducts.map(p => ({ 
           ...p, 
-          type: 'fashion', 
+          type: 'fashion' as const, 
           totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
           quantity: undefined, // Fashion products don't have quantity
           unit: undefined // Fashion products don't have unit
@@ -46,13 +46,13 @@ const Products = () => {
     } else if (selectedCategory === 'Fashion') {
       return fashionProducts.map(p => ({ 
         ...p, 
-        type: 'fashion', 
+        type: 'fashion' as const, 
         totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
         quantity: undefined,
         unit: undefined
       }));
     } else {
-      return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' }));
+      return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' as const }));
     }
   };
 
@@ -280,6 +280,18 @@ const Products = () => {
                 {category.name}
               </Button>
             ))}
+            {/* Add Fashion category button if there are fashion products */}
+            {fashionProducts.length > 0 && (
+              <Button
+                variant={selectedCategory === 'Fashion' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory('Fashion')}
+                className="flex items-center gap-1"
+              >
+                <Shirt className="h-3 w-3" />
+                Fashion
+              </Button>
+            )}
           </div>
         </div>
       </div>

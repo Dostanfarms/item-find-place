@@ -387,7 +387,7 @@ export type Database = {
           created_at?: string
           fashion_product_id: string
           id?: string
-          pieces?: number
+          pieces: number
           size: string
           updated_at?: string
         }
