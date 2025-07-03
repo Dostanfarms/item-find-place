@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface FashionProductSize {
   id: string;
   fashion_product_id: string;
-  size: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  size: string; // Changed from strict union to string
   pieces: number;
   created_at: string;
   updated_at: string;

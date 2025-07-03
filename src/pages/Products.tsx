@@ -35,10 +35,22 @@ const Products = () => {
     if (selectedCategory === 'all') {
       return [
         ...products.map(p => ({ ...p, type: 'general' })),
-        ...fashionProducts.map(p => ({ ...p, type: 'fashion', totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0 }))
+        ...fashionProducts.map(p => ({ 
+          ...p, 
+          type: 'fashion', 
+          totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
+          quantity: undefined, // Fashion products don't have quantity
+          unit: undefined // Fashion products don't have unit
+        }))
       ];
     } else if (selectedCategory === 'Fashion') {
-      return fashionProducts.map(p => ({ ...p, type: 'fashion', totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0 }));
+      return fashionProducts.map(p => ({ 
+        ...p, 
+        type: 'fashion', 
+        totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
+        quantity: undefined,
+        unit: undefined
+      }));
     } else {
       return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' }));
     }
@@ -339,21 +351,21 @@ const Products = () => {
                           {product.type === 'fashion' ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span>{product.totalPieces} pieces</span>
-                                {product.totalPieces < 10 && (
+                                <span>{(product as any).totalPieces} pieces</span>
+                                {(product as any).totalPieces < 10 && (
                                   <Badge variant="destructive" className="text-xs">
                                     Low Stock
                                   </Badge>
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {product.sizes?.map(s => `${s.size}: ${s.pieces}`).join(', ')}
+                                {(product as any).sizes?.map((s: any) => `${s.size}: ${s.pieces}`).join(', ')}
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span>{product.quantity} {product.unit}</span>
-                              {product.quantity < 10 && (
+                              <span>{(product as any).quantity} {(product as any).unit}</span>
+                              {(product as any).quantity < 10 && (
                                 <Badge variant="destructive" className="text-xs">
                                   Low Stock
                                 </Badge>

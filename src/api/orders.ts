@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/contexts/CartContext";
 
@@ -94,30 +95,46 @@ export async function placeOrder(payload: OrderPayload) {
   // Update stock for fashion products
   for (const item of items) {
     if (item.type === 'fashion' && item.size && item.productId) {
-      const { error: updateError } = await supabase
+      // Get current pieces count
+      const { data: currentData } = await supabase
         .from('fashion_product_sizes')
-        .update({ 
-          pieces: supabase.sql`pieces - ${item.quantity}` 
-        })
+        .select('pieces')
         .eq('fashion_product_id', item.productId)
-        .eq('size', item.size);
+        .eq('size', item.size)
+        .single();
 
-      if (updateError) {
-        console.error('Error updating fashion product stock:', updateError);
-        // Don't fail the order, but log the error
+      if (currentData) {
+        const newPieces = currentData.pieces - item.quantity;
+        const { error: updateError } = await supabase
+          .from('fashion_product_sizes')
+          .update({ pieces: Math.max(0, newPieces) })
+          .eq('fashion_product_id', item.productId)
+          .eq('size', item.size);
+
+        if (updateError) {
+          console.error('Error updating fashion product stock:', updateError);
+          // Don't fail the order, but log the error
+        }
       }
     } else if (item.type === 'general' && item.productId) {
-      // Update general product stock
-      const { error: updateError } = await supabase
+      // Get current quantity
+      const { data: currentData } = await supabase
         .from('products')
-        .update({ 
-          quantity: supabase.sql`quantity - ${item.quantity}` 
-        })
-        .eq('id', item.productId);
+        .select('quantity')
+        .eq('id', item.productId)
+        .single();
 
-      if (updateError) {
-        console.error('Error updating general product stock:', updateError);
-        // Don't fail the order, but log the error
+      if (currentData) {
+        const newQuantity = currentData.quantity - item.quantity;
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ quantity: Math.max(0, newQuantity) })
+          .eq('id', item.productId);
+
+        if (updateError) {
+          console.error('Error updating general product stock:', updateError);
+          // Don't fail the order, but log the error
+        }
       }
     }
   }
