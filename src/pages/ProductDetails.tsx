@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductSizes } from '@/hooks/useProductSizes';
+import { useFashionProducts } from '@/hooks/useFashionProducts';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import CustomerHeader from '@/components/CustomerHeader';
@@ -26,6 +27,7 @@ const ProductDetails = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { products, loading } = useProducts();
+  const { fashionProducts, loading: fashionLoading } = useFashionProducts();
   const { fetchProductSizes } = useProductSizes();
   const { addToCart, items } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -34,14 +36,19 @@ const ProductDetails = () => {
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
   const [sizesLoading, setSizesLoading] = useState(false);
 
-  const product = products.find(p => p.id === productId);
+  // Find product in either general products or fashion products
+  const generalProduct = products.find(p => p.id === productId);
+  const fashionProduct = fashionProducts.find(p => p.id === productId);
+  const product = generalProduct || fashionProduct;
+  const isFashionProduct = !!fashionProduct;
   
   // Get similar products (same category, excluding current product)
-  const similarProducts = products.filter(p => 
+  const allProducts = [...products, ...fashionProducts];
+  const similarProducts = allProducts.filter(p => 
     p.category === product?.category && 
     p.id !== productId && 
     p.is_active !== false &&
-    p.quantity > 0
+    (isFashionProduct ? (p as any).sizes?.some((s: any) => s.pieces > 0) : (p as any).quantity > 0)
   ).slice(0, 8);
 
   useEffect(() => {
@@ -53,24 +60,40 @@ const ProductDetails = () => {
 
   // Load sizes for Fashion products
   useEffect(() => {
-    if (product && product.category === 'Fashion') {
+    if (product && isFashionProduct && fashionProduct?.sizes) {
+      // Convert fashion product sizes to the expected format
+      const convertedSizes = fashionProduct.sizes.map(size => ({
+        size: size.size,
+        pieces: size.pieces
+      }));
+      setSizesLoading(false);
+      // Auto-select first available size
+      const availableSize = convertedSizes.find(s => s.pieces > 0);
+      if (availableSize) {
+        setSelectedSize(availableSize.size);
+      }
+    } else if (product && product.category === 'Fashion' && !isFashionProduct) {
+      // Handle general products with Fashion category using product_sizes table
       setSizesLoading(true);
       fetchProductSizes(product.id).then(sizes => {
-        setProductSizes(sizes);
+        const convertedSizes = sizes.map(size => ({
+          size: size.size,
+          pieces: size.quantity
+        }));
         setSizesLoading(false);
         // Auto-select first available size
-        const availableSize = sizes.find(s => s.quantity > 0);
+        const availableSize = convertedSizes.find(s => s.pieces > 0);
         if (availableSize) {
           setSelectedSize(availableSize.size);
         }
       });
     } else {
-      setProductSizes([]);
+      setSizesLoading(false);
       setSelectedSize('');
     }
-  }, [product, fetchProductSizes]);
+  }, [product, isFashionProduct, fashionProduct, fetchProductSizes]);
 
-  if (loading) {
+  if (loading || fashionLoading) {
     return (
       <div className="min-h-screen bg-muted/30">
         <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
@@ -121,24 +144,24 @@ const ProductDetails = () => {
 
   // Check if product is available
   const isProductAvailable = () => {
-    if (product.category === 'Fashion') {
-      return productSizes.some(size => size.quantity > 0);
+    if (isFashionProduct && fashionProduct?.sizes) {
+      return fashionProduct.sizes.some(size => size.pieces > 0);
     }
-    return product.quantity > 0;
+    return (product as any).quantity > 0;
   };
 
   // Get available quantity for selected size (Fashion) or product quantity
   const getAvailableQuantity = () => {
-    if (product.category === 'Fashion' && selectedSize) {
-      const sizeData = productSizes.find(s => s.size === selectedSize);
-      return sizeData?.quantity || 0;
+    if (isFashionProduct && fashionProduct?.sizes && selectedSize) {
+      const sizeData = fashionProduct.sizes.find(s => s.size === selectedSize);
+      return sizeData?.pieces || 0;
     }
-    return product.quantity;
+    return (product as any).quantity || 0;
   };
 
   const handleAddToCart = () => {
     try {
-      if (product.category === 'Fashion' && !selectedSize) {
+      if (isFashionProduct && !selectedSize) {
         toast({
           title: "Please select a size",
           description: "Please select a size before adding to cart.",
@@ -152,11 +175,12 @@ const ProductDetails = () => {
         name: product.name,
         quantity: 1,
         pricePerUnit: Number(product.price_per_unit),
-        unit: product.unit,
+        unit: isFashionProduct ? 'piece' : (product as any).unit,
         category: product.category,
         farmerId: '',
         imageUrl: images[0],
-        size: product.category === 'Fashion' ? selectedSize : undefined
+        size: isFashionProduct ? selectedSize : undefined,
+        type: isFashionProduct ? 'fashion' : 'general'
       });
       
       toast({
@@ -193,6 +217,14 @@ const ProductDetails = () => {
 
   const productAvailable = isProductAvailable();
   const availableQuantity = getAvailableQuantity();
+
+  // Convert fashion product sizes to the format expected by SizeSelector
+  const sizesForSelector = isFashionProduct && fashionProduct?.sizes 
+    ? fashionProduct.sizes.map(size => ({
+        size: size.size,
+        pieces: size.pieces
+      }))
+    : [];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -305,7 +337,7 @@ const ProductDetails = () => {
                   <span className="text-4xl font-bold text-green-600">
                     ₹{Number(product.price_per_unit).toFixed(2)}
                   </span>
-                  <span className="text-lg text-gray-500">per {product.unit}</span>
+                  <span className="text-lg text-gray-500">per {isFashionProduct ? 'piece' : (product as any).unit}</span>
                 </div>
 
                 <div className="mb-6">
@@ -315,21 +347,21 @@ const ProductDetails = () => {
                       : 'bg-red-100 text-red-800'
                   }`}>
                     {productAvailable ? (
-                      product.category === 'Fashion' && productSizes.length > 0 
+                      isFashionProduct && sizesForSelector.length > 0 
                         ? 'Available in multiple sizes' 
-                        : `${product.quantity} ${product.unit} available`
+                        : `${availableQuantity} ${isFashionProduct ? 'pieces' : (product as any).unit} available`
                     ) : 'Out of stock'}
                   </span>
                 </div>
 
                 {/* Size Selection for Fashion Category */}
-                {product.category === 'Fashion' && (
+                {isFashionProduct && (
                   <div className="mb-6">
                     {sizesLoading ? (
                       <div className="text-sm text-muted-foreground">Loading sizes...</div>
                     ) : (
                       <SizeSelector
-                        sizes={productSizes}
+                        sizes={sizesForSelector}
                         selectedSize={selectedSize}
                         onSizeSelect={setSelectedSize}
                         disabled={!productAvailable}
@@ -353,7 +385,7 @@ const ProductDetails = () => {
               <div className="space-y-4">
                 <Button 
                   onClick={handleAddToCart}
-                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
+                  disabled={!productAvailable || (isFashionProduct && !selectedSize)}
                   className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-lg"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
@@ -362,7 +394,7 @@ const ProductDetails = () => {
                 
                 <Button 
                   onClick={handleBuyNow}
-                  disabled={!productAvailable || (product.category === 'Fashion' && !selectedSize)}
+                  disabled={!productAvailable || (isFashionProduct && !selectedSize)}
                   variant="outline"
                   className="w-full border-green-600 text-green-600 hover:bg-green-50 h-12 text-lg"
                 >
