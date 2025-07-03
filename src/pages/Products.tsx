@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { Search, Plus, Package, Edit, Printer } from 'lucide-react';
+import { useFashionProducts } from '@/hooks/useFashionProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { Search, Plus, Package, Edit, Printer, Shirt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import GeneralProductForm from '@/components/GeneralProductForm';
+import FashionProductForm from '@/components/FashionProductForm';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 
@@ -16,17 +19,39 @@ const Products = () => {
   const { toast } = useToast();
   const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
+  const [selectedFashionProduct, setSelectedFashionProduct] = useState<any>(undefined);
   
-  const { products, loading } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
+  const { fashionProducts, loading: fashionLoading } = useFashionProducts();
+  const { categories } = useCategories();
 
-  const filteredProducts = products.filter(product => 
+  const loading = productsLoading || fashionLoading;
+
+  // Combine all products based on selected category
+  const getAllProducts = () => {
+    if (selectedCategory === 'all') {
+      return [
+        ...products.map(p => ({ ...p, type: 'general' })),
+        ...fashionProducts.map(p => ({ ...p, type: 'fashion', totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0 }))
+      ];
+    } else if (selectedCategory === 'Fashion') {
+      return fashionProducts.map(p => ({ ...p, type: 'fashion', totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0 }));
+    } else {
+      return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' }));
+    }
+  };
+
+  const allProducts = getAllProducts();
+
+  const filteredProducts = allProducts.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: any) => {
     if (!hasPermission('products', 'edit')) {
       toast({
         title: "Access Denied",
@@ -35,7 +60,11 @@ const Products = () => {
       });
       return;
     }
-    setSelectedProduct(product);
+    if (product.type === 'fashion') {
+      setSelectedFashionProduct(product);
+    } else {
+      setSelectedProduct(product);
+    }
     setShowForm(true);
   };
 
@@ -48,16 +77,22 @@ const Products = () => {
       });
       return;
     }
-    setSelectedProduct(undefined);
+    
+    if (selectedCategory === 'Fashion') {
+      setSelectedFashionProduct(undefined);
+    } else {
+      setSelectedProduct(undefined);
+    }
     setShowForm(true);
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
     setSelectedProduct(undefined);
+    setSelectedFashionProduct(undefined);
   };
 
-  const printBarcode = (product: Product) => {
+  const printBarcode = (product: any) => {
     if (!hasPermission('products', 'view')) {
       toast({
         title: "Access Denied",
@@ -112,7 +147,7 @@ const Products = () => {
             <div class="barcode-container">
               <div class="product-info">
                 <span>${product.name}</span>
-                <span>${product.quantity} ${product.unit}</span>
+                <span>${product.type === 'fashion' ? `${product.totalPieces} pieces` : `${product.quantity} ${product.unit}`}</span>
               </div>
               <svg id="barcode" class="barcode-image"></svg>
             </div>
@@ -161,12 +196,21 @@ const Products = () => {
 
   // Show form if requested
   if (showForm) {
-    return (
-      <GeneralProductForm 
-        onCancel={handleCloseForm}
-        editProduct={selectedProduct}
-      />
-    );
+    if (selectedCategory === 'Fashion' || selectedFashionProduct) {
+      return (
+        <FashionProductForm 
+          onCancel={handleCloseForm}
+          editProduct={selectedFashionProduct}
+        />
+      );
+    } else {
+      return (
+        <GeneralProductForm 
+          onCancel={handleCloseForm}
+          editProduct={selectedProduct}
+        />
+      );
+    }
   }
 
   if (loading) {
@@ -196,10 +240,34 @@ const Products = () => {
               </div>
               <ProtectedAction resource="products" action="create">
                 <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Product
+                  <Plus className="mr-2 h-4 w-4" /> 
+                  {selectedCategory === 'Fashion' ? 'Add Fashion Product' : 'Add Product'}
                 </Button>
               </ProtectedAction>
             </div>
+          </div>
+          
+          {/* Category Filter Buttons */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              variant={selectedCategory === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedCategory('all')}
+            >
+              All Categories
+            </Button>
+            {categories.filter(cat => cat.is_active).map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.name ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory(category.name)}
+                className="flex items-center gap-1"
+              >
+                {category.name === 'Fashion' && <Shirt className="h-3 w-3" />}
+                {category.name}
+              </Button>
+            ))}
           </div>
         </div>
       </div>
@@ -228,7 +296,14 @@ const Products = () => {
         ) : (
           <Card className="border shadow-sm">
             <CardHeader className="bg-gray-50 border-b">
-              <CardTitle className="text-xl">Product Inventory</CardTitle>
+              <CardTitle className="text-xl">
+                Product Inventory 
+                {selectedCategory !== 'all' && (
+                  <span className="text-base font-normal text-muted-foreground ml-2">
+                    - {selectedCategory} ({filteredProducts.length})
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -237,7 +312,7 @@ const Products = () => {
                     <TableRow>
                       <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
                       <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
-                      <TableHead className="min-w-[80px] font-semibold">Quantity</TableHead>
+                      <TableHead className="min-w-[80px] font-semibold">Stock</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
                       <TableHead className="min-w-[140px] font-semibold">Barcode</TableHead>
@@ -248,8 +323,11 @@ const Products = () => {
                     {filteredProducts.map((product) => (
                       <TableRow key={product.id} className="hover:bg-gray-50 border-b">
                         <TableCell className="font-medium">
-                          <div className="max-w-[150px] truncate" title={product.name}>
-                            {product.name}
+                          <div className="flex items-center gap-2">
+                            {product.type === 'fashion' && <Shirt className="h-4 w-4 text-purple-600" />}
+                            <div className="max-w-[150px] truncate" title={product.name}>
+                              {product.name}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -258,7 +336,30 @@ const Products = () => {
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {product.quantity} {product.unit}
+                          {product.type === 'fashion' ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span>{product.totalPieces} pieces</span>
+                                {product.totalPieces < 10 && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Low Stock
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {product.sizes?.map(s => `${s.size}: ${s.pieces}`).join(', ')}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span>{product.quantity} {product.unit}</span>
+                              {product.quantity < 10 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Low Stock
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           ₹{product.price_per_unit}
