@@ -71,10 +71,11 @@ export async function placeOrder(payload: OrderPayload) {
 
   console.log('Order created successfully:', order);
 
-  // Insert each item to order_items
+  // Insert each item to order_items - handle fashion products differently
   const itemsToInsert = items.map((item) => ({
     order_id: order.id,
-    product_id: item.productId || null,
+    // Only set product_id for general products, leave null for fashion products
+    product_id: item.type === 'general' ? item.productId : null,
     name: item.name,
     price_per_unit: item.pricePerUnit,
     quantity: item.quantity,
