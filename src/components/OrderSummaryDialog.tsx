@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { fetchOrderItems } from "@/api/orders";
 import { toast } from "@/hooks/use-toast";
-import { Printer } from "lucide-react";
+import { Printer, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Order {
@@ -88,19 +88,65 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ProductItem[]>([]);
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
+  const [productDetails, setProductDetails] = useState<any[]>([]);
 
   const invoiceRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to get product images
+  const getProductImages = (imageUrl?: string): string[] => {
+    if (!imageUrl) return [];
+    
+    try {
+      const parsed = JSON.parse(imageUrl);
+      return Array.isArray(parsed) ? parsed : [imageUrl];
+    } catch {
+      return [imageUrl];
+    }
+  };
 
   // Fetch products and customer info when dialog opens or order changes
   useEffect(() => {
     if (open && order?.id) {
       setLoading(true);
-      fetchOrderItems(order.id).then(({ items, error }) => {
+      fetchOrderItems(order.id).then(async ({ items, error }) => {
         if (error) {
           toast({ title: "Error loading order items", description: error.message, variant: "destructive" });
           setItems([]);
         } else {
           setItems(items || []);
+          
+          // Fetch product details for images
+          const productPromises = (items || []).map(async (item) => {
+            if (!item.product_id) return { ...item, images: [] };
+            
+            // Try different product tables based on category
+            let productData = null;
+            const category = item.category?.toLowerCase();
+            
+            if (category === 'fashion') {
+              const { data } = await supabase
+                .from('fashion_products')
+                .select('image_url')
+                .eq('id', item.product_id)
+                .single();
+              productData = data;
+            } else {
+              const { data } = await supabase
+                .from('products')
+                .select('image_url')
+                .eq('id', item.product_id)
+                .single();
+              productData = data;
+            }
+            
+            return {
+              ...item,
+              images: getProductImages(productData?.image_url)
+            };
+          });
+          
+          const productsWithImages = await Promise.all(productPromises);
+          setProductDetails(productsWithImages);
         }
         setLoading(false);
       });
@@ -231,14 +277,35 @@ const OrderSummaryDialog: React.FC<OrderSummaryDialogProps> = ({
                 {items.length === 0 ? (
                   <div className="text-center p-3 text-muted-foreground">No items found</div>
                 ) : (
-                  items.map(item => (
-                    <div key={item.id} className="flex justify-between items-center p-2 border rounded">
-                      <div>
+                  productDetails.map(item => (
+                    <div key={item.id} className="flex items-center gap-3 p-2 border rounded">
+                      {/* Product Image */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded overflow-hidden flex-shrink-0">
+                        {item.images && item.images.length > 0 ? (
+                          <img 
+                            src={item.images[0]} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sm">
+                            {item.category === 'Vegetables' && '🥬'}
+                            {item.category === 'Fruits' && '🍎'}
+                            {item.category === 'Grains' && '🌾'}
+                            {item.category === 'Dairy' && '🥛'}
+                            {item.category === 'Fashion' && '👕'}
+                            {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-4 w-4 text-green-600" />}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1">
                         <div className="font-medium">{item.name}</div>
                         <div className="text-sm text-muted-foreground">
                           {item.quantity} {item.unit} × ₹{Number(item.price_per_unit).toFixed(2)}
                         </div>
                       </div>
+                      
                       <div className="font-medium">
                         ₹{Number(item.price_per_unit * item.quantity).toFixed(2)}
                       </div>

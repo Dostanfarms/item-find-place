@@ -33,6 +33,18 @@ const Cart = () => {
     navigate('/customer-payment');
   };
 
+  // Helper function to get product images
+  const getProductImages = (imageUrl?: string): string[] => {
+    if (!imageUrl) return [];
+    
+    try {
+      const parsed = JSON.parse(imageUrl);
+      return Array.isArray(parsed) ? parsed : [imageUrl];
+    } catch {
+      return [imageUrl];
+    }
+  };
+
   return (
     <>
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -72,78 +84,82 @@ const Cart = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {items.map((item, index) => (
-                    <div key={`${item.productId}-${item.size || 'no-size'}-${index}`} className="flex items-center gap-4 p-4 border rounded-lg">
-                      {/* Product Image */}
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.imageUrl ? (
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">
-                            {item.category === 'Vegetables' && '🥬'}
-                            {item.category === 'Fruits' && '🍎'}
-                            {item.category === 'Grains' && '🌾'}
-                            {item.category === 'Dairy' && '🥛'}
-                            {item.category === 'Fashion' && '👕'}
-                            {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-6 w-6 text-green-600" />}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm truncate">{item.name}</h3>
-                        <p className="text-xs text-gray-500">{item.category}</p>
-                        {item.size && (
-                          <p className="text-xs text-blue-600">Size: {item.size}</p>
-                        )}
-                        <p className="text-sm font-semibold text-green-600">
-                          ₹{item.pricePerUnit.toFixed(2)} / {item.unit}
-                        </p>
-                        <p className="text-sm font-bold text-gray-900">
-                          Total: ₹{(item.pricePerUnit * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          
-                          <Badge variant="secondary" className="min-w-[2rem] text-center">
-                            {item.quantity}
-                          </Badge>
-                          
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                  {items.map((item, index) => {
+                    const images = getProductImages(item.imageUrl);
+                    
+                    return (
+                      <div key={`${item.productId}-${item.size || 'no-size'}-${index}`} className="flex items-center gap-4 p-4 border rounded-lg">
+                        {/* Product Image */}
+                        <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
+                          {images.length > 0 ? (
+                            <img 
+                              src={images[0]} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-lg">
+                              {item.category === 'Vegetables' && '🥬'}
+                              {item.category === 'Fruits' && '🍎'}
+                              {item.category === 'Grains' && '🌾'}
+                              {item.category === 'Dairy' && '🥛'}
+                              {item.category === 'Fashion' && '👕'}
+                              {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-6 w-6 text-green-600" />}
+                            </div>
+                          )}
                         </div>
                         
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-700"
-                          onClick={() => removeFromCart(item.productId!, item.size)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm truncate">{item.name}</h3>
+                          <p className="text-xs text-gray-500">{item.category}</p>
+                          {item.size && (
+                            <p className="text-xs text-blue-600 font-medium">Size: {item.size}</p>
+                          )}
+                          <p className="text-sm font-semibold text-green-600">
+                            ₹{item.pricePerUnit.toFixed(2)} / {item.unit}
+                          </p>
+                          <p className="text-sm font-bold text-gray-900">
+                            Total: ₹{(item.pricePerUnit * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            
+                            <Badge variant="secondary" className="min-w-[2rem] text-center">
+                              {item.quantity}
+                            </Badge>
+                            
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                            onClick={() => removeFromCart(item.productId!, item.size)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
