@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { 
   ArrowLeft, 
   MessageSquare, 
@@ -12,18 +14,24 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  User,
+  LogOut,
+  Ticket,
+  ShoppingCart,
+  Package
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTickets } from '@/hooks/useTickets';
-import CustomerHeader from '@/components/CustomerHeader';
 import TicketDialog from '@/components/ticket/TicketDialog';
+import { useCart } from '@/contexts/CartContext';
 
 const CustomerTicketHistory = () => {
   const navigate = useNavigate();
   const { tickets, loading, refreshTickets } = useTickets();
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
   const [customer, setCustomer] = useState<any>(null);
+  const { totalItems, setIsCartOpen } = useCart();
 
   useEffect(() => {
     const currentCustomer = localStorage.getItem('currentCustomer');
@@ -74,13 +82,74 @@ const CustomerTicketHistory = () => {
     setIsTicketDialogOpen(false);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('currentCustomer');
+    setCustomer(null);
+    navigate('/customer-login');
+  };
+
   if (!customer) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b p-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/customer-home')}>
+            <Package className="h-6 w-6 text-agri-primary" />
+            <span className="text-lg font-bold">Dostan Mart</span>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">{customer.name}</span>
+            
+            {/* Cart Icon */}
+            <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <Badge className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[1.25rem] h-5 flex items-center justify-center text-xs rounded-full px-1">
+                  {totalItems}
+                </Badge>
+              )}
+            </Button>
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={customer.profile_photo} alt={customer.name} />
+                    <AvatarFallback>
+                      {customer.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem onClick={() => navigate('/customer-profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>My Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/customer-tickets')}>
+                  <Ticket className="mr-2 h-4 w-4" />
+                  <span>Support Tickets</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/customer-orders')}>
+                  <Package className="mr-2 h-4 w-4" />
+                  <span>My Orders</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
       
       <div className="pt-20 p-4">
         <div className="max-w-4xl mx-auto">
@@ -145,7 +214,7 @@ const CustomerTicketHistory = () => {
                       <div className="space-y-1">
                         <CardTitle className="text-lg">
                           Ticket #{ticket.id.slice(-8)}
-                        </div>
+                        </CardTitle>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           <span>
