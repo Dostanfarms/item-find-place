@@ -253,7 +253,7 @@ const ProductDetails = () => {
                     <img 
                       src={images[currentImageIndex]} 
                       alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                     
                     {hasMultipleImages && (

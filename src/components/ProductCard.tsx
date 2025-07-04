@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Shirt, AlertTriangle, Eye } from 'lucide-react';
+import { ShoppingCart, Shirt, AlertTriangle, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SizeSelector from './SizeSelector';
 
@@ -18,7 +18,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState<string>('');
-  const [quantity, setQuantity] = useState(1);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   console.log('ProductCard received product:', product);
 
@@ -52,15 +52,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         return;
       }
 
-      if (selectedSizeData.pieces < quantity) {
-        toast({
-          title: "Insufficient Stock",
-          description: `Only ${selectedSizeData.pieces} pieces available for size ${selectedSize}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
       if (selectedSizeData.pieces < 10) {
         toast({
           title: "Low Stock Alert",
@@ -74,7 +65,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       productId: product.id,
       name: product.name,
       pricePerUnit: product.price_per_unit,
-      quantity,
+      quantity: 1,
       unit: isFashionProduct ? 'piece' : product.unit,
       category: product.category,
       type: isFashionProduct ? 'fashion' as const : 'general' as const,
@@ -92,22 +83,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
     // Reset selections
     setSelectedSize('');
-    setQuantity(1);
   };
 
   const handleViewDetails = () => {
     navigate(`/product/${product.id}`);
   };
 
-  const getImageUrl = () => {
-    if (!product.image_url) return '/placeholder.svg';
+  const getProductImages = (): string[] => {
+    if (!product.image_url) return [];
     
     try {
       const parsed = JSON.parse(product.image_url);
-      return Array.isArray(parsed) ? parsed[0] : product.image_url;
+      return Array.isArray(parsed) ? parsed : [product.image_url];
     } catch {
-      return product.image_url;
+      return [product.image_url];
     }
+  };
+
+  const images = getProductImages();
+  const hasMultipleImages = images.length > 1;
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   const shouldShowStockInfo = () => {
@@ -121,16 +122,61 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Card className="h-full flex flex-col transition-all duration-200 hover:shadow-lg">
       <div className="relative">
-        <div className="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100">
-          <img
-            src={getImageUrl()}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
-          />
+        <div className="w-full h-64 overflow-hidden rounded-t-lg bg-gray-100">
+          {images.length > 0 ? (
+            <>
+              <img
+                src={images[currentImageIndex]}
+                alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                className="w-full h-full object-contain transition-transform duration-200 hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
+              
+              {hasMultipleImages && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                    {images.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📦</div>
+                <div className="text-sm">No Image</div>
+              </div>
+            </div>
+          )}
         </div>
+        
         {isFashionProduct && (
           <Badge className="absolute top-2 left-2 bg-purple-600">
             <Shirt className="h-3 w-3 mr-1" />
@@ -188,45 +234,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
 
         <div className="mt-auto space-y-3">
-          <Button
-            onClick={handleViewDetails}
-            variant="outline"
-            className="w-full"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            View Details
-          </Button>
-
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <Button
+              onClick={handleViewDetails}
               variant="outline"
-              size="sm"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
+              className="flex-1"
             >
-              -
+              <Eye className="h-4 w-4 mr-2" />
+              View Details
             </Button>
-            <span className="px-3 py-1 border rounded text-center min-w-[50px]">
-              {quantity}
-            </span>
+            
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity(quantity + 1)}
-              disabled={isOutOfStock}
+              onClick={handleAddToCart}
+              disabled={isOutOfStock || (isFashionProduct && !selectedSize)}
+              className="flex-1 bg-agri-primary hover:bg-agri-secondary"
             >
-              +
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             </Button>
           </div>
-          
-          <Button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || (isFashionProduct && !selectedSize)}
-            className="w-full bg-agri-primary hover:bg-agri-secondary"
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-          </Button>
         </div>
       </CardContent>
     </Card>
