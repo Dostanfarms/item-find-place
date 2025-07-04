@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -19,7 +18,9 @@ interface TicketFormProps {
     user_contact: string;
     message: string;
     status: string;
-    attachment_url?: string;
+    assigned_to?: string | null;
+    resolution?: string | null;
+    attachment_url?: string | null;
   }) => void;
   onCancel: () => void;
 }
@@ -37,6 +38,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
   const [attachment, setAttachment] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -113,7 +115,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!message.trim()) {
@@ -125,23 +127,48 @@ const TicketForm: React.FC<TicketFormProps> = ({
       return;
     }
 
-    const newTicket = {
-      user_id: userId,
-      user_type: userType,
-      user_name: userName,
-      user_contact: userContact,
-      message,
-      status: 'pending',
-      attachment_url: attachment || undefined
-    };
+    if (!userId || !userName || !userContact) {
+      toast({
+        title: "Missing Information",
+        description: "User information is incomplete. Please try logging in again.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    console.log('Submitting ticket:', newTicket);
-    onSubmit(newTicket);
-    
-    // Reset form
-    setMessage('');
-    setAttachment(null);
-    setAttachmentName('');
+    setIsSubmitting(true);
+
+    try {
+      const newTicket = {
+        user_id: userId,
+        user_type: userType,
+        user_name: userName,
+        user_contact: userContact,
+        message: message.trim(),
+        status: 'pending',
+        assigned_to: null,
+        resolution: null,
+        attachment_url: attachment || null
+      };
+
+      console.log('Submitting ticket with data:', newTicket);
+      
+      await onSubmit(newTicket);
+      
+      // Reset form only after successful submission
+      setMessage('');
+      setAttachment(null);
+      setAttachmentName('');
+    } catch (error) {
+      console.error('Error submitting ticket:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit ticket. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -156,7 +183,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">Message *</Label>
             <div className="relative">
               <Textarea 
                 id="message" 
@@ -164,6 +191,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="min-h-[120px]"
+                required
               />
               <Button
                 type="button"
@@ -171,6 +199,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
                 variant={isRecording ? "destructive" : "outline"}
                 className="absolute bottom-2 right-2"
                 onClick={isRecording ? stopRecording : startRecording}
+                disabled={isSubmitting}
               >
                 {isRecording ? <MicOff className="h-4 w-4 mr-1" /> : <Mic className="h-4 w-4 mr-1" />}
                 {isRecording ? "Stop" : "Voice"}
@@ -219,11 +248,19 @@ const TicketForm: React.FC<TicketFormProps> = ({
         </CardContent>
         
         <CardFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit">
-            Submit Ticket
+          <Button 
+            type="submit"
+            disabled={isSubmitting || !message.trim()}
+          >
+            {isSubmitting ? "Submitting..." : "Submit Ticket"}
           </Button>
         </CardFooter>
       </form>

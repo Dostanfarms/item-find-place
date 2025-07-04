@@ -36,11 +36,18 @@ const ProductDetails = () => {
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
   const [sizesLoading, setSizesLoading] = useState(false);
 
+  console.log('ProductDetails - productId:', productId);
+  console.log('ProductDetails - products:', products);
+  console.log('ProductDetails - fashionProducts:', fashionProducts);
+
   // Find product in either general products or fashion products
   const generalProduct = products.find(p => p.id === productId);
   const fashionProduct = fashionProducts.find(p => p.id === productId);
   const product = generalProduct || fashionProduct;
   const isFashionProduct = !!fashionProduct;
+  
+  console.log('ProductDetails - found product:', product);
+  console.log('ProductDetails - isFashionProduct:', isFashionProduct);
   
   // Get similar products (same category, excluding current product)
   const allProducts = [...products, ...fashionProducts];
@@ -48,7 +55,7 @@ const ProductDetails = () => {
     p.category === product?.category && 
     p.id !== productId && 
     p.is_active !== false &&
-    (isFashionProduct ? (p as any).sizes?.some((s: any) => s.pieces > 0) : (p as any).quantity > 0)
+    (isFashionProduct ? (p as any).fashion_product_sizes?.some((s: any) => s.pieces > 0) : (p as any).quantity > 0)
   ).slice(0, 8);
 
   useEffect(() => {
@@ -60,15 +67,11 @@ const ProductDetails = () => {
 
   // Load sizes for Fashion products
   useEffect(() => {
-    if (product && isFashionProduct && fashionProduct?.sizes) {
-      // Convert fashion product sizes to the expected format
-      const convertedSizes = fashionProduct.sizes.map(size => ({
-        size: size.size,
-        pieces: size.pieces
-      }));
+    if (product && isFashionProduct && fashionProduct?.fashion_product_sizes) {
+      console.log('Setting fashion product sizes:', fashionProduct.fashion_product_sizes);
       setSizesLoading(false);
       // Auto-select first available size
-      const availableSize = convertedSizes.find(s => s.pieces > 0);
+      const availableSize = fashionProduct.fashion_product_sizes.find((s: any) => s.pieces > 0);
       if (availableSize) {
         setSelectedSize(availableSize.size);
       }
@@ -76,13 +79,9 @@ const ProductDetails = () => {
       // Handle general products with Fashion category using product_sizes table
       setSizesLoading(true);
       fetchProductSizes(product.id).then(sizes => {
-        const convertedSizes = sizes.map(size => ({
-          size: size.size,
-          pieces: size.quantity
-        }));
         setSizesLoading(false);
         // Auto-select first available size
-        const availableSize = convertedSizes.find(s => s.pieces > 0);
+        const availableSize = sizes.find(s => s.quantity > 0);
         if (availableSize) {
           setSelectedSize(availableSize.size);
         }
@@ -109,6 +108,7 @@ const ProductDetails = () => {
   }
 
   if (!product) {
+    console.log('ProductDetails - Product not found for ID:', productId);
     return (
       <div className="min-h-screen bg-muted/30">
         <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
@@ -144,16 +144,16 @@ const ProductDetails = () => {
 
   // Check if product is available
   const isProductAvailable = () => {
-    if (isFashionProduct && fashionProduct?.sizes) {
-      return fashionProduct.sizes.some(size => size.pieces > 0);
+    if (isFashionProduct && fashionProduct?.fashion_product_sizes) {
+      return fashionProduct.fashion_product_sizes.some((size: any) => size.pieces > 0);
     }
     return (product as any).quantity > 0;
   };
 
   // Get available quantity for selected size (Fashion) or product quantity
   const getAvailableQuantity = () => {
-    if (isFashionProduct && fashionProduct?.sizes && selectedSize) {
-      const sizeData = fashionProduct.sizes.find(s => s.size === selectedSize);
+    if (isFashionProduct && fashionProduct?.fashion_product_sizes && selectedSize) {
+      const sizeData = fashionProduct.fashion_product_sizes.find((s: any) => s.size === selectedSize);
       return sizeData?.pieces || 0;
     }
     return (product as any).quantity || 0;
@@ -219,8 +219,8 @@ const ProductDetails = () => {
   const availableQuantity = getAvailableQuantity();
 
   // Convert fashion product sizes to the format expected by SizeSelector
-  const sizesForSelector = isFashionProduct && fashionProduct?.sizes 
-    ? fashionProduct.sizes.map(size => ({
+  const sizesForSelector = isFashionProduct && fashionProduct?.fashion_product_sizes 
+    ? fashionProduct.fashion_product_sizes.map((size: any) => ({
         size: size.size,
         pieces: size.pieces
       }))

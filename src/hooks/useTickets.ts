@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -59,24 +58,33 @@ export const useTickets = () => {
     try {
       console.log('Adding ticket to Supabase:', ticketData);
       
+      // Validate required fields
+      if (!ticketData.user_id || !ticketData.user_name || !ticketData.user_contact || !ticketData.message) {
+        throw new Error('Missing required fields');
+      }
+
+      const insertData = {
+        user_id: ticketData.user_id,
+        user_name: ticketData.user_name,
+        user_type: ticketData.user_type,
+        user_contact: ticketData.user_contact,
+        message: ticketData.message,
+        status: ticketData.status || 'pending',
+        assigned_to: ticketData.assigned_to || null,
+        resolution: ticketData.resolution || null,
+        attachment_url: ticketData.attachment_url || null
+      };
+
+      console.log('Insert data:', insertData);
+
       const { data, error } = await supabase
         .from('tickets')
-        .insert([{
-          user_id: ticketData.user_id,
-          user_name: ticketData.user_name,
-          user_type: ticketData.user_type,
-          user_contact: ticketData.user_contact,
-          message: ticketData.message,
-          status: ticketData.status || 'pending',
-          assigned_to: ticketData.assigned_to,
-          resolution: ticketData.resolution,
-          attachment_url: ticketData.attachment_url
-        }])
+        .insert([insertData])
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding ticket:', error);
+        console.error('Supabase error adding ticket:', error);
         toast({
           title: "Error",
           description: `Failed to create ticket: ${error.message}`,
@@ -86,7 +94,10 @@ export const useTickets = () => {
       }
 
       console.log('Ticket added successfully:', data);
+      
+      // Refresh tickets list
       await fetchTickets();
+      
       toast({
         title: "Success",
         description: "Ticket was successfully created"
@@ -95,9 +106,10 @@ export const useTickets = () => {
       return { success: true, data };
     } catch (error) {
       console.error('Error in addTicket:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",
-        description: "Failed to create ticket",
+        description: `Failed to create ticket: ${errorMessage}`,
         variant: "destructive"
       });
       return { success: false, error };
