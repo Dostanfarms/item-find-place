@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Shirt, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Shirt, AlertTriangle, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SizeSelector from './SizeSelector';
 
 interface ProductCardProps {
@@ -14,6 +16,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addItem } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
 
@@ -92,6 +95,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setQuantity(1);
   };
 
+  const handleViewDetails = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   const getImageUrl = () => {
     if (!product.image_url) return '/placeholder.svg';
     
@@ -103,17 +110,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const shouldShowStockInfo = () => {
+    if (isFashionProduct) {
+      return isOutOfStock || isLowStock;
+    } else {
+      return product.quantity === 0 || product.quantity < 10;
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col transition-all duration-200 hover:shadow-lg">
       <div className="relative">
-        <img
-          src={getImageUrl()}
-          alt={product.name}
-          className="w-full h-48 object-cover rounded-t-lg"
-          onError={(e) => {
-            e.currentTarget.src = '/placeholder.svg';
-          }}
-        />
+        <div className="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100">
+          <img
+            src={getImageUrl()}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
+          />
+        </div>
         {isFashionProduct && (
           <Badge className="absolute top-2 left-2 bg-purple-600">
             <Shirt className="h-3 w-3 mr-1" />
@@ -136,12 +153,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <CardContent className="flex-1 flex flex-col p-4">
         <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
         
-        {product.description && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {product.description}
-          </p>
-        )}
-        
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl font-bold text-agri-primary">
             ₹{product.price_per_unit}
@@ -162,19 +173,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         )}
 
-        {!isFashionProduct && (
+        {shouldShowStockInfo() && (
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Available Stock:</span>
-              <span className={product.quantity < 10 ? "text-red-500 font-medium" : ""}>
-                {product.quantity} {product.unit}
+              <span className={isOutOfStock ? "text-red-500 font-medium" : isLowStock ? "text-yellow-600 font-medium" : ""}>
+                {isFashionProduct 
+                  ? (isOutOfStock ? "Out of Stock" : `Low Stock`)
+                  : `${product.quantity} ${product.unit}${isOutOfStock ? " (Out of Stock)" : isLowStock ? " (Low Stock)" : ""}`
+                }
               </span>
             </div>
           </div>
         )}
 
-        <div className="mt-auto">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="mt-auto space-y-3">
+          <Button
+            onClick={handleViewDetails}
+            variant="outline"
+            className="w-full"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Details
+          </Button>
+
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
