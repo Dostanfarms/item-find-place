@@ -7,7 +7,6 @@ import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Shirt, AlertTriangle, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import SizeSelector from './SizeSelector';
 
 interface ProductCardProps {
   product: any;
@@ -111,18 +110,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const shouldShowStockInfo = () => {
-    if (isFashionProduct) {
-      return isOutOfStock || isLowStock;
-    } else {
-      return product.quantity === 0 || product.quantity < 10;
-    }
+  const getSizeButtonColor = (size: any) => {
+    if (size.pieces === 0) return 'bg-red-500 text-white';
+    if (size.pieces < 5) return 'bg-orange-500 text-white';
+    return 'bg-gray-200 text-gray-800';
   };
 
   return (
-    <Card className="h-full flex flex-col transition-all duration-200 hover:shadow-lg">
+    <Card className="h-[400px] flex flex-col transition-all duration-200 hover:shadow-lg">
       <div className="relative">
-        <div className="w-full h-64 overflow-hidden rounded-t-lg bg-gray-100">
+        <div className="w-full h-48 overflow-hidden rounded-t-lg bg-gray-100">
           {images.length > 0 ? (
             <>
               <img
@@ -197,10 +194,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
       
       <CardContent className="flex-1 flex flex-col p-4">
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
+        <h3 className="font-semibold text-base mb-2 line-clamp-2 h-12 overflow-hidden">{product.name}</h3>
         
         <div className="flex items-center justify-between mb-3">
-          <span className="text-2xl font-bold text-agri-primary">
+          <span className="text-xl font-bold text-agri-primary">
             ₹{product.price_per_unit}
           </span>
           <Badge variant="outline" className="text-xs">
@@ -209,48 +206,48 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {isFashionProduct && product.sizes && (
-          <div className="mb-4">
-            <SizeSelector
-              sizes={product.sizes}
-              selectedSize={selectedSize}
-              onSizeSelect={setSelectedSize}
-              disabled={isOutOfStock}
-            />
-          </div>
-        )}
-
-        {shouldShowStockInfo() && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Available Stock:</span>
-              <span className={isOutOfStock ? "text-red-500 font-medium" : isLowStock ? "text-yellow-600 font-medium" : ""}>
-                {isFashionProduct 
-                  ? (isOutOfStock ? "Out of Stock" : `Low Stock`)
-                  : `${product.quantity} ${product.unit}${isOutOfStock ? " (Out of Stock)" : isLowStock ? " (Low Stock)" : ""}`
-                }
-              </span>
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {product.sizes.map((size: any) => (
+                <button
+                  key={size.size}
+                  onClick={() => size.pieces > 0 && setSelectedSize(size.size)}
+                  disabled={size.pieces === 0}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                    selectedSize === size.size 
+                      ? 'ring-2 ring-blue-500' 
+                      : ''
+                  } ${getSizeButtonColor(size)} ${
+                    size.pieces === 0 ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:opacity-80'
+                  }`}
+                >
+                  {size.size}
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        <div className="mt-auto space-y-3">
+        <div className="mt-auto space-y-2">
           <div className="flex gap-2">
             <Button
               onClick={handleViewDetails}
               variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <Eye className="h-4 w-4 mr-2" />
-              View Details
+              <Eye className="h-3 w-3 mr-1" />
+              View
             </Button>
             
             <Button
               onClick={handleAddToCart}
               disabled={isOutOfStock || (isFashionProduct && !selectedSize)}
+              size="sm"
               className="flex-1 bg-agri-primary hover:bg-agri-secondary"
             >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+              <ShoppingCart className="h-3 w-3 mr-1" />
+              {isOutOfStock ? 'Out of Stock' : 'Add'}
             </Button>
           </div>
         </div>

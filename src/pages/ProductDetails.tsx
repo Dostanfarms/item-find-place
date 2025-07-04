@@ -226,6 +226,8 @@ const ProductDetails = () => {
       }))
     : [];
 
+  const hasDescription = product.description && product.description.trim().length > 0;
+
   return (
     <div className="min-h-screen bg-muted/30">
       <CustomerHeader customer={customer} onLogout={() => setCustomer(null)} />
@@ -371,7 +373,7 @@ const ProductDetails = () => {
                 )}
 
                 {/* Show description only if it exists */}
-                {product.description && (
+                {hasDescription && (
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-2">Description</h3>
                     <div 
