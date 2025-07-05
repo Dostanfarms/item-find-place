@@ -156,7 +156,7 @@ const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
       </div>
 
       {/* Print styles */}
-      <style jsx>{`
+      <style>{`
         @media print {
           body * {
             visibility: hidden;
