@@ -60,22 +60,29 @@ export const useTickets = () => {
       
       // Validate required fields
       if (!ticketData.user_id || !ticketData.user_name || !ticketData.user_contact || !ticketData.message) {
-        throw new Error('Missing required fields');
+        const missingFields = [];
+        if (!ticketData.user_id) missingFields.push('user_id');
+        if (!ticketData.user_name) missingFields.push('user_name');
+        if (!ticketData.user_contact) missingFields.push('user_contact');
+        if (!ticketData.message) missingFields.push('message');
+        
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
+      // Clean the data
       const insertData = {
-        user_id: ticketData.user_id,
-        user_name: ticketData.user_name,
-        user_type: ticketData.user_type,
-        user_contact: ticketData.user_contact,
-        message: ticketData.message,
-        status: ticketData.status || 'pending',
-        assigned_to: ticketData.assigned_to || null,
-        resolution: ticketData.resolution || null,
-        attachment_url: ticketData.attachment_url || null
+        user_id: String(ticketData.user_id).trim(),
+        user_name: String(ticketData.user_name).trim(),
+        user_type: String(ticketData.user_type || 'customer').trim(),
+        user_contact: String(ticketData.user_contact).trim(),
+        message: String(ticketData.message).trim(),
+        status: String(ticketData.status || 'pending').trim(),
+        assigned_to: ticketData.assigned_to ? String(ticketData.assigned_to).trim() : null,
+        resolution: ticketData.resolution ? String(ticketData.resolution).trim() : null,
+        attachment_url: ticketData.attachment_url ? String(ticketData.attachment_url).trim() : null
       };
 
-      console.log('Insert data:', insertData);
+      console.log('Clean insert data:', insertData);
 
       const { data, error } = await supabase
         .from('tickets')
@@ -85,12 +92,7 @@ export const useTickets = () => {
 
       if (error) {
         console.error('Supabase error adding ticket:', error);
-        toast({
-          title: "Error",
-          description: `Failed to create ticket: ${error.message}`,
-          variant: "destructive"
-        });
-        return { success: false, error };
+        throw new Error(`Database error: ${error.message}`);
       }
 
       console.log('Ticket added successfully:', data);
@@ -98,21 +100,11 @@ export const useTickets = () => {
       // Refresh tickets list
       await fetchTickets();
       
-      toast({
-        title: "Success",
-        description: "Ticket was successfully created"
-      });
-      
       return { success: true, data };
     } catch (error) {
       console.error('Error in addTicket:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast({
-        title: "Error",
-        description: `Failed to create ticket: ${errorMessage}`,
-        variant: "destructive"
-      });
-      return { success: false, error };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { success: false, error: { message: errorMessage } };
     }
   };
 
