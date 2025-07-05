@@ -28,15 +28,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   
   const { isNative, takePicture, vibrate } = useNativeFeatures();
 
-  // Initialize ZXing code reader with enhanced settings
+  // Initialize ZXing code reader
   useEffect(() => {
     if (!isNative && !codeReader.current) {
       codeReader.current = new BrowserMultiFormatReader();
-      // Configure hints for better detection
-      const hints = new Map();
-      hints.set(2, true); // ASSUME_GS1
-      hints.set(3, true); // ASSUME_CODE_39_CHECK_DIGIT
-      codeReader.current.setHints(hints);
     }
     
     return () => {
