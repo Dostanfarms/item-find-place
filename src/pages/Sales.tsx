@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
 import { toast } from '@/hooks/use-toast';
 import BarcodeScanner from '@/components/BarcodeScanner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SaleItem {
@@ -24,17 +23,41 @@ interface SaleItem {
 
 const Sales = () => {
   const navigate = useNavigate();
-  const [saleItems, setSaleItems] = useState<SaleItem[]>(() => {
-    // Load cart items from localStorage on component mount
-    const storedItems = localStorage.getItem('checkoutItems');
-    return storedItems ? JSON.parse(storedItems) : [];
-  });
+  const location = useLocation();
+  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { products } = useProducts();
   const { fashionProducts } = useFashionProducts();
 
   const allProducts = [...products, ...fashionProducts];
+
+  // Load cart items from localStorage on component mount
+  useEffect(() => {
+    // Check if we're coming from checkout page (keep cart) or starting fresh (clear cart)
+    const fromCheckout = location.state?.fromCheckout;
+    
+    if (fromCheckout) {
+      // Coming from checkout, keep existing cart
+      const storedItems = localStorage.getItem('checkoutItems');
+      if (storedItems) {
+        setSaleItems(JSON.parse(storedItems));
+      }
+    } else {
+      // Fresh start or direct navigation, check if cart should be preserved
+      const preserveCart = location.state?.preserveCart;
+      if (preserveCart) {
+        const storedItems = localStorage.getItem('checkoutItems');
+        if (storedItems) {
+          setSaleItems(JSON.parse(storedItems));
+        }
+      } else {
+        // Clear cart for new sale
+        setSaleItems([]);
+        localStorage.removeItem('checkoutItems');
+      }
+    }
+  }, [location]);
 
   // Filter products based on search term
   const filteredProducts = allProducts.filter(product => 
@@ -124,6 +147,15 @@ const Sales = () => {
     navigate('/checkout');
   };
 
+  const handleNewSale = () => {
+    setSaleItems([]);
+    localStorage.removeItem('checkoutItems');
+    toast({
+      title: "New Sale Started",
+      description: "Cart cleared for new sale",
+    });
+  };
+
   // Helper function to get product images
   const getProductImages = (imageUrl?: string): string[] => {
     if (!imageUrl) return [];
@@ -143,20 +175,29 @@ const Sales = () => {
           <h1 className="text-3xl font-bold">New Sale</h1>
           <p className="text-muted-foreground">Process customer transactions</p>
         </div>
-        <Button
-          onClick={() => setShowScanner(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <ScanBarcode className="h-4 w-4 mr-2" />
-          Scan Barcode
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleNewSale}
+            variant="outline"
+            className="text-red-600 border-red-600 hover:bg-red-50"
+          >
+            Clear Cart
+          </Button>
+          <Button
+            onClick={() => setShowScanner(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <ScanBarcode className="h-4 w-4 mr-2" />
+            Scan Barcode
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Products Section */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 flex flex-col min-h-0">
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search products by name or barcode..."
@@ -167,12 +208,12 @@ const Sales = () => {
           </div>
 
           {/* Products Grid */}
-          <Card className="flex-1">
-            <CardHeader>
+          <Card className="flex-1 flex flex-col min-h-0">
+            <CardHeader className="flex-none">
               <CardTitle>All Products</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96">
+            <CardContent className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
                   {filteredProducts.map((product) => {
                     const images = getProductImages(product.image_url);
@@ -210,7 +251,7 @@ const Sales = () => {
                         <Button
                           size="sm"
                           onClick={() => addToCart(product)}
-                          className="bg-green-600 hover:bg-green-700 h-7 px-2 text-xs"
+                          className="bg-green-600 hover:bg-green-700 h-6 px-2 text-xs"
                         >
                           <Plus className="h-3 w-3 mr-1" />
                           Add
@@ -233,8 +274,8 @@ const Sales = () => {
         </div>
 
         {/* Cart Section */}
-        <Card className="flex flex-col">
-          <CardHeader>
+        <Card className="flex flex-col min-h-0">
+          <CardHeader className="flex-none">
             <CardTitle className="flex items-center justify-between">
               <span>Cart Items ({saleItems.length})</span>
             </CardTitle>
@@ -249,7 +290,7 @@ const Sales = () => {
               </Button>
             )}
           </CardHeader>
-          <CardContent className="flex-1 overflow-hidden">
+          <CardContent className="flex-1 overflow-hidden min-h-0">
             {saleItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -257,8 +298,8 @@ const Sales = () => {
                 <p className="text-sm">Add products to get started</p>
               </div>
             ) : (
-              <div className="flex flex-col h-full">
-                <ScrollArea className="flex-1">
+              <div className="flex flex-col h-full min-h-0">
+                <ScrollArea className="flex-1 min-h-0">
                   <div className="space-y-3 pr-4">
                     {saleItems.map((item) => {
                       const images = getProductImages(item.imageUrl);
@@ -326,7 +367,7 @@ const Sales = () => {
                   </div>
                 </ScrollArea>
                 
-                <div className="border-t pt-3 mt-3">
+                <div className="border-t pt-3 mt-3 flex-none">
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total:</span>
                     <span className="text-green-600">₹{subtotal.toFixed(2)}</span>

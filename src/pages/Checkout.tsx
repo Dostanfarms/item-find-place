@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -175,7 +174,7 @@ const Checkout = () => {
 
   const handleBackToSales = () => {
     // Keep items in localStorage when going back to sales
-    navigate('/sales');
+    navigate('/sales', { state: { fromCheckout: true } });
   };
 
   return (
@@ -291,27 +290,29 @@ const Checkout = () => {
           </div>
 
           {/* Order Summary */}
-          <Card>
+          <Card className="h-fit">
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Items */}
-              <ScrollArea className="max-h-64">
-                <div className="space-y-2 pr-4">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-muted-foreground">
-                          {item.quantity} × ₹{item.price.toFixed(2)}
-                        </p>
+              {/* Items with Scroll */}
+              <div className="max-h-80 overflow-y-auto">
+                <ScrollArea className="h-full">
+                  <div className="space-y-2 pr-4">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm p-2 border rounded">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-muted-foreground">
+                            {item.quantity} × ₹{item.price.toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>
-                      <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
 
               {/* Totals */}
               <div className="border-t pt-4 space-y-2">
