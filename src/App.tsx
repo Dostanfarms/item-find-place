@@ -13,7 +13,6 @@ import CustomersPage from '@/pages/Customers';
 import TicketsPage from '@/pages/Tickets';
 import Roles from '@/pages/Roles';
 import EmployeeLogin from '@/pages/EmployeeLogin';
-import { useAuth } from '@/context/AuthContext';
 import CustomerHome from '@/pages/CustomerHome';
 import CustomerProducts from '@/pages/CustomerProducts';
 import CustomerOrderHistory from '@/pages/CustomerOrderHistory';
@@ -28,6 +27,9 @@ import ProductDetails from '@/pages/ProductDetails';
 import CustomerTicketHistory from '@/pages/CustomerTicketHistory';
 import FarmerTicketHistory from '@/pages/FarmerTicketHistory';
 import AppLanding from '@/pages/AppLanding';
+import Categories from '@/pages/Categories';
+import Coupons from '@/pages/Coupons';
+import PaymentPage from '@/pages/PaymentPage';
 import Sidebar from '@/components/Sidebar';
 
 const queryClient = new QueryClient();
@@ -56,6 +58,7 @@ function App() {
               <Routes>
                 {/* Landing page */}
                 <Route path="/" element={<AppLanding />} />
+                <Route path="/app" element={<AppLanding />} />
                 
                 {/* Employee/Admin routes with sidebar */}
                 <Route path="/login" element={<EmployeeLogin />} />
@@ -65,6 +68,9 @@ function App() {
                 <Route path="/customers" element={<AdminLayout><CustomersPage /></AdminLayout>} />
                 <Route path="/tickets" element={<AdminLayout><TicketsPage /></AdminLayout>} />
                 <Route path="/settings" element={<AdminLayout><Roles /></AdminLayout>} />
+                <Route path="/categories" element={<AdminLayout><Categories /></AdminLayout>} />
+                <Route path="/coupons" element={<AdminLayout><Coupons /></AdminLayout>} />
+                <Route path="/payment" element={<AdminLayout><PaymentPage /></AdminLayout>} />
 
                 {/* Customer routes */}
                 <Route path="/customer-login" element={<CustomerLogin />} />
