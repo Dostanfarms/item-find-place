@@ -28,7 +28,6 @@ import ProductDetails from '@/pages/ProductDetails';
 import CustomerTicketHistory from '@/pages/CustomerTicketHistory';
 import FarmerTicketHistory from '@/pages/FarmerTicketHistory';
 import AppLanding from '@/pages/AppLanding';
-import Sales from '@/pages/Sales';
 import Sidebar from '@/components/Sidebar';
 
 const queryClient = new QueryClient();
@@ -55,20 +54,17 @@ function App() {
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
-                {/* Landing pages */}
+                {/* Landing page */}
                 <Route path="/" element={<AppLanding />} />
-                <Route path="/app" element={<AppLanding />} />
                 
                 {/* Employee/Admin routes with sidebar */}
                 <Route path="/login" element={<EmployeeLogin />} />
-                <Route path="/employee-login" element={<EmployeeLogin />} />
                 <Route path="/dashboard" element={<AdminLayout><Dashboard /></AdminLayout>} />
                 <Route path="/products" element={<AdminLayout><ProductsPage /></AdminLayout>} />
                 <Route path="/orders" element={<AdminLayout><OrdersManagement /></AdminLayout>} />
                 <Route path="/customers" element={<AdminLayout><CustomersPage /></AdminLayout>} />
                 <Route path="/tickets" element={<AdminLayout><TicketsPage /></AdminLayout>} />
                 <Route path="/settings" element={<AdminLayout><Roles /></AdminLayout>} />
-                <Route path="/sales" element={<AdminLayout><Sales /></AdminLayout>} />
 
                 {/* Customer routes */}
                 <Route path="/customer-login" element={<CustomerLogin />} />

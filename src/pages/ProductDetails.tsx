@@ -19,8 +19,7 @@ import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import CustomerHeader from '@/components/CustomerHeader';
 import ProductGrid from '@/components/ProductGrid';
-import HorizontalSizeSelector from '@/components/HorizontalSizeSelector';
-import ProductDescriptionModal from '@/components/ProductDescriptionModal';
+import SizeSelector from '@/components/SizeSelector';
 import Cart from '@/components/Cart';
 import { ProductSize } from '@/components/ProductSizesManager';
 
@@ -36,7 +35,6 @@ const ProductDetails = () => {
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
   const [sizesLoading, setSizesLoading] = useState(false);
-  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
 
   console.log('ProductDetails - productId:', productId);
   console.log('ProductDetails - products:', products);
@@ -67,20 +65,26 @@ const ProductDetails = () => {
     }
   }, []);
 
-  // Load sizes for Fashion products - Don't auto-select, let user choose
+  // Load sizes for Fashion products
   useEffect(() => {
     if (product && isFashionProduct && fashionProduct?.sizes) {
       console.log('Setting fashion product sizes:', fashionProduct.sizes);
       setSizesLoading(false);
-      // Don't auto-select size, let user choose
-      setSelectedSize('');
+      // Auto-select first available size
+      const availableSize = fashionProduct.sizes.find((s: any) => s.pieces > 0);
+      if (availableSize) {
+        setSelectedSize(availableSize.size);
+      }
     } else if (product && product.category === 'Fashion' && !isFashionProduct) {
       // Handle general products with Fashion category using product_sizes table
       setSizesLoading(true);
       fetchProductSizes(product.id).then(sizes => {
         setSizesLoading(false);
-        // Don't auto-select size, let user choose
-        setSelectedSize('');
+        // Auto-select first available size
+        const availableSize = sizes.find(s => s.quantity > 0);
+        if (availableSize) {
+          setSelectedSize(availableSize.size);
+        }
       });
     } else {
       setSizesLoading(false);
@@ -214,7 +218,7 @@ const ProductDetails = () => {
   const productAvailable = isProductAvailable();
   const availableQuantity = getAvailableQuantity();
 
-  // Convert fashion product sizes to the format expected by HorizontalSizeSelector
+  // Convert fashion product sizes to the format expected by SizeSelector
   const sizesForSelector = isFashionProduct && fashionProduct?.sizes 
     ? fashionProduct.sizes.map((size: any) => ({
         size: size.size,
@@ -223,13 +227,6 @@ const ProductDetails = () => {
     : [];
 
   const hasDescription = product.description && product.description.trim().length > 0;
-
-  // Truncate description for preview
-  const getDescriptionPreview = (description: string, maxLength: number = 200) => {
-    if (!description) return '';
-    if (description.length <= maxLength) return description;
-    return description.substring(0, maxLength) + '...';
-  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -359,13 +356,13 @@ const ProductDetails = () => {
                   </span>
                 </div>
 
-                {/* Size Selection for Fashion Category - Horizontal Layout */}
+                {/* Size Selection for Fashion Category */}
                 {isFashionProduct && (
                   <div className="mb-6">
                     {sizesLoading ? (
                       <div className="text-sm text-muted-foreground">Loading sizes...</div>
                     ) : (
-                      <HorizontalSizeSelector
+                      <SizeSelector
                         sizes={sizesForSelector}
                         selectedSize={selectedSize}
                         onSizeSelect={setSelectedSize}
@@ -375,22 +372,14 @@ const ProductDetails = () => {
                   </div>
                 )}
 
-                {/* Show description with read more functionality */}
+                {/* Show description only if it exists */}
                 {hasDescription && (
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-2">Description</h3>
-                    <div className="text-gray-700 leading-relaxed prose prose-sm max-w-none">
-                      <div dangerouslySetInnerHTML={{ __html: getDescriptionPreview(product.description, 200) }} />
-                      {product.description.length > 200 && (
-                        <Button
-                          variant="link"
-                          className="p-0 h-auto text-green-600 hover:text-green-700 mt-2"
-                          onClick={() => setShowDescriptionModal(true)}
-                        >
-                          Read More
-                        </Button>
-                      )}
-                    </div>
+                    <div 
+                      className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
                   </div>
                 )}
               </div>
@@ -428,14 +417,6 @@ const ProductDetails = () => {
           )}
         </div>
       </div>
-
-      {/* Product Description Modal */}
-      <ProductDescriptionModal
-        isOpen={showDescriptionModal}
-        onClose={() => setShowDescriptionModal(false)}
-        product={product}
-        images={images}
-      />
 
       <Cart />
     </div>
