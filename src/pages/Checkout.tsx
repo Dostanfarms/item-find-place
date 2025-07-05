@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -250,7 +251,7 @@ const Checkout = () => {
                     <SelectValue placeholder="Select a coupon" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No coupon</SelectItem>
+                    <SelectItem value="none">No coupon</SelectItem>
                     {availableCoupons.map((coupon) => (
                       <SelectItem key={coupon.id} value={coupon.code}>
                         {coupon.code} - {coupon.discount_type === 'percentage' 
