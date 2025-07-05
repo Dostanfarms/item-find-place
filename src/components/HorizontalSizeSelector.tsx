@@ -49,15 +49,6 @@ const HorizontalSizeSelector: React.FC<HorizontalSizeSelectorProps> = ({
           );
         })}
       </div>
-      
-      {selectedSize && (
-        <div className="mt-3 p-2 bg-muted rounded-md">
-          <p className="text-sm text-muted-foreground">
-            Selected: Size {selectedSize} 
-            {' '}({availableSizes.find(s => s.size === selectedSize)?.pieces} available)
-          </p>
-        </div>
-      )}
     </div>
   );
 };

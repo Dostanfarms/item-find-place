@@ -30,6 +30,12 @@ import AppLanding from '@/pages/AppLanding';
 import Categories from '@/pages/Categories';
 import Coupons from '@/pages/Coupons';
 import PaymentPage from '@/pages/PaymentPage';
+import Farmers from '@/pages/Farmers';
+import Banners from '@/pages/Banners';
+import Employees from '@/pages/Employees';
+import SalesDashboard from '@/pages/SalesDashboard';
+import Transactions from '@/pages/Transactions';
+import Settlements from '@/pages/Settlements';
 import Sidebar from '@/components/Sidebar';
 
 const queryClient = new QueryClient();
@@ -62,6 +68,7 @@ function App() {
                 
                 {/* Employee/Admin routes with sidebar */}
                 <Route path="/login" element={<EmployeeLogin />} />
+                <Route path="/employee-login" element={<EmployeeLogin />} />
                 <Route path="/dashboard" element={<AdminLayout><Dashboard /></AdminLayout>} />
                 <Route path="/products" element={<AdminLayout><ProductsPage /></AdminLayout>} />
                 <Route path="/orders" element={<AdminLayout><OrdersManagement /></AdminLayout>} />
@@ -71,6 +78,13 @@ function App() {
                 <Route path="/categories" element={<AdminLayout><Categories /></AdminLayout>} />
                 <Route path="/coupons" element={<AdminLayout><Coupons /></AdminLayout>} />
                 <Route path="/payment" element={<AdminLayout><PaymentPage /></AdminLayout>} />
+                <Route path="/farmers" element={<AdminLayout><Farmers /></AdminLayout>} />
+                <Route path="/banners" element={<AdminLayout><Banners /></AdminLayout>} />
+                <Route path="/employees" element={<AdminLayout><Employees /></AdminLayout>} />
+                <Route path="/roles" element={<AdminLayout><Roles /></AdminLayout>} />
+                <Route path="/sales-dashboard" element={<AdminLayout><SalesDashboard /></AdminLayout>} />
+                <Route path="/transactions" element={<AdminLayout><Transactions /></AdminLayout>} />
+                <Route path="/settlements" element={<AdminLayout><Settlements /></AdminLayout>} />
 
                 {/* Customer routes */}
                 <Route path="/customer-login" element={<CustomerLogin />} />

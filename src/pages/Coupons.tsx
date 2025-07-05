@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent, CheckCircle } from 'lucide-react';
 import { useCoupons } from '@/hooks/useCoupons';
@@ -30,7 +31,8 @@ const Coupons = () => {
   });
 
   const filteredCoupons = coupons.filter(coupon =>
-    coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
+    coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (coupon.target_user_id && coupon.target_user_id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleVerifyMobile = async () => {
@@ -66,7 +68,6 @@ const Coupons = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate mobile number for targeted coupons
     if ((formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && !verifiedUser) {
       toast({
         title: "Error",
@@ -171,7 +172,7 @@ const Coupons = () => {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search coupons..."
+              placeholder="Search by code, mobile or name..."
               className="pl-8 w-full md:w-[250px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -337,72 +338,88 @@ const Coupons = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCoupons.map((coupon) => (
-              <Card key={coupon.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-primary">
-                      {coupon.code}
-                    </CardTitle>
-                    <div className="flex gap-1">
-                      <Badge variant={coupon.is_active ? "default" : "secondary"}>
-                        {coupon.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Percent className="h-4 w-4 text-green-600" />
-                    <span>
-                      {coupon.discount_type === 'percentage' 
-                        ? `${coupon.discount_value}% off`
-                        : `₹${coupon.discount_value} off`
-                      }
-                    </span>
-                  </div>
-
-                  {coupon.max_discount_limit && (
-                    <div className="text-sm text-muted-foreground">
-                      Max discount: ₹{coupon.max_discount_limit}
-                    </div>
-                  )}
-
-                  <div className="text-sm text-muted-foreground">
-                    Target: {coupon.target_type === 'all' ? 'All Users' : 
-                            coupon.target_type === 'customer' ? 'Customer' : 'Employee'}
-                    {coupon.target_user_id && ` (${coupon.target_user_id})`}
-                  </div>
-
-                  {coupon.expiry_date && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>Expires: {new Date(coupon.expiry_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleEdit(coupon)}
-                      className="flex-1"
-                    >
-                      <Edit className="h-3 w-3 mr-1" /> Edit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      onClick={() => handleDelete(coupon.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Coupons List</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Value</TableHead>
+                    <TableHead>Target</TableHead>
+                    <TableHead>Mobile/Name</TableHead>
+                    <TableHead>Expiry</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCoupons.map((coupon) => (
+                    <TableRow key={coupon.id}>
+                      <TableCell className="font-medium text-primary">
+                        {coupon.code}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.discount_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.discount_type === 'percentage' 
+                          ? `${coupon.discount_value}%`
+                          : `₹${coupon.discount_value}`
+                        }
+                        {coupon.max_discount_limit && (
+                          <div className="text-xs text-muted-foreground">
+                            Max: ₹{coupon.max_discount_limit}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {coupon.target_type === 'all' ? 'All Users' : 
+                           coupon.target_type === 'customer' ? 'Customer' : 'Employee'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {coupon.target_user_id ? coupon.target_user_id : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.expiry_date ? 
+                          new Date(coupon.expiry_date).toLocaleDateString() : 
+                          'No expiry'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={coupon.is_active ? "default" : "secondary"}>
+                          {coupon.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEdit(coupon)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => handleDelete(coupon.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

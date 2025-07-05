@@ -29,7 +29,7 @@ const ProductDetails = () => {
   const { addToCart, items } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [customer, setCustomer] = useState<any>(null);
-  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>(''); // No default selection
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
 
   console.log('ProductDetails - productId:', productId);
@@ -321,11 +321,7 @@ const ProductDetails = () => {
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {productAvailable ? (
-                      isFashionProduct && sizesForSelector.length > 0 
-                        ? 'Available in multiple sizes' 
-                        : `${availableQuantity} ${isFashionProduct ? 'pieces' : (product as any).unit} available`
-                    ) : 'Out of stock'}
+                    {productAvailable ? 'In Stock' : 'Out of stock'}
                   </span>
                 </div>
 
