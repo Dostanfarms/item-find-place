@@ -286,25 +286,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
               style={{ display: 'none' }}
             />
             
-            {/* Scanning Instructions */}
-            <div className="absolute bottom-32 left-0 right-0 text-center text-white z-10">
-              <div className="bg-black bg-opacity-70 mx-4 p-6 rounded-2xl">
-                <p className="text-2xl font-medium mb-2">
-                  Point camera at barcode
-                </p>
-                {scanning && (
-                  <div className="space-y-2">
-                    <p className="text-green-400 text-lg animate-pulse">
-                      🔍 Actively scanning for barcodes...
-                    </p>
-                    <p className="text-sm text-green-300">
-                      Enhanced detection running at 30 FPS
-                    </p>
-                  </div>
-                )}
-                <p className="text-sm mt-2 opacity-75">
-                  Hold steady, ensure good lighting and focus
-                </p>
+            {/* Simple scanning overlay */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="border-2 border-green-500 w-64 h-32 rounded-lg bg-transparent">
+                <div className="w-full h-full border-2 border-dashed border-green-300 rounded animate-pulse"></div>
               </div>
             </div>
           </>
