@@ -1,261 +1,287 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, ShoppingCart, Package } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { ScanBarcode, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useNavigate } from 'react-router-dom';
-import ProtectedAction from '@/components/ProtectedAction';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useFashionProducts } from '@/hooks/useFashionProducts';
+import { useTransactions } from '@/hooks/useTransactions';
+import { toast } from '@/hooks/use-toast';
+import BarcodeScanner from '@/components/BarcodeScanner';
+
+interface SaleItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  barcode: string;
+  category: string;
+  unit: string;
+}
 
 const Sales = () => {
+  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [showScanner, setShowScanner] = useState(false);
   const { products } = useProducts();
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  const { toast } = useToast();
-  
-  const [cart, setCart] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { fashionProducts } = useFashionProducts();
+  const { addTransaction } = useTransactions();
 
-  // Filter out inactive products
-  const activeProducts = products.filter(product => product.is_active !== false);
+  const allProducts = [...products, ...fashionProducts];
 
-  const filteredProducts = activeProducts.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const addToCart = (product: any) => {
-    if (!hasPermission('sales', 'create')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to create sales",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.id === product.id
+  const handleBarcodeScanned = (barcode: string) => {
+    const product = allProducts.find(p => p.barcode === barcode);
+    
+    if (product) {
+      const existingItem = saleItems.find(item => item.barcode === barcode);
+      
+      if (existingItem) {
+        setSaleItems(prev => prev.map(item => 
+          item.barcode === barcode 
             ? { ...item, quantity: item.quantity + 1 }
             : item
-        );
+        ));
+      } else {
+        const newItem: SaleItem = {
+          id: Date.now().toString(),
+          name: product.name,
+          price: product.price_per_unit,
+          quantity: 1,
+          barcode: product.barcode || '',
+          category: product.category,
+          unit: (product as any).unit || 'piece'
+        };
+        setSaleItems(prev => [...prev, newItem]);
       }
-      return [...prev, { ...product, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (productId: string) => {
-    if (!hasPermission('sales', 'edit')) {
+      
       toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit sales",
-        variant: "destructive"
+        title: "Product Added",
+        description: `${product.name} added to cart`,
       });
-      return;
-    }
-
-    setCart(prev => prev.filter(item => item.id !== productId));
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (!hasPermission('sales', 'edit')) {
+    } else {
       toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit sales",
-        variant: "destructive"
+        title: "Product Not Found",
+        description: "No product found with this barcode",
+        variant: "destructive",
       });
-      return;
     }
-
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCart(prev =>
-      prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
-      )
-    );
   };
 
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.price_per_unit * item.quantity), 0);
-  };
-
-  const handleProceedToPayment = () => {
-    if (!hasPermission('sales', 'create')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to create sales",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (cart.length === 0) {
-      return;
-    }
-
-    // Prepare cart items for payment page
-    const cartItems = cart.map(item => ({
-      id: item.id,
-      name: item.name,
-      price: item.price_per_unit,
-      quantity: item.quantity
+  const updateQuantity = (id: string, change: number) => {
+    setSaleItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQuantity = Math.max(1, item.quantity + change);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
     }));
-
-    // Navigate to payment page with cart data
-    navigate('/payment', {
-      state: {
-        cartItems,
-        subtotal: getTotalAmount()
-      }
-    });
   };
 
-  // Check if user has permission to view sales
-  if (!hasPermission('sales', 'view')) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">You don't have permission to view the sales dashboard.</p>
-        </div>
-      </div>
-    );
-  }
+  const removeItem = (id: string) => {
+    setSaleItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const subtotal = saleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = subtotal - discount;
+
+  const handleCompleteSale = async () => {
+    if (!customerName.trim() || !customerMobile.trim() || saleItems.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in customer details and add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const transactionData = {
+      customer_name: customerName,
+      customer_mobile: customerMobile,
+      items: saleItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      subtotal,
+      discount,
+      total,
+      coupon_used: null,
+      payment_method: 'cash',
+      status: 'completed'
+    };
+
+    const result = await addTransaction(transactionData);
+    
+    if (result.success) {
+      toast({
+        title: "Sale Completed",
+        description: `Transaction completed successfully. Total: ₹${total.toFixed(2)}`,
+      });
+      
+      // Reset form
+      setSaleItems([]);
+      setCustomerName('');
+      setCustomerMobile('');
+      setDiscount(0);
+    } else {
+      toast({
+        title: "Sale Failed",
+        description: result.error || "Failed to complete transaction",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="flex-1 flex flex-col p-6 h-full overflow-hidden">
-      <div className="flex-none mb-6">
-        <h1 className="text-3xl font-bold">Sales Dashboard</h1>
-        <p className="text-muted-foreground">Process sales transactions</p>
+    <div className="h-full flex flex-col">
+      <div className="flex-none flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">New Sale</h1>
+          <p className="text-muted-foreground">Process customer transactions</p>
+        </div>
+        <Button
+          onClick={() => setShowScanner(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <ScanBarcode className="h-4 w-4 mr-2" />
+          Scan Barcode
+        </Button>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
-        {/* Products Section */}
-        <div className="lg:col-span-2 flex flex-col h-full">
-          <Card className="flex-1 flex flex-col h-full">
-            <CardHeader className="flex-none">
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Products
-              </CardTitle>
-              <div className="relative">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+        {/* Customer Details */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="customerName">Customer Name</Label>
                 <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  id="customerName"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter customer name"
                 />
               </div>
-            </CardHeader>
-            {/* Make only this part scrollable */}
-            <CardContent className="flex-1 overflow-hidden">
-              <div className="h-full overflow-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {filteredProducts.map((product) => (
-                    <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <h3 className="font-medium text-sm mb-1">{product.name}</h3>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Unit: {product.unit}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm">₹{product.price_per_unit}</span>
-                          <ProtectedAction resource="sales" action="create">
-                            <Button 
-                              size="sm" 
-                              onClick={() => addToCart(product)}
-                              className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              Add to Cart
-                            </Button>
-                          </ProtectedAction>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+              <div>
+                <Label htmlFor="customerMobile">Mobile Number</Label>
+                <Input
+                  id="customerMobile"
+                  value={customerMobile}
+                  onChange={(e) => setCustomerMobile(e.target.value)}
+                  placeholder="Enter mobile number"
+                />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Sale Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Sale Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="discount">Discount:</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  value={discount}
+                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                  className="w-24 text-right"
+                  min="0"
+                  max={subtotal}
+                />
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>Total:</span>
+                <span>₹{total.toFixed(2)}</span>
+              </div>
+              <Button 
+                onClick={handleCompleteSale}
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={saleItems.length === 0}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Complete Sale
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Cart Section */}
-        <div className="flex flex-col h-full">
-          <Card className="flex flex-col h-full sticky top-6">
-            {/* .sticky ensures cart is always visible */}
-            <CardHeader className="flex-none">
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Cart ({cart.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-1">
-              {/* Cart Items (scroll here if cart is *very* long) */}
-              <div className="flex-1 overflow-auto mb-4 max-h-72">
-                {cart.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Cart is empty</p>
-                ) : (
-                  <div className="space-y-2">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">₹{item.price_per_unit} each</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <ProtectedAction resource="sales" action="edit">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="h-6 w-6 p-0"
-                            >
-                              -
-                            </Button>
-                          </ProtectedAction>
-                          <span className="text-xs w-8 text-center">{item.quantity}</span>
-                          <ProtectedAction resource="sales" action="edit">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="h-6 w-6 p-0"
-                            >
-                              +
-                            </Button>
-                          </ProtectedAction>
-                        </div>
-                      </div>
-                    ))}
+        {/* Cart Items */}
+        <Card className="flex flex-col">
+          <CardHeader>
+            <CardTitle>Cart Items ({saleItems.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-auto">
+            {saleItems.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No items in cart</p>
+                <p className="text-sm">Scan barcode to add products</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {saleItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        ₹{item.price} per {item.unit}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateQuantity(item.id, -1)}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateQuantity(item.id, 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="ml-4 text-right">
+                      <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-              {/* Total and Proceed to Payment */}
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center font-bold">
-                  <span>Total:</span>
-                  <span>₹{getTotalAmount().toFixed(2)}</span>
-                </div>
-                <ProtectedAction resource="sales" action="create">
-                  <Button 
-                    onClick={handleProceedToPayment}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                    disabled={cart.length === 0}
-                  >
-                    Proceed to Payment
-                  </Button>
-                </ProtectedAction>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <BarcodeScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScanned}
+      />
     </div>
   );
 };

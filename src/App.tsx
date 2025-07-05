@@ -36,6 +36,7 @@ import Employees from '@/pages/Employees';
 import SalesDashboard from '@/pages/SalesDashboard';
 import Transactions from '@/pages/Transactions';
 import Settlements from '@/pages/Settlements';
+import Sales from '@/pages/Sales';
 import Sidebar from '@/components/Sidebar';
 
 const queryClient = new QueryClient();
@@ -83,6 +84,7 @@ function App() {
                 <Route path="/employees" element={<AdminLayout><Employees /></AdminLayout>} />
                 <Route path="/roles" element={<AdminLayout><Roles /></AdminLayout>} />
                 <Route path="/sales-dashboard" element={<AdminLayout><SalesDashboard /></AdminLayout>} />
+                <Route path="/sales" element={<AdminLayout><Sales /></AdminLayout>} />
                 <Route path="/transactions" element={<AdminLayout><Transactions /></AdminLayout>} />
                 <Route path="/settlements" element={<AdminLayout><Settlements /></AdminLayout>} />
 
