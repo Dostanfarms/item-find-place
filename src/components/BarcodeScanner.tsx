@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, ScanBarcode } from 'lucide-react';
+import { X, ScanBarcode, Camera } from 'lucide-react';
 import { useNativeFeatures } from '@/hooks/useNativeFeatures';
 
 interface BarcodeScannerProps {
@@ -13,63 +13,117 @@ interface BarcodeScannerProps {
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan }) => {
   const [scanning, setScanning] = useState(false);
   const [manualBarcode, setManualBarcode] = useState('');
+  const [cameraError, setCameraError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const scannerRef = useRef<any>(null);
   const { isNative, takePicture } = useNativeFeatures();
 
   // Play beep sound
   const playBeep = () => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.2);
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      console.log('Audio context not available');
+    }
   };
 
   const startCamera = async () => {
     try {
       setScanning(true);
+      setCameraError('');
       
       if (isNative) {
         // Use native camera for mobile
         const imageDataUrl = await takePicture();
         console.log('Captured image for barcode scanning:', imageDataUrl);
         // In a real implementation, you would process the image to extract barcode
-        // For now, we'll simulate a successful scan
+        // For now, we'll simulate a successful scan after a delay
         setTimeout(() => {
           const mockBarcode = `GEN${Date.now()}${Math.floor(Math.random() * 1000)}`;
           handleBarcodeDetected(mockBarcode);
-        }, 1000);
+        }, 2000);
       } else {
-        // Use web camera
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
-        });
+        // Use web camera with better constraints
+        const constraints = {
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            aspectRatio: { ideal: 16/9 }
+          }
+        };
         
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         streamRef.current = stream;
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          await videoRef.current.play();
+          
+          // Start barcode detection simulation
+          startBarcodeDetection();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
+      let errorMessage = 'Unable to access camera. ';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Please allow camera permissions.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else {
+        errorMessage += 'Please try manual entry.';
+      }
+      
+      setCameraError(errorMessage);
       setScanning(false);
     }
+  };
+
+  const startBarcodeDetection = () => {
+    // Simulate barcode detection - in a real app, you'd use a barcode detection library
+    // like QuaggaJS or ZXing
+    const detectBarcode = () => {
+      if (videoRef.current && streamRef.current) {
+        // This is a simulation - randomly generate a barcode after some time
+        const random = Math.random();
+        if (random > 0.98) { // 2% chance per check to simulate finding a barcode
+          const mockBarcode = `SCAN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+          handleBarcodeDetected(mockBarcode);
+          return;
+        }
+        
+        // Continue scanning
+        if (scanning) {
+          setTimeout(detectBarcode, 100);
+        }
+      }
+    };
+    
+    setTimeout(detectBarcode, 1000);
   };
 
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+    if (scannerRef.current) {
+      scannerRef.current = null;
     }
     setScanning(false);
   };
@@ -90,7 +144,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   };
 
   useEffect(() => {
-    if (isOpen && !isNative) {
+    if (isOpen) {
+      // Auto-start camera when scanner opens
       startCamera();
     }
     
@@ -99,77 +154,130 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
     };
   }, [isOpen]);
 
+  // Handle ESC key to close scanner
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-black text-white">
-        <h2 className="text-lg font-semibold">Scan Barcode</h2>
+      <div className="flex items-center justify-between p-4 bg-black text-white relative z-10">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <ScanBarcode className="h-6 w-6" />
+          Scan Barcode
+        </h2>
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
           className="text-white hover:bg-gray-800"
         >
-          <X className="h-5 w-5" />
+          <X className="h-6 w-6" />
         </Button>
       </div>
 
-      {/* Scanner Area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
-        {!isNative && (
-          <div className="relative w-full max-w-md aspect-square bg-gray-900 rounded-lg overflow-hidden mb-4">
+      {/* Full Screen Scanner Area */}
+      <div className="flex-1 relative overflow-hidden">
+        {!isNative && !cameraError && (
+          <>
             <video
               ref={videoRef}
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
               autoPlay
               playsInline
               muted
             />
             
-            {/* Scanning overlay */}
-            <div className="absolute inset-0 border-2 border-green-500 rounded-lg">
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-48 h-48 border-2 border-white rounded-lg relative">
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-500 rounded-tl-lg"></div>
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-500 rounded-tr-lg"></div>
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-500 rounded-bl-lg"></div>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-500 rounded-br-lg"></div>
+            {/* Scanning overlay - centered scanning area */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Dark overlay with cut-out */}
+              <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+              
+              {/* Scanning frame */}
+              <div className="relative z-10">
+                <div className="w-72 h-72 border-4 border-white rounded-2xl relative bg-transparent">
+                  {/* Corner indicators */}
+                  <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-2xl"></div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-2xl"></div>
+                  <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-2xl"></div>
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-2xl"></div>
+                  
+                  {/* Scanning line animation */}
+                  <div className="absolute inset-2 overflow-hidden rounded-xl">
+                    <div className="w-full h-1 bg-green-500 opacity-75 animate-pulse"></div>
+                  </div>
                 </div>
+                
+                <p className="text-white text-center mt-4 text-lg font-medium">
+                  Position barcode within the frame
+                </p>
+                {scanning && (
+                  <p className="text-green-400 text-center mt-2 text-sm animate-pulse">
+                    Scanning...
+                  </p>
+                )}
               </div>
+            </div>
+          </>
+        )}
+
+        {isNative && (
+          <div className="flex items-center justify-center h-full text-center text-white">
+            <div>
+              <Camera className="h-32 w-32 mx-auto mb-6 text-green-500" />
+              <p className="text-2xl mb-4">Tap to scan with camera</p>
+              <Button
+                onClick={startCamera}
+                disabled={scanning}
+                className="bg-green-600 hover:bg-green-700 text-lg px-8 py-3"
+              >
+                {scanning ? 'Processing...' : 'Open Camera'}
+              </Button>
             </div>
           </div>
         )}
 
-        {isNative && (
-          <div className="text-center text-white mb-6">
-            <ScanBarcode className="h-24 w-24 mx-auto mb-4 text-green-500" />
-            <p className="text-lg">Tap the button below to scan</p>
-            <Button
-              onClick={startCamera}
-              disabled={scanning}
-              className="mt-4 bg-green-600 hover:bg-green-700"
-            >
-              {scanning ? 'Processing...' : 'Start Camera Scan'}
-            </Button>
+        {cameraError && (
+          <div className="flex items-center justify-center h-full text-center text-white p-6">
+            <div>
+              <X className="h-16 w-16 mx-auto mb-4 text-red-500" />
+              <p className="text-xl mb-4 text-red-300">{cameraError}</p>
+              <Button
+                onClick={startCamera}
+                className="bg-blue-600 hover:bg-blue-700 mr-4"
+              >
+                Try Again
+              </Button>
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Manual Entry */}
-        <div className="w-full max-w-md">
-          <p className="text-white text-center mb-4">Or enter barcode manually:</p>
-          <form onSubmit={handleManualSubmit} className="flex gap-2">
+      {/* Manual Entry Section - Fixed at bottom */}
+      <div className="bg-black bg-opacity-90 p-6 relative z-10">
+        <div className="max-w-md mx-auto">
+          <p className="text-white text-center mb-4 text-lg">Or enter barcode manually:</p>
+          <form onSubmit={handleManualSubmit} className="flex gap-3">
             <input
               type="text"
               value={manualBarcode}
               onChange={(e) => setManualBarcode(e.target.value)}
-              placeholder="Enter barcode"
-              className="flex-1 px-3 py-2 rounded bg-gray-800 text-white border border-gray-600 focus:border-green-500 focus:outline-none"
+              placeholder="Enter barcode number"
+              className="flex-1 px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-green-500 focus:outline-none text-lg"
             />
             <Button
               type="submit"
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 px-6 py-3 text-lg"
             >
               Add
             </Button>
