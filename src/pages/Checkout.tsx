@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useTransactions } from '@/hooks/useTransactions';
 import { toast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CheckoutItem {
   id: string;
@@ -47,6 +47,15 @@ const Checkout = () => {
     }
   }, [navigate]);
 
+  // Load all active coupons
+  useEffect(() => {
+    const activeCoupons = coupons.filter(coupon => 
+      coupon.is_active && 
+      new Date(coupon.expiry_date) > new Date()
+    );
+    setAvailableCoupons(activeCoupons);
+  }, [coupons]);
+
   const handleVerifyCustomer = () => {
     if (!customerMobile.trim()) {
       toast({
@@ -63,12 +72,12 @@ const Checkout = () => {
       setCustomerName(customer.name);
       setIsVerified(true);
       
-      // Filter coupons for this customer
+      // Filter coupons for this customer (including 'all' target type and specific customer coupons)
       const customerCoupons = coupons.filter(coupon => 
         coupon.is_active && 
         new Date(coupon.expiry_date) > new Date() &&
         (coupon.target_type === 'all' || 
-         (coupon.target_type === 'customer' && coupon.target_user_id === customer.id))
+         (coupon.target_type === 'customer' && coupon.target_user_id === customer.mobile))
       );
       
       setAvailableCoupons(customerCoupons);
@@ -163,6 +172,11 @@ const Checkout = () => {
     }
   };
 
+  const handleBackToSales = () => {
+    // Keep items in localStorage when going back to sales
+    navigate('/sales');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -170,7 +184,7 @@ const Checkout = () => {
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/sales')}
+            onClick={handleBackToSales}
             className="p-2"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -226,30 +240,34 @@ const Checkout = () => {
             </Card>
 
             {/* Coupon Selection */}
-            {isVerified && availableCoupons.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Apply Coupon</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={selectedCoupon} onValueChange={handleCouponChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a coupon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No coupon</SelectItem>
-                      {availableCoupons.map((coupon) => (
-                        <SelectItem key={coupon.id} value={coupon.code}>
-                          {coupon.code} - {coupon.discount_type === 'percentage' 
-                            ? `${coupon.discount_value}% off` 
-                            : `₹${coupon.discount_value} off`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Apply Coupon</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedCoupon} onValueChange={handleCouponChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a coupon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No coupon</SelectItem>
+                    {availableCoupons.map((coupon) => (
+                      <SelectItem key={coupon.id} value={coupon.code}>
+                        {coupon.code} - {coupon.discount_type === 'percentage' 
+                          ? `${coupon.discount_value}% off` 
+                          : `₹${coupon.discount_value} off`}
+                        {coupon.target_type === 'customer' && ' (Personal)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availableCoupons.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No active coupons available
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Payment Method */}
             <Card>
@@ -278,19 +296,21 @@ const Checkout = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Items */}
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-muted-foreground">
-                        {item.quantity} × ₹{item.price.toFixed(2)}
-                      </p>
+              <ScrollArea className="max-h-64">
+                <div className="space-y-2 pr-4">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-muted-foreground">
+                          {item.quantity} × ₹{item.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
-                    <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
 
               {/* Totals */}
               <div className="border-t pt-4 space-y-2">
@@ -315,7 +335,7 @@ const Checkout = () => {
               <Button 
                 onClick={handleCompleteTransaction}
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={!isVerified}
+                disabled={!customerName.trim() || !customerMobile.trim()}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Complete Transaction

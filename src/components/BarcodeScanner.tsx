@@ -60,8 +60,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
         const constraints = {
           video: { 
             facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
             aspectRatio: { ideal: 16/9 }
           }
         };
@@ -198,31 +198,31 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
               muted
             />
             
-            {/* Scanning overlay - centered scanning area */}
+            {/* Full Screen Scanning overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
-              {/* Dark overlay with cut-out */}
-              <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+              {/* Dark overlay */}
+              <div className="absolute inset-0 bg-black bg-opacity-30"></div>
               
-              {/* Scanning frame */}
-              <div className="relative z-10">
-                <div className="w-72 h-72 border-4 border-white rounded-2xl relative bg-transparent">
-                  {/* Corner indicators */}
-                  <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-2xl"></div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-2xl"></div>
-                  <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-2xl"></div>
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-2xl"></div>
+              {/* Large Scanning frame covering most of the screen */}
+              <div className="relative z-10 w-11/12 h-4/5 max-w-4xl max-h-96">
+                <div className="w-full h-full border-4 border-white rounded-3xl relative bg-transparent">
+                  {/* Large Corner indicators */}
+                  <div className="absolute -top-4 -left-4 w-16 h-16 border-t-6 border-l-6 border-green-500 rounded-tl-3xl"></div>
+                  <div className="absolute -top-4 -right-4 w-16 h-16 border-t-6 border-r-6 border-green-500 rounded-tr-3xl"></div>
+                  <div className="absolute -bottom-4 -left-4 w-16 h-16 border-b-6 border-l-6 border-green-500 rounded-bl-3xl"></div>
+                  <div className="absolute -bottom-4 -right-4 w-16 h-16 border-b-6 border-r-6 border-green-500 rounded-br-3xl"></div>
                   
-                  {/* Scanning line animation */}
-                  <div className="absolute inset-2 overflow-hidden rounded-xl">
-                    <div className="w-full h-1 bg-green-500 opacity-75 animate-pulse"></div>
+                  {/* Large Scanning line animation */}
+                  <div className="absolute inset-8 overflow-hidden rounded-2xl">
+                    <div className="w-full h-2 bg-green-500 opacity-75 animate-pulse"></div>
                   </div>
                 </div>
                 
-                <p className="text-white text-center mt-4 text-lg font-medium">
+                <p className="text-white text-center mt-8 text-2xl font-medium">
                   Position barcode within the frame
                 </p>
                 {scanning && (
-                  <p className="text-green-400 text-center mt-2 text-sm animate-pulse">
+                  <p className="text-green-400 text-center mt-4 text-lg animate-pulse">
                     Scanning...
                   </p>
                 )}

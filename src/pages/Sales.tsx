@@ -11,6 +11,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { toast } from '@/hooks/use-toast';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { useNavigate } from 'react-router-dom';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SaleItem {
   id: string;
@@ -25,7 +26,11 @@ interface SaleItem {
 
 const Sales = () => {
   const navigate = useNavigate();
-  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [saleItems, setSaleItems] = useState<SaleItem[]>(() => {
+    // Load cart items from localStorage on component mount
+    const storedItems = localStorage.getItem('checkoutItems');
+    return storedItems ? JSON.parse(storedItems) : [];
+  });
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { products } = useProducts();
@@ -57,11 +62,13 @@ const Sales = () => {
     const existingItem = saleItems.find(item => item.barcode === product.barcode);
     
     if (existingItem) {
-      setSaleItems(prev => prev.map(item => 
+      const updatedItems = saleItems.map(item => 
         item.barcode === product.barcode 
           ? { ...item, quantity: item.quantity + 1 }
           : item
-      ));
+      );
+      setSaleItems(updatedItems);
+      localStorage.setItem('checkoutItems', JSON.stringify(updatedItems));
     } else {
       const newItem: SaleItem = {
         id: Date.now().toString(),
@@ -73,7 +80,9 @@ const Sales = () => {
         unit: (product as any).unit || 'piece',
         imageUrl: product.image_url
       };
-      setSaleItems(prev => [...prev, newItem]);
+      const updatedItems = [...saleItems, newItem];
+      setSaleItems(updatedItems);
+      localStorage.setItem('checkoutItems', JSON.stringify(updatedItems));
     }
     
     toast({
@@ -83,17 +92,21 @@ const Sales = () => {
   };
 
   const updateQuantity = (id: string, change: number) => {
-    setSaleItems(prev => prev.map(item => {
+    const updatedItems = saleItems.map(item => {
       if (item.id === id) {
         const newQuantity = Math.max(1, item.quantity + change);
         return { ...item, quantity: newQuantity };
       }
       return item;
-    }));
+    });
+    setSaleItems(updatedItems);
+    localStorage.setItem('checkoutItems', JSON.stringify(updatedItems));
   };
 
   const removeItem = (id: string) => {
-    setSaleItems(prev => prev.filter(item => item.id !== id));
+    const updatedItems = saleItems.filter(item => item.id !== id);
+    setSaleItems(updatedItems);
+    localStorage.setItem('checkoutItems', JSON.stringify(updatedItems));
   };
 
   const subtotal = saleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -198,7 +211,7 @@ const Sales = () => {
                       <Button
                         size="sm"
                         onClick={() => addToCart(product)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-green-600 hover:bg-green-700 h-8 px-3 text-xs"
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Add
@@ -228,13 +241,14 @@ const Sales = () => {
                 <Button 
                   onClick={handleProceedToCheckout}
                   className="bg-blue-600 hover:bg-blue-700"
+                  size="sm"
                 >
                   Proceed to Checkout
                 </Button>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto">
+          <CardContent className="flex-1 overflow-hidden">
             {saleItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -242,70 +256,74 @@ const Sales = () => {
                 <p className="text-sm">Add products to get started</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {saleItems.map((item) => {
-                  const images = getProductImages(item.imageUrl);
-                  
-                  return (
-                    <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                      {/* Product Image */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {images.length > 0 ? (
-                          <img 
-                            src={images[0]} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs">
-                            {item.category === 'Vegetables' && '🥬'}
-                            {item.category === 'Fruits' && '🍎'}
-                            {item.category === 'Grains' && '🌾'}
-                            {item.category === 'Dairy' && '🥛'}
-                            {item.category === 'Fashion' && '👕'}
-                            {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-3 w-3 text-green-600" />}
+              <div className="flex flex-col h-full">
+                <ScrollArea className="flex-1 pr-4">
+                  <div className="space-y-3">
+                    {saleItems.map((item) => {
+                      const images = getProductImages(item.imageUrl);
+                      
+                      return (
+                        <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                          {/* Product Image */}
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
+                            {images.length > 0 ? (
+                              <img 
+                                src={images[0]} 
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs">
+                                {item.category === 'Vegetables' && '🥬'}
+                                {item.category === 'Fruits' && '🍎'}
+                                {item.category === 'Grains' && '🌾'}
+                                {item.category === 'Dairy' && '🥛'}
+                                {item.category === 'Fashion' && '👕'}
+                                {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-3 w-3 text-green-600" />}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-xs truncate">{item.name}</h4>
-                        <p className="text-xs text-green-600">₹{item.price.toFixed(2)} / {item.unit}</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => updateQuantity(item.id, -1)}
-                        >
-                          <Minus className="h-2 w-2" />
-                        </Button>
-                        
-                        <span className="text-xs w-6 text-center">{item.quantity}</span>
-                        
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => updateQuantity(item.id, 1)}
-                        >
-                          <Plus className="h-2 w-2" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-red-500 hover:text-red-700 ml-1"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-2 w-2" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-xs truncate">{item.name}</h4>
+                            <p className="text-xs text-green-600">₹{item.price.toFixed(2)} / {item.unit}</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => updateQuantity(item.id, -1)}
+                            >
+                              <Minus className="h-2 w-2" />
+                            </Button>
+                            
+                            <span className="text-xs w-6 text-center">{item.quantity}</span>
+                            
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => updateQuantity(item.id, 1)}
+                            >
+                              <Plus className="h-2 w-2" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-red-500 hover:text-red-700 ml-1"
+                              onClick={() => removeItem(item.id)}
+                            >
+                              <Trash2 className="h-2 w-2" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
                 
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between font-bold text-lg">
