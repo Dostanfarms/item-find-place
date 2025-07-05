@@ -10,15 +10,7 @@ interface TicketDialogProps {
   userId: string;
   userName: string;
   userContact: string;
-  onSubmit: (ticket: {
-    user_id: string;
-    user_type: string;
-    user_name: string;
-    user_contact: string;
-    message: string;
-    status: string;
-    attachment_url?: string;
-  }) => void;
+  onSubmit: () => void;
   buttonText?: string;
 }
 
@@ -32,16 +24,8 @@ const TicketDialog: React.FC<TicketDialogProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
 
-  const handleSubmit = (ticket: {
-    user_id: string;
-    user_type: string;
-    user_name: string;
-    user_contact: string;
-    message: string;
-    status: string;
-    attachment_url?: string;
-  }) => {
-    onSubmit(ticket);
+  const handleSubmit = () => {
+    onSubmit();
     setOpen(false);
   };
 
