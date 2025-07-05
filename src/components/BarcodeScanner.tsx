@@ -17,34 +17,29 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   const [cameraError, setCameraError] = useState('');
   const [hasFlashlight, setHasFlashlight] = useState(false);
   const [flashlightOn, setFlashlightOn] = useState(false);
-  const [lastScannedCode, setLastScannedCode] = useState('');
-  const [scanningActive, setScanningActive] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastScanTimeRef = useRef<number>(0);
+  const scanningRef = useRef<boolean>(false);
   
   const { isNative, takePicture, vibrate } = useNativeFeatures();
 
   // Initialize ZXing code reader
   useEffect(() => {
-    if (!isNative && !codeReader.current) {
+    if (!isNative) {
       codeReader.current = new BrowserMultiFormatReader();
     }
     
     return () => {
       cleanup();
     };
-  }, [isNative]);
+  }, []);
 
   // Cleanup function
   const cleanup = useCallback(() => {
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = null;
-    }
+    scanningRef.current = false;
+    setScanning(false);
     
     if (codeReader.current) {
       try {
@@ -61,18 +56,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       streamRef.current = null;
     }
     
-    setScanningActive(false);
-    setScanning(false);
     setFlashlightOn(false);
   }, []);
 
   // Play success sound and vibrate
   const playSuccessSound = async () => {
     try {
-      // Vibrate on mobile
       await vibrate();
       
-      // Play beep sound
+      // Simple beep sound
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -80,46 +72,42 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      oscillator.frequency.value = 1000;
+      oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       
       oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.2);
+      oscillator.stop(audioContext.currentTime + 0.15);
     } catch (error) {
       console.log('Audio/vibration not available');
     }
   };
 
-  // Enhanced camera initialization
+  // Start camera with optimized settings
   const startCamera = async () => {
     try {
       setScanning(true);
       setCameraError('');
       
       if (isNative) {
-        // Use native camera for mobile
         const imageDataUrl = await takePicture();
         console.log('Captured image for barcode scanning');
-        // Simulate processing for demo
+        // Mock processing for native
         setTimeout(() => {
-          const mockBarcode = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-13);
+          const mockBarcode = `MOCK${Date.now()}`.slice(-13);
           handleBarcodeDetected(mockBarcode);
-        }, 1500);
+        }, 1000);
         return;
       }
 
-      // Enhanced web camera constraints
+      // Optimized camera constraints for barcode scanning
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1920, min: 640 },
-          height: { ideal: 1080, min: 480 },
-          frameRate: { ideal: 30, min: 15 },
-          focusMode: 'continuous',
-          exposureMode: 'continuous',
-          whiteBalanceMode: 'continuous'
-        } as any
+          facingMode: 'environment',
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30 }
+        }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -128,53 +116,46 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('webkit-playsinline', 'true');
         
         // Check for flashlight support
         const track = stream.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
         setHasFlashlight('torch' in capabilities);
         
-        // Wait for video to be ready
-        await new Promise<void>((resolve) => {
+        // Wait for video to load and start scanning
+        videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => resolve();
+            videoRef.current.play().then(() => {
+              startScanning();
+            });
           }
-        });
-        
-        await videoRef.current.play();
-        setScanningActive(true);
-        startContinuousScanning();
+        };
       }
     } catch (error: any) {
-      console.error('Error accessing camera:', error);
+      console.error('Camera error:', error);
       handleCameraError(error);
     }
   };
 
-  // Enhanced continuous scanning
-  const startContinuousScanning = () => {
-    if (!codeReader.current || !videoRef.current || !scanningActive) return;
+  // Optimized scanning function
+  const startScanning = () => {
+    if (!codeReader.current || !videoRef.current) return;
     
-    const scanFrame = async () => {
-      if (!scanningActive || !videoRef.current || !codeReader.current) return;
+    scanningRef.current = true;
+    
+    const scanLoop = async () => {
+      if (!scanningRef.current || !videoRef.current || !codeReader.current) return;
       
       try {
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
-        if (result) {
-          const now = Date.now();
-          const code = result.getText();
-          
-          // Prevent duplicate scans within 2 seconds
-          if (code !== lastScannedCode || now - lastScanTimeRef.current > 2000) {
-            setLastScannedCode(code);
-            lastScanTimeRef.current = now;
-            handleBarcodeDetected(code);
-            return;
-          }
+        if (result && result.getText()) {
+          const barcode = result.getText();
+          console.log('Barcode detected:', barcode);
+          handleBarcodeDetected(barcode);
+          return;
         }
       } catch (error) {
-        // Ignore common scanning errors and continue
+        // Continue scanning on common errors
         if (!(error instanceof NotFoundException) && 
             !(error instanceof ChecksumException) && 
             !(error instanceof FormatException)) {
@@ -182,35 +163,31 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
         }
       }
       
-      // Continue scanning if still active
-      if (scanningActive) {
-        requestAnimationFrame(scanFrame);
+      // Continue scanning
+      if (scanningRef.current) {
+        setTimeout(scanLoop, 100); // Scan every 100ms
       }
     };
     
-    // Start scanning loop
-    requestAnimationFrame(scanFrame);
+    scanLoop();
   };
 
   // Handle camera errors
   const handleCameraError = (error: any) => {
-    let errorMessage = 'Unable to access camera. ';
+    let errorMessage = 'Camera access failed. ';
     
     if (error.name === 'NotAllowedError') {
-      errorMessage += 'Please allow camera permissions and try again.';
+      errorMessage = 'Please allow camera permissions and refresh the page.';
     } else if (error.name === 'NotFoundError') {
-      errorMessage += 'No camera found on this device.';
+      errorMessage = 'No camera found on this device.';
     } else if (error.name === 'NotReadableError') {
-      errorMessage += 'Camera is being used by another application.';
-    } else if (error.name === 'OverconstrainedError') {
-      errorMessage += 'Camera does not meet the required specifications.';
+      errorMessage = 'Camera is being used by another application.';
     } else {
-      errorMessage += 'Please try manual entry below.';
+      errorMessage = 'Unable to access camera. Please try manual entry.';
     }
     
     setCameraError(errorMessage);
     setScanning(false);
-    setScanningActive(false);
   };
 
   // Toggle flashlight
@@ -224,14 +201,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       });
       setFlashlightOn(!flashlightOn);
     } catch (error) {
-      console.error('Error toggling flashlight:', error);
+      console.error('Flashlight error:', error);
     }
   };
 
   // Handle successful barcode detection
   const handleBarcodeDetected = async (barcode: string) => {
-    console.log('Barcode detected:', barcode);
-    setScanningActive(false);
+    scanningRef.current = false;
     await playSuccessSound();
     onScan(barcode);
     cleanup();
@@ -274,9 +250,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent text-white z-20">
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-black/80 text-white z-20">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <ScanBarcode className="h-5 w-5" />
           Scan Barcode
@@ -310,25 +286,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
         </div>
       </div>
 
-      {/* Full Screen Camera View */}
-      <div className="flex-1 relative overflow-hidden">
+      {/* Full Screen Video */}
+      <div className="absolute inset-0">
         {!isNative && !cameraError && (
           <video
             ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="w-full h-full object-cover"
             autoPlay
             playsInline
             muted
-            style={{ transform: 'scaleX(-1)' }}
           />
         )}
 
-        {/* Native Camera Placeholder */}
+        {/* Native Camera View */}
         {isNative && (
           <div className="flex items-center justify-center h-full text-center text-white bg-gray-900">
             <div className="p-8">
               <ScanBarcode className="h-32 w-32 mx-auto mb-6 text-green-500" />
-              <p className="text-2xl mb-4">Ready to scan barcode</p>
+              <p className="text-2xl mb-4">Ready to scan</p>
               <Button
                 onClick={startCamera}
                 disabled={scanning}
@@ -348,7 +323,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
               <p className="text-xl mb-4 text-red-300">{cameraError}</p>
               <Button
                 onClick={startCamera}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 mb-4"
               >
                 Try Again
               </Button>
@@ -356,30 +331,26 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
           </div>
         )}
 
-        {/* Scanning Frame Overlay */}
-        {scanningActive && !cameraError && (
+        {/* Scanning Overlay */}
+        {scanning && !cameraError && !isNative && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Scanning Rectangle */}
             <div className="relative">
-              <div className="w-64 h-40 border-2 border-green-500 rounded-lg relative overflow-hidden">
+              {/* Scanning Rectangle */}
+              <div className="w-80 h-48 border-4 border-green-400 rounded-lg relative">
                 {/* Corner indicators */}
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg"></div>
+                <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
+                <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
+                <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
                 
-                {/* Scanning line animation */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="w-full h-0.5 bg-green-400 animate-pulse relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse"></div>
-                  </div>
-                </div>
+                {/* Scanning line */}
+                <div className="absolute inset-x-0 top-1/2 h-1 bg-green-400 animate-pulse"></div>
               </div>
               
               {/* Instructions */}
-              <div className="text-center mt-4">
-                <p className="text-white text-lg font-medium">Position barcode in the frame</p>
-                <p className="text-white/80 text-sm">Hold steady for automatic scanning</p>
+              <div className="text-center mt-6">
+                <p className="text-white text-lg font-medium">Position barcode inside the frame</p>
+                <p className="text-white/80 text-sm mt-1">Scanning automatically...</p>
               </div>
             </div>
           </div>
@@ -387,9 +358,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ isOpen, onClose, onScan
       </div>
 
       {/* Manual Entry */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 z-20">
+      <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-4 z-20">
         <div className="max-w-md mx-auto">
-          <p className="text-white text-center mb-3 text-sm">Or enter barcode manually:</p>
+          <p className="text-white text-center mb-3 text-sm">Can't scan? Enter manually:</p>
           <form onSubmit={handleManualSubmit} className="flex gap-2">
             <input
               type="text"
