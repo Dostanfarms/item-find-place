@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ const FarmerTicketHistory = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { tickets, addTicket, loading } = useTickets();
+  const { tickets, loading } = useTickets();
   const [farmer, setFarmer] = useState<any>(null);
   const [farmerTickets, setFarmerTickets] = useState<any[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,33 +64,11 @@ const FarmerTicketHistory = () => {
     navigate('/farmer-login');
   };
   
-  const handleTicketSubmit = async (ticketData: {
-    user_id: string;
-    user_type: string;
-    user_name: string;
-    user_contact: string;
-    message: string;
-    status: string;
-    attachment_url?: string;
-  }) => {
-    console.log('Submitting farmer ticket:', ticketData);
-    
-    // Add the missing properties to match the Ticket type
-    const completeTicketData = {
-      ...ticketData,
-      assigned_to: null,
-      resolution: null,
-      attachment_url: ticketData.attachment_url || null
-    };
-    
-    const result = await addTicket(completeTicketData);
-    
-    if (result.success) {
-      toast({
-        title: "Ticket Submitted",
-        description: "Your support ticket has been submitted.",
-      });
-    }
+  const handleTicketSubmit = () => {
+    toast({
+      title: "Ticket Submitted",
+      description: "Your support ticket has been submitted.",
+    });
   };
 
   const getStatusBadge = (status: string) => {
