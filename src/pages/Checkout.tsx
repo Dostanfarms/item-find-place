@@ -11,6 +11,7 @@ import { useCoupons } from '@/hooks/useCoupons';
 import { useTransactions } from '@/hooks/useTransactions';
 import { toast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import TransactionReceipt from '@/components/TransactionReceipt';
 
 interface CheckoutItem {
   id: string;
@@ -31,6 +32,8 @@ const Checkout = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
   const [discount, setDiscount] = useState(0);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
   
   const { customers } = useCustomers();
   const { coupons } = useCoupons();
@@ -155,14 +158,30 @@ const Checkout = () => {
     const result = await addTransaction(transactionData);
     
     if (result.success) {
+      // Create transaction object for receipt
+      const transaction = {
+        id: result.data.id,
+        customerName,
+        customerMobile,
+        items,
+        subtotal,
+        discount,
+        total,
+        couponUsed: selectedCoupon,
+        paymentMethod,
+        timestamp: new Date().toISOString()
+      };
+      
+      setCompletedTransaction(transaction);
+      setShowReceipt(true);
+      
+      // Clear checkout items
+      localStorage.removeItem('checkoutItems');
+      
       toast({
         title: "Transaction Completed",
         description: `Sale completed successfully. Total: ₹${total.toFixed(2)}`,
       });
-      
-      // Clear checkout items
-      localStorage.removeItem('checkoutItems');
-      navigate('/sales');
     } else {
       toast({
         title: "Transaction Failed",
@@ -176,6 +195,21 @@ const Checkout = () => {
     // Keep items in localStorage when going back to sales
     navigate('/sales', { state: { fromCheckout: true } });
   };
+
+  // Show receipt if transaction is completed
+  if (showReceipt && completedTransaction) {
+    return (
+      <TransactionReceipt 
+        transaction={completedTransaction}
+        onNewSale={() => {
+          setShowReceipt(false);
+          setCompletedTransaction(null);
+          navigate('/sales');
+        }}
+        onBackToSales={() => navigate('/sales')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
