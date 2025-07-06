@@ -1,4 +1,3 @@
-
 import { Permission } from './types';
 
 // Define role-based permissions
@@ -17,7 +16,8 @@ export const rolePermissions: Record<string, Permission[]> = {
     { resource: 'employees', actions: ['view', 'create', 'edit', 'delete'] },
     { resource: 'roles', actions: ['view', 'create', 'edit', 'delete'] },
     { resource: 'transactions', actions: ['view', 'create', 'edit', 'delete'] },
-    { resource: 'settlements', actions: ['view', 'create', 'edit', 'delete'] }
+    { resource: 'settlements', actions: ['view', 'create', 'edit', 'delete'] },
+    { resource: 'fashion_products', actions: ['view', 'create', 'edit', 'delete'] }
   ],
   manager: [
     { resource: 'dashboard', actions: ['view'] },
@@ -32,7 +32,8 @@ export const rolePermissions: Record<string, Permission[]> = {
     { resource: 'branches', actions: ['view'] },
     { resource: 'employees', actions: ['view'] },
     { resource: 'transactions', actions: ['view'] },
-    { resource: 'settlements', actions: ['view'] }
+    { resource: 'settlements', actions: ['view'] },
+    { resource: 'fashion_products', actions: ['view', 'create', 'edit'] }
   ],
   sales: [
     { resource: 'dashboard', actions: ['view'] },
@@ -41,7 +42,8 @@ export const rolePermissions: Record<string, Permission[]> = {
     { resource: 'customers', actions: ['view', 'create', 'edit'] },
     { resource: 'farmers', actions: ['view'] },
     { resource: 'tickets', actions: ['view', 'create'] },
-    { resource: 'transactions', actions: ['view', 'create'] }
+    { resource: 'transactions', actions: ['view', 'create'] },
+    { resource: 'fashion_products', actions: ['view'] }
   ]
 };
 
@@ -54,4 +56,29 @@ export const hasPermission = (userRole: string, resource: string, action: string
   const permissions = rolePermissions[userRole.toLowerCase()] || [];
   const resourcePermission = permissions.find(p => p.resource === resource);
   return resourcePermission?.actions.includes(action as any) || false;
+};
+
+// Branch access restrictions
+export const canAccessBranch = (userRole: string, userBranchId: string | null, targetBranchId: string | null): boolean => {
+  // Admin can access all branches
+  if (userRole.toLowerCase() === 'admin') {
+    return true;
+  }
+  
+  // Other roles can only access their assigned branch or null branch items
+  return userBranchId === targetBranchId || targetBranchId === null;
+};
+
+export const getBranchRestrictedData = <T extends { branch_id?: string | null }>(
+  data: T[], 
+  userRole: string, 
+  userBranchId: string | null
+): T[] => {
+  if (userRole.toLowerCase() === 'admin') {
+    return data;
+  }
+  
+  return data.filter(item => 
+    item.branch_id === userBranchId || item.branch_id === null
+  );
 };
