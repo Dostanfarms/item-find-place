@@ -1,3 +1,4 @@
+
 import { Permission } from './types';
 
 // Define role-based permissions
@@ -31,6 +32,7 @@ export const rolePermissions: Record<string, Permission[]> = {
     { resource: 'banners', actions: ['view', 'edit'] },
     { resource: 'branches', actions: ['view'] },
     { resource: 'employees', actions: ['view'] },
+    { resource: 'roles', actions: ['view'] },
     { resource: 'transactions', actions: ['view'] },
     { resource: 'settlements', actions: ['view'] },
     { resource: 'fashion_products', actions: ['view', 'create', 'edit'] }
@@ -81,4 +83,17 @@ export const getBranchRestrictedData = <T extends { branch_id?: string | null }>
   return data.filter(item => 
     item.branch_id === userBranchId || item.branch_id === null
   );
+};
+
+// Role-specific branch access restrictions
+export const canManageRoles = (userRole: string): boolean => {
+  return userRole.toLowerCase() === 'admin';
+};
+
+export const canCreateInBranch = (userRole: string, userBranchId: string | null, targetBranchId: string | null): boolean => {
+  return canAccessBranch(userRole, userBranchId, targetBranchId);
+};
+
+export const canEditInBranch = (userRole: string, userBranchId: string | null, targetBranchId: string | null): boolean => {
+  return canAccessBranch(userRole, userBranchId, targetBranchId);
 };

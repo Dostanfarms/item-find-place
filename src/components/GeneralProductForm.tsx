@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,8 +12,6 @@ import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/context/AuthContext';
 import { X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import ProductImageUpload from './ProductImageUpload';
-import ProductSizesManager from './ProductSizesManager';
 import { canAccessBranch } from '@/utils/employeeData';
 
 interface GeneralProductFormProps {
@@ -185,9 +184,12 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
               </div>
 
               <div className="space-y-2">
-                <ProductImageUpload
+                <Label htmlFor="image-url">Image URL</Label>
+                <Input
+                  id="image-url"
                   value={imageUrl}
-                  onChange={setImageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Enter image URL"
                   disabled={isSubmitting}
                 />
               </div>

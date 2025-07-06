@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,9 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useFashionProducts, FashionProduct } from '@/hooks/useFashionProducts';
+import { useBranches } from '@/hooks/useBranches';
+import { useAuth } from '@/context/AuthContext';
 import { Shirt, Plus, Minus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import MultipleImageUpload from './MultipleImageUpload';
+import { canAccessBranch } from '@/utils/employeeData';
 
 interface FashionProductFormProps {
   onCancel: () => void;
@@ -22,11 +24,14 @@ const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
 const FashionProductForm = ({ onCancel, editProduct }: FashionProductFormProps) => {
   const { addFashionProduct, updateFashionProduct } = useFashionProducts();
+  const { branches } = useBranches();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState(editProduct?.name || '');
   const [description, setDescription] = useState(editProduct?.description || '');
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [isActive, setIsActive] = useState(editProduct?.is_active ?? true);
+  const [branchId, setBranchId] = useState(editProduct?.branch_id || '');
   const [sizes, setSizes] = useState<{ size: string; pieces: number }[]>(() => {
     if (editProduct?.sizes) {
       return editProduct.sizes.map(s => ({ size: s.size, pieces: s.pieces }));
@@ -43,6 +48,11 @@ const FashionProductForm = ({ onCancel, editProduct }: FashionProductFormProps) 
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filter branches based on user permissions
+  const accessibleBranches = branches.filter(branch => 
+    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
+  );
 
   const updateSizeQuantity = (targetSize: string, pieces: number) => {
     setSizes(prev => prev.map(size => 
@@ -106,7 +116,8 @@ const FashionProductForm = ({ onCancel, editProduct }: FashionProductFormProps) 
       price_per_unit: parsedPrice,
       category: 'Fashion',
       image_url: imageData,
-      is_active: isActive
+      is_active: isActive,
+      branch_id: branchId || null
     };
     
     try {
@@ -222,18 +233,36 @@ const FashionProductForm = ({ onCancel, editProduct }: FashionProductFormProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="active-status">Product Status</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="active-status"
-                      checked={isActive}
-                      onCheckedChange={setIsActive}
-                      disabled={isSubmitting}
-                    />
-                    <Label htmlFor="active-status" className="text-sm">
-                      {isActive ? 'Active' : 'Inactive'}
-                    </Label>
-                  </div>
+                  <Label htmlFor="branch">Branch</Label>
+                  <select
+                    id="branch"
+                    className="w-full p-2 border rounded-md"
+                    value={branchId}
+                    onChange={(e) => setBranchId(e.target.value)}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">All Branches</option>
+                    {accessibleBranches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.branch_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="active-status">Product Status</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="active-status"
+                    checked={isActive}
+                    onCheckedChange={setIsActive}
+                    disabled={isSubmitting}
+                  />
+                  <Label htmlFor="active-status" className="text-sm">
+                    {isActive ? 'Active' : 'Inactive'}
+                  </Label>
                 </div>
               </div>
 

@@ -11,15 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { states, districts, villages, banks } from '@/utils/locationData';
 import PhotoUploadField from '@/components/PhotoUploadField';
+import { useBranches } from '@/hooks/useBranches';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessBranch } from '@/utils/employeeData';
 
 interface FarmerFormProps {
   onSubmit: (farmer: Farmer) => void;
   onCancel: () => void;
-  editFarmer?: Farmer; // New prop to support editing
+  editFarmer?: Farmer;
 }
 
 const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer }) => {
   const { toast } = useToast();
+  const { branches } = useBranches();
+  const { currentUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -33,12 +38,18 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
     profile_photo: '',
     state: '',
     district: '',
-    village: ''
+    village: '',
+    branch_id: ''
   });
   
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
   const [availableVillages, setAvailableVillages] = useState<string[]>([]);
   const [statesList] = useState<string[]>(Object.keys(states));
+
+  // Filter branches based on user permissions
+  const accessibleBranches = branches.filter(branch => 
+    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
+  );
 
   // Populate form when editing an existing farmer
   useEffect(() => {
@@ -55,10 +66,10 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
         profile_photo: editFarmer.profile_photo || '',
         state: editFarmer.state || '',
         district: editFarmer.district || '',
-        village: editFarmer.village || ''
+        village: editFarmer.village || '',
+        branch_id: editFarmer.branch_id || ''
       });
       
-      // Set available districts and villages if state and district are available
       if (editFarmer.state && districts[editFarmer.state]) {
         setAvailableDistricts(districts[editFarmer.state]);
         
@@ -168,7 +179,8 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
       profile_photo: formData.profile_photo,
       state: formData.state,
       district: formData.district,
-      village: formData.village
+      village: formData.village,
+      branch_id: formData.branch_id
     };
 
     onSubmit(updatedFarmer);
@@ -214,11 +226,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className={formData.phone && !validatePhone(formData.phone) ? "border-red-500" : ""}
                 />
-                {formData.phone && !validatePhone(formData.phone) && 
-                  <p className="text-xs text-red-500">Please enter a valid 10-digit mobile number</p>
-                }
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
@@ -230,11 +238,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className={formData.email && !validateEmail(formData.email) ? "border-red-500" : ""}
                 />
-                {formData.email && !validateEmail(formData.email) && 
-                  <p className="text-xs text-red-500">Please enter a valid email address</p>
-                }
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
@@ -259,6 +263,24 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
                     <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Select 
+                  value={formData.branch_id} 
+                  onValueChange={(value) => handleSelectChange("branch_id", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Branches</SelectItem>
+                    {accessibleBranches.map(branch => (
+                      <SelectItem key={branch.id} value={branch.id}>{branch.branch_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Location fields */}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent, CheckCircle } from 'lucide-react';
 import { useCoupons, Coupon } from '@/hooks/useCoupons';
+import { useBranches } from '@/hooks/useBranches';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessBranch } from '@/utils/employeeData';
+import ProtectedAction from '@/components/ProtectedAction';
 
 const Coupons = () => {
   const { toast } = useToast();
   const { coupons, loading, addCoupon, updateCoupon, deleteCoupon, verifyMobileNumber } = useCoupons();
+  const { branches } = useBranches();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
@@ -28,8 +33,14 @@ const Coupons = () => {
     is_active: true,
     max_discount_limit: '',
     target_type: 'all' as 'all' | 'customer' | 'employee',
-    target_user_id: ''
+    target_user_id: '',
+    branch_id: ''
   });
+
+  // Filter branches based on user permissions
+  const accessibleBranches = branches.filter(branch => 
+    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
+  );
 
   const filteredCoupons = coupons.filter(coupon =>
     coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,7 +97,8 @@ const Coupons = () => {
       is_active: formData.is_active,
       max_discount_limit: formData.max_discount_limit ? Number(formData.max_discount_limit) : null,
       target_type: formData.target_type,
-      target_user_id: formData.target_user_id || null
+      target_user_id: formData.target_user_id || null,
+      branch_id: formData.branch_id || null
     };
 
     let result;
@@ -115,7 +127,8 @@ const Coupons = () => {
       is_active: coupon.is_active,
       max_discount_limit: coupon.max_discount_limit?.toString() || '',
       target_type: coupon.target_type,
-      target_user_id: coupon.target_user_id || ''
+      target_user_id: coupon.target_user_id || '',
+      branch_id: coupon.branch_id || ''
     });
     setVerifiedUser(null);
     setIsDialogOpen(true);
@@ -133,7 +146,8 @@ const Coupons = () => {
       is_active: true,
       max_discount_limit: '',
       target_type: 'all',
-      target_user_id: ''
+      target_user_id: '',
+      branch_id: ''
     });
   };
 
@@ -181,9 +195,11 @@ const Coupons = () => {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-agri-primary hover:bg-agri-secondary">
-                <Plus className="mr-2 h-4 w-4" /> Add Coupon
-              </Button>
+              <ProtectedAction resource="coupons" action="create">
+                <Button className="bg-agri-primary hover:bg-agri-secondary">
+                  <Plus className="mr-2 h-4 w-4" /> Add Coupon
+                </Button>
+              </ProtectedAction>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-auto">
               <DialogHeader>
@@ -258,41 +274,58 @@ const Coupons = () => {
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor="target_user_id">
-                      {formData.target_type === 'customer' ? 'Customer Mobile' : 
-                       formData.target_type === 'employee' ? 'Employee Mobile' : 'Target User ID'} (Optional)
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="target_user_id"
-                        value={formData.target_user_id}
-                        onChange={(e) => {
-                          setFormData(prev => ({ ...prev, target_user_id: e.target.value }));
-                          setVerifiedUser(null);
-                        }}
-                        placeholder={formData.target_type === 'customer' || formData.target_type === 'employee' ? 
+                    <Label htmlFor="branch">Branch</Label>
+                    <select
+                      id="branch"
+                      className="w-full p-2 border rounded-md"
+                      value={formData.branch_id}
+                      onChange={(e) => setFormData(prev => ({ ...prev, branch_id: e.target.value }))}
+                    >
+                      <option value="">All Branches</option>
+                      {accessibleBranches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>
+                          {branch.branch_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="target_user_id">
+                    {formData.target_type === 'customer' ? 'Customer Mobile' : 
+                     formData.target_type === 'employee' ? 'Employee Mobile' : 'Target User ID'} (Optional)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="target_user_id"
+                      value={formData.target_user_id}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, target_user_id: e.target.value }));
+                        setVerifiedUser(null);
+                      }}
+                      placeholder={formData.target_type === 'customer' || formData.target_type === 'employee' ? 
                                    "Mobile Number" : "User ID"}
-                        disabled={formData.target_type === 'all'}
-                      />
-                      {(formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleVerifyMobile}
-                          disabled={isVerifying}
-                          className="whitespace-nowrap"
-                        >
-                          {isVerifying ? 'Verifying...' : verifiedUser ? <CheckCircle className="h-4 w-4 text-green-600" /> : 'Verify'}
-                        </Button>
-                      )}
-                    </div>
-                    {verifiedUser && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ Verified: {verifiedUser.name}
-                      </p>
+                      disabled={formData.target_type === 'all'}
+                    />
+                    {(formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleVerifyMobile}
+                        disabled={isVerifying}
+                        className="whitespace-nowrap"
+                      >
+                        {isVerifying ? 'Verifying...' : verifiedUser ? <CheckCircle className="h-4 w-4 text-green-600" /> : 'Verify'}
+                      </Button>
                     )}
                   </div>
+                  {verifiedUser && (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✓ Verified: {verifiedUser.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
