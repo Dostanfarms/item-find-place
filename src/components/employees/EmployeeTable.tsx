@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Pencil, Trash2, User } from 'lucide-react';
-import { Employee } from '@/hooks/useEmployees';
+import { Employee } from '@/utils/types';
 
 interface EmployeeTableProps {
   employees: Employee[];
