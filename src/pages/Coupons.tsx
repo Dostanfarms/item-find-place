@@ -250,7 +250,7 @@ const Coupons = () => {
                       id="target_type"
                       className="w-full p-2 border rounded-md"
                       value={formData.target_type}
-                      onChange={(e) => handleTargetTypeChange(e.target.value)}
+                      onChange={(e) => handleTargetTypeChange(e.target.value as 'all' | 'customer' | 'employee')}
                     >
                       <option value="all">All Users</option>
                       <option value="customer">Customer</option>

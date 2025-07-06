@@ -211,28 +211,51 @@ export const useCoupons = () => {
 
   const verifyMobileNumber = async (mobile: string, userType: 'customer' | 'employee') => {
     try {
-      const tableName = userType === 'customer' ? 'customers' : 'employees';
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('id, name, mobile, phone')
-        .or(`mobile.eq.${mobile},phone.eq.${mobile}`)
-        .single();
+      if (userType === 'customer') {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id, name, mobile')
+          .eq('mobile', mobile)
+          .single();
 
-      if (error || !data) {
+        if (error || !data) {
+          return { 
+            success: false, 
+            error: 'Customer not found with this mobile number' 
+          };
+        }
+
         return { 
-          success: false, 
-          error: `${userType === 'customer' ? 'Customer' : 'Employee'} not found with this mobile number` 
+          success: true, 
+          user: { 
+            id: data.id, 
+            name: data.name, 
+            mobile: data.mobile 
+          } 
+        };
+      } else {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('id, name, phone')
+          .eq('phone', mobile)
+          .single();
+
+        if (error || !data) {
+          return { 
+            success: false, 
+            error: 'Employee not found with this mobile number' 
+          };
+        }
+
+        return { 
+          success: true, 
+          user: { 
+            id: data.id, 
+            name: data.name, 
+            mobile: data.phone 
+          } 
         };
       }
-
-      return { 
-        success: true, 
-        user: { 
-          id: data.id, 
-          name: data.name, 
-          mobile: data.mobile || data.phone 
-        } 
-      };
     } catch (error) {
       console.error('Error verifying mobile number:', error);
       return { success: false, error: 'Failed to verify mobile number' };
