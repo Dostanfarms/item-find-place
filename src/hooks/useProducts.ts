@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +12,7 @@ export interface Product {
   barcode?: string;
   image_url?: string;
   is_active: boolean;
+  branch_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -80,7 +80,8 @@ export const useProducts = () => {
         category: productData.category.trim(),
         barcode: barcode,
         image_url: productData.image_url || null,
-        is_active: Boolean(productData.is_active)
+        is_active: Boolean(productData.is_active),
+        branch_id: productData.branch_id || null
       };
 
       console.log('Insert data for product:', insertData);
@@ -119,6 +120,7 @@ export const useProducts = () => {
       if (productData.category !== undefined) updateData.category = productData.category.trim();
       if (productData.image_url !== undefined) updateData.image_url = productData.image_url || null;
       if (productData.is_active !== undefined) updateData.is_active = Boolean(productData.is_active);
+      if (productData.branch_id !== undefined) updateData.branch_id = productData.branch_id || null;
 
       console.log('Update data for product:', updateData);
 

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface FashionProductSize {
   id: string;
   fashion_product_id: string;
-  size: string; // Changed from strict union to string
+  size: string;
   pieces: number;
   created_at: string;
   updated_at: string;
@@ -19,6 +19,7 @@ export interface FashionProduct {
   barcode?: string;
   image_url?: string;
   is_active: boolean;
+  branch_id?: string;
   created_at: string;
   updated_at: string;
   sizes?: FashionProductSize[];
@@ -85,9 +86,15 @@ export const useFashionProducts = () => {
       
       const barcode = await generateUniqueBarcode();
       
+      const insertData = {
+        ...productData,
+        barcode,
+        branch_id: productData.branch_id || null
+      };
+
       const { data: product, error: productError } = await supabase
         .from('fashion_products')
-        .insert([{ ...productData, barcode }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -127,9 +134,14 @@ export const useFashionProducts = () => {
     try {
       console.log('Updating fashion product:', id, productData);
 
+      const updateData = {
+        ...productData,
+        branch_id: productData.branch_id || null
+      };
+
       const { data: product, error: productError } = await supabase
         .from('fashion_products')
-        .update(productData)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

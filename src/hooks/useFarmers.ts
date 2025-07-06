@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +17,7 @@ export interface Farmer {
   ifsc_code?: string;
   profile_photo?: string;
   date_joined: string;
+  branch_id?: string;
   products?: any[];
   transactions?: any[];
 }
@@ -60,6 +60,7 @@ export const useFarmers = () => {
         ifsc_code: farmer.ifsc_code,
         profile_photo: farmer.profile_photo,
         date_joined: farmer.date_joined,
+        branch_id: farmer.branch_id,
         products: [],
         transactions: []
       })) || [];
@@ -93,7 +94,8 @@ export const useFarmers = () => {
           bank_name: farmerData.bank_name,
           account_number: farmerData.account_number,
           ifsc_code: farmerData.ifsc_code,
-          profile_photo: farmerData.profile_photo
+          profile_photo: farmerData.profile_photo,
+          branch_id: farmerData.branch_id
         }])
         .select()
         .single();
@@ -142,7 +144,8 @@ export const useFarmers = () => {
           bank_name: farmerData.bank_name,
           account_number: farmerData.account_number,
           ifsc_code: farmerData.ifsc_code,
-          profile_photo: farmerData.profile_photo
+          profile_photo: farmerData.profile_photo,
+          branch_id: farmerData.branch_id
         })
         .eq('id', id)
         .select()

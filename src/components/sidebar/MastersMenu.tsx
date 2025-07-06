@@ -20,7 +20,8 @@ import {
   Package,
   Gift,
   Tag,
-  Image
+  Image,
+  Building
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/context/AuthContext';
@@ -33,7 +34,7 @@ const MastersMenu = () => {
   const [mastersOpen, setMastersOpen] = useState(false);
 
   useEffect(() => {
-    const mastersPathsToCheck = ['/products', '/coupons', '/categories', '/banners', '/employees', '/roles'];
+    const mastersPathsToCheck = ['/products', '/coupons', '/categories', '/banners', '/employees', '/roles', '/branches'];
     if (mastersPathsToCheck.some(path => location.pathname.startsWith(path))) {
       setMastersOpen(true);
     }
@@ -67,7 +68,7 @@ const MastersMenu = () => {
     },
     {
       title: 'Branches',
-      icon: Settings,
+      icon: Building,
       path: '/branches',
       resource: 'branches'
     },
