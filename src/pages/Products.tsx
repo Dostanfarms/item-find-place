@@ -1,448 +1,331 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useProducts, Product } from '@/hooks/useProducts';
+import { Plus, Package, Search } from 'lucide-react';
+import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
-import { useCategories } from '@/hooks/useCategories';
-import { Search, Plus, Package, Edit, Printer, Shirt } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import GeneralProductForm from '@/components/GeneralProductForm';
+import ProductForm from '@/components/ProductForm';
 import FashionProductForm from '@/components/FashionProductForm';
-import ProtectedAction from '@/components/ProtectedAction';
-import { useAuth } from '@/context/AuthContext';
+import GeneralProductForm from '@/components/GeneralProductForm';
+import { useCategories } from '@/hooks/useCategories';
+import BranchFilter from '@/components/BranchFilter';
+import { useBranches } from '@/hooks/useBranches';
 
 const Products = () => {
-  const { toast } = useToast();
-  const { hasPermission } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showForm, setShowForm] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
-  const [selectedFashionProduct, setSelectedFashionProduct] = useState<any>(undefined);
-  
-  const { products, loading: productsLoading } = useProducts();
+  const { products, loading: productsLoading, deleteProduct } = useProducts();
   const { fashionProducts, loading: fashionLoading } = useFashionProducts();
   const { categories } = useCategories();
+  const { branches } = useBranches();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [productType, setProductType] = useState<'general' | 'fashion'>('general');
 
-  const loading = productsLoading || fashionLoading;
+  // Combine all products with branch information
+  const allProducts = useMemo(() => {
+    const generalProducts = products.map(p => ({ ...p, type: 'general' }));
+    const fashionProductsWithType = fashionProducts.map(p => ({ ...p, type: 'fashion' }));
+    return [...generalProducts, ...fashionProductsWithType];
+  }, [products, fashionProducts]);
 
-  console.log('Fashion products in Products page:', fashionProducts);
-  console.log('Categories:', categories);
-
-  // Combine all products based on selected category
-  const getAllProducts = () => {
-    if (selectedCategory === 'all') {
-      return [
-        ...products.map(p => ({ ...p, type: 'general' as const })),
-        ...fashionProducts.map(p => ({ 
-          ...p, 
-          type: 'fashion' as const, 
-          totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
-          quantity: undefined, // Fashion products don't have quantity
-          unit: undefined // Fashion products don't have unit
-        }))
-      ];
-    } else if (selectedCategory === 'Fashion') {
-      return fashionProducts.map(p => ({ 
-        ...p, 
-        type: 'fashion' as const, 
-        totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
-        quantity: undefined,
-        unit: undefined
-      }));
-    } else {
-      return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' as const }));
-    }
-  };
-
-  const allProducts = getAllProducts();
-  console.log('All products for display:', allProducts);
-
-  const filteredProducts = allProducts.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const handleEditProduct = (product: any) => {
-    if (!hasPermission('products', 'edit')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit products",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (product.type === 'fashion') {
-      setSelectedFashionProduct(product);
-    } else {
-      setSelectedProduct(product);
-    }
-    setShowForm(true);
-  };
-
-  const handleCreateProduct = () => {
-    if (!hasPermission('products', 'create')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to create products",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (selectedCategory === 'Fashion') {
-      setSelectedFashionProduct(undefined);
-    } else {
-      setSelectedProduct(undefined);
-    }
-    setShowForm(true);
-  };
-
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setSelectedProduct(undefined);
-    setSelectedFashionProduct(undefined);
-  };
-
-  const printBarcode = (product: any) => {
-    if (!hasPermission('products', 'view')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to print barcodes",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.open();
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Barcode - ${product.name}</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                padding: 20px; 
-                margin: 0;
-              }
-              .barcode-container { 
-                border: 2px solid #000; 
-                padding: 30px; 
-                display: inline-block; 
-                background: white;
-                max-width: 500px;
-              }
-              .product-info { 
-                font-size: 32px; 
-                font-weight: bold; 
-                margin-bottom: 20px; 
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 20px;
-              }
-              .barcode-image { 
-                margin: 20px 0;
-                max-width: 100%;
-              }
-              @media print {
-                body { margin: 0; }
-                .barcode-container { border: 2px solid #000; }
-              }
-            </style>
-            <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-          </head>
-          <body>
-            <div class="barcode-container">
-              <div class="product-info">
-                <span>${product.name}</span>
-                <span>${product.type === 'fashion' ? `${product.totalPieces} pieces` : `${product.quantity} ${product.unit}`}</span>
-              </div>
-              <svg id="barcode" class="barcode-image"></svg>
-            </div>
-            <script>
-              JsBarcode("#barcode", "${product.barcode}", {
-                format: "CODE128",
-                width: 3,
-                height: 100,
-                displayValue: true,
-                fontSize: 16
-              });
-              setTimeout(() => {
-                window.print();
-                window.close();
-              }, 500);
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
+  // Filter products based on search, category, and branch
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.category.toLowerCase().includes(searchTerm.toLowerCase());
       
-      toast({
-        title: "Barcode printed",
-        description: `Barcode for ${product.name} has been sent to printer`,
-      });
-    } else {
-      toast({
-        title: "Unable to print",
-        description: "Please check your browser settings and try again.",
-        variant: "destructive"
-      });
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      
+      const matchesBranch = !selectedBranch || product.branch_id === selectedBranch;
+      
+      // Also search by branch name if search term is provided
+      const matchesBranchName = !searchTerm || (product.branch_id && branches.some(branch => 
+        branch.id === product.branch_id && 
+        (branch.branch_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         branch.branch_owner_name.toLowerCase().includes(searchTerm.toLowerCase()))
+      ));
+
+      return matchesSearch && matchesCategory && matchesBranch && matchesBranchName;
+    });
+  }, [allProducts, searchTerm, selectedCategory, selectedBranch, branches]);
+
+  const handleDelete = async (id: string, type: 'general' | 'fashion') => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      if (type === 'general') {
+        await deleteProduct(id);
+      }
+      // Fashion product deletion would be handled by useFashionProducts
     }
   };
 
-  // Check if user has permission to view products
-  if (!hasPermission('products', 'view')) {
+  const getTotalStock = () => {
+    return filteredProducts.reduce((sum, product) => {
+      if (product.type === 'fashion') {
+        return sum + (product.sizes?.reduce((sizeSum: number, size: any) => sizeSum + size.pieces, 0) || 0);
+      }
+      return sum + (product.quantity || 0);
+    }, 0);
+  };
+
+  const getActiveProducts = () => {
+    return filteredProducts.filter(product => 
+      product.is_active !== false && 
+      (product.type === 'fashion' 
+        ? product.sizes?.some((size: any) => size.pieces > 0)
+        : product.quantity > 0)
+    ).length;
+  };
+
+  if (productsLoading || fashionLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">You don't have permission to view products.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show form if requested
-  if (showForm) {
-    if (selectedCategory === 'Fashion' || selectedFashionProduct) {
-      return (
-        <FashionProductForm 
-          onCancel={handleCloseForm}
-          editProduct={selectedFashionProduct}
-        />
-      );
-    } else {
-      return (
-        <GeneralProductForm 
-          onCancel={handleCloseForm}
-          editProduct={selectedProduct}
-        />
-      );
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground text-lg">Loading products...</div>
       </div>
     );
   }
-  
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
-        <div className="p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products or barcodes..."
-                  className="pl-8 w-full sm:w-80"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <ProtectedAction resource="products" action="create">
-                <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
-                  <Plus className="mr-2 h-4 w-4" /> 
-                  {selectedCategory === 'Fashion' ? 'Add Fashion Product' : 'Add Product'}
-                </Button>
-              </ProtectedAction>
-            </div>
-          </div>
-          
-          {/* Category Filter Buttons */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('all')}
-            >
-              All Categories
-            </Button>
-            {categories.filter(cat => cat.is_active).map((category) => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.name ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory(category.name)}
-                className="flex items-center gap-1"
-              >
-                {category.name}
-              </Button>
-            ))}
-            {/* Always add Fashion category button if there are fashion products */}
-            {fashionProducts.length > 0 && (
-              <Button
-                variant={selectedCategory === 'Fashion' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory('Fashion')}
-                className="flex items-center gap-1"
-              >
-                <Shirt className="h-3 w-3" />
-                Fashion
-              </Button>
-            )}
-          </div>
+    <div className="flex-1 flex flex-col p-6">
+      <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Product Management</h1>
+          <p className="text-muted-foreground">Manage your product inventory</p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => {
+              setProductType('general');
+              setIsAddingProduct(true);
+            }}
+            className="bg-agri-primary hover:bg-agri-secondary"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add General Product
+          </Button>
+          <Button 
+            onClick={() => {
+              setProductType('fashion');
+              setIsAddingProduct(true);
+            }}
+            variant="outline"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Fashion Product
+          </Button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-4 md:p-6">
+      {/* Filters */}
+      <div className="flex-none mb-6 space-y-4">
+        <BranchFilter
+          selectedBranch={selectedBranch}
+          onBranchChange={setSelectedBranch}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search by product name, category, branch name or owner..."
+        />
+        
+        <div className="flex gap-4">
+          <select
+            className="px-3 py-2 border rounded-md"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.name}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredProducts.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {selectedBranch ? 'In selected branch' : 'All products'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{getActiveProducts()}</div>
+            <p className="text-xs text-green-600">In stock</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Stock</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{getTotalStock()}</div>
+            <p className="text-xs text-muted-foreground">Units/Pieces</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Products Table */}
+      <div className="flex-1 overflow-auto">
         {filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] bg-white rounded-lg border">
-            <Package className="h-16 w-16 text-muted-foreground mb-6" />
-            {searchTerm ? (
-              <>
-                <h3 className="text-xl font-medium mb-2">No products found</h3>
-                <p className="text-muted-foreground text-center">
-                  No products match your search criteria. Try with a different name or barcode.
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-medium mb-2">No products added yet</h3>
-                <p className="text-muted-foreground text-center">
-                  Get started by adding your first product using the "Add Product" button.
-                </p>
-              </>
-            )}
+          <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
+            <Package className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-1">No products found</h3>
+            <p className="text-muted-foreground text-center">
+              {searchTerm || selectedBranch || selectedCategory !== 'all' 
+                ? 'No products match your search criteria.' 
+                : 'Get started by adding your first product.'}
+            </p>
           </div>
         ) : (
-          <Card className="border shadow-sm">
-            <CardHeader className="bg-gray-50 border-b">
-              <CardTitle className="text-xl">
-                Product Inventory 
-                {selectedCategory !== 'all' && (
-                  <span className="text-base font-normal text-muted-foreground ml-2">
-                    - {selectedCategory} ({filteredProducts.length})
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
+          <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gray-50">
-                    <TableRow>
-                      <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
-                      <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
-                      <TableHead className="min-w-[80px] font-semibold">Stock</TableHead>
-                      <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
-                      <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
-                      <TableHead className="min-w-[140px] font-semibold">Barcode</TableHead>
-                      <TableHead className="min-w-[100px] text-right font-semibold">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id} className="hover:bg-gray-50 border-b">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {product.type === 'fashion' && <Shirt className="h-4 w-4 text-purple-600" />}
-                            <div className="max-w-[150px] truncate" title={product.name}>
-                              {product.name}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[100px] truncate" title={product.category}>
-                            {product.category}
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {product.type === 'fashion' ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span>{(product as any).totalPieces} pieces</span>
-                                {(product as any).totalPieces < 10 && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Low Stock
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {(product as any).sizes?.map((s: any) => `${s.size}: ${s.pieces}`).join(', ')}
+                <table className="w-full">
+                  <thead className="border-b bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-medium">Product</th>
+                      <th className="text-left p-4 font-medium">Category</th>
+                      <th className="text-left p-4 font-medium">Stock</th>
+                      <th className="text-left p-4 font-medium">Price</th>
+                      <th className="text-left p-4 font-medium">Branch</th>
+                      <th className="text-left p-4 font-medium">Status</th>
+                      <th className="text-right p-4 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => {
+                      const branch = branches.find(b => b.id === product.branch_id);
+                      const stock = product.type === 'fashion' 
+                        ? product.sizes?.reduce((sum: number, size: any) => sum + size.pieces, 0) || 0
+                        : product.quantity || 0;
+                      
+                      return (
+                        <tr key={`${product.type}-${product.id}`} className="border-b hover:bg-muted/25">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              {product.image_url && (
+                                <img 
+                                  src={product.image_url} 
+                                  alt={product.name}
+                                  className="h-10 w-10 rounded object-cover"
+                                />
+                              )}
+                              <div>
+                                <div className="font-medium">{product.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {product.type === 'fashion' ? 'Fashion Item' : `${product.unit || 'piece'}`}
+                                </div>
                               </div>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span>{(product as any).quantity} {(product as any).unit}</span>
-                              {(product as any).quantity < 10 && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Low Stock
-                                </Badge>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant="outline">{product.category}</Badge>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-medium">{stock}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {product.type === 'fashion' ? 'pieces' : product.unit || 'units'}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-medium">₹{product.price_per_unit}</div>
+                          </td>
+                          <td className="p-4">
+                            <div className="text-sm">
+                              {branch ? `${branch.branch_name}` : 'No Branch'}
+                              {branch && (
+                                <div className="text-xs text-muted-foreground">
+                                  {branch.branch_owner_name}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          ₹{product.price_per_unit}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={product.is_active !== false ? "default" : "secondary"}
-                            className={product.is_active !== false ? "bg-green-500" : "bg-gray-500"}
-                          >
-                            {product.is_active !== false ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {product.barcode ? (
-                            <div className="flex items-center gap-2 max-w-[140px]">
-                              <div className="text-xs font-mono truncate flex-1" title={product.barcode}>
-                                {product.barcode}
-                              </div>
-                              <ProtectedAction resource="products" action="view">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => printBarcode(product)}
-                                  className="h-7 w-7 p-0 flex-shrink-0"
-                                  title="Print Barcode"
-                                >
-                                  <Printer className="h-3 w-3" />
-                                </Button>
-                              </ProtectedAction>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">No barcode</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <ProtectedAction resource="products" action="edit">
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditProduct(product)}
-                              className="h-7 px-2"
-                              title="Edit Product"
+                          </td>
+                          <td className="p-4">
+                            <Badge 
+                              variant={product.is_active !== false && stock > 0 ? "default" : "secondary"}
+                              className={product.is_active !== false && stock > 0 ? "bg-green-500 hover:bg-green-600" : ""}
                             >
-                              <Edit className="h-3 w-3 mr-1" />
-                              <span className="hidden sm:inline">Edit</span>
-                            </Button>
-                          </ProtectedAction>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                              {product.is_active !== false && stock > 0 ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingProduct(product)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(product.id, product.type)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Add/Edit Product Dialogs */}
+      {isAddingProduct && (
+        productType === 'general' ? (
+          <GeneralProductForm
+            open={isAddingProduct}
+            onClose={() => setIsAddingProduct(false)}
+          />
+        ) : (
+          <FashionProductForm
+            open={isAddingProduct}
+            onClose={() => setIsAddingProduct(false)}
+          />
+        )
+      )}
+
+      {editingProduct && (
+        editingProduct.type === 'general' ? (
+          <GeneralProductForm
+            open={!!editingProduct}
+            onClose={() => setEditingProduct(null)}
+            product={editingProduct}
+          />
+        ) : (
+          <FashionProductForm
+            open={!!editingProduct}
+            onClose={() => setEditingProduct(null)}
+            product={editingProduct}
+          />
+        )
+      )}
     </div>
   );
 };
