@@ -1,5 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextProps {
   user: User | null;
@@ -161,6 +163,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     console.log('=== LOGOUT ===');
     setUser(null);
+    // Redirect to /app instead of login page
+    window.location.href = '/app';
   };
 
   const checkPermission = (resource: string, action: string): boolean => {

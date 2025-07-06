@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,7 @@ const Employees = () => {
       const result = await addEmployee({
         name: employeeData.name,
         email: employeeData.email,
-        phone: employeeData.phone,
+        phone: employeeData.phone || '',
         password: employeeData.password,
         role: employeeData.role,
         profile_photo: employeeData.profilePhoto,
@@ -90,8 +91,8 @@ const Employees = () => {
         account_number: employeeData.accountNumber,
         bank_name: employeeData.bankName,
         ifsc_code: employeeData.ifscCode,
-        is_active: true,
-        branch_id: employeeData.branchId
+        is_active: employeeData.is_active !== false,
+        branch_id: employeeData.branchId || employeeData.branch_id
       });
 
       if (result?.success) {
@@ -123,7 +124,7 @@ const Employees = () => {
       const updateData: any = {
         name: employeeData.name,
         email: employeeData.email,
-        phone: employeeData.phone,
+        phone: employeeData.phone || '',
         role: employeeData.role,
         profile_photo: employeeData.profilePhoto,
         state: employeeData.state,
@@ -133,8 +134,8 @@ const Employees = () => {
         account_number: employeeData.accountNumber,
         bank_name: employeeData.bankName,
         ifsc_code: employeeData.ifscCode,
-        is_active: true,
-        branch_id: employeeData.branchId
+        is_active: employeeData.is_active !== false,
+        branch_id: employeeData.branchId || employeeData.branch_id
       };
 
       if (employeeData.password) {

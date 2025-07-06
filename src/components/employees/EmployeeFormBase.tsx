@@ -78,7 +78,8 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
       branchId: formData.branchId,
-      branch_id: formData.branchId // Ensure both fields are set
+      branch_id: formData.branchId, // Ensure both fields are set
+      is_active: true
     };
 
     onSubmit(submissionData);
@@ -169,7 +170,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
             <SelectValue placeholder="Select branch" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No Branch</SelectItem>
+            <SelectItem value="no-branch">No Branch</SelectItem>
             {accessibleBranches.map((branch) => (
               <SelectItem key={branch.id} value={branch.id}>
                 {branch.branch_name}

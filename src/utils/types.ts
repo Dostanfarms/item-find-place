@@ -158,6 +158,7 @@ export interface Employee {
   ifscCode?: string;
   branchId?: string;
   branch_id?: string;
+  is_active?: boolean;
 }
 
 // Ticket system types
