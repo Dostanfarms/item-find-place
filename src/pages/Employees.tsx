@@ -40,6 +40,7 @@ const Employees = () => {
       return;
     }
 
+    console.log('Editing employee:', employee);
     setEditingEmployee(employee);
   };
 
@@ -64,7 +65,7 @@ const Employees = () => {
     }
   };
 
-  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => {
     if (!hasPermission('employees', 'create')) {
       toast({
         title: "Access Denied",
@@ -74,6 +75,7 @@ const Employees = () => {
       return;
     }
 
+    console.log('Adding employee with data:', employeeData);
     setIsLoading(true);
     try {
       const result = await addEmployee({
@@ -82,16 +84,16 @@ const Employees = () => {
         phone: employeeData.phone || '',
         password: employeeData.password,
         role: employeeData.role,
-        profile_photo: employeeData.profilePhoto,
+        profile_photo: employeeData.profile_photo,
         state: employeeData.state,
         district: employeeData.district,
         village: employeeData.village,
-        account_holder_name: employeeData.accountHolderName,
-        account_number: employeeData.accountNumber,
-        bank_name: employeeData.bankName,
-        ifsc_code: employeeData.ifscCode,
+        account_holder_name: employeeData.account_holder_name,
+        account_number: employeeData.account_number,
+        bank_name: employeeData.bank_name,
+        ifsc_code: employeeData.ifsc_code,
         is_active: employeeData.is_active !== false,
-        branch_id: employeeData.branchId || employeeData.branch_id
+        branch_id: employeeData.branch_id
       });
 
       if (result?.success) {
@@ -106,7 +108,7 @@ const Employees = () => {
     }
   };
 
-  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => {
     if (!editingEmployee) return;
 
     if (!hasPermission('employees', 'edit')) {
@@ -118,6 +120,7 @@ const Employees = () => {
       return;
     }
 
+    console.log('Updating employee with data:', employeeData);
     setIsLoading(true);
     try {
       const updateData: any = {
@@ -125,16 +128,16 @@ const Employees = () => {
         email: employeeData.email,
         phone: employeeData.phone || '',
         role: employeeData.role,
-        profile_photo: employeeData.profilePhoto,
+        profile_photo: employeeData.profile_photo,
         state: employeeData.state,
         district: employeeData.district,
         village: employeeData.village,
-        account_holder_name: employeeData.accountHolderName,
-        account_number: employeeData.accountNumber,
-        bank_name: employeeData.bankName,
-        ifsc_code: employeeData.ifscCode,
+        account_holder_name: employeeData.account_holder_name,
+        account_number: employeeData.account_number,
+        bank_name: employeeData.bank_name,
+        ifsc_code: employeeData.ifsc_code,
         is_active: employeeData.is_active !== false,
-        branch_id: employeeData.branchId || employeeData.branch_id
+        branch_id: employeeData.branch_id
       };
 
       if (employeeData.password) {

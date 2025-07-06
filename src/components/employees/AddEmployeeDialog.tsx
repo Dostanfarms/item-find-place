@@ -15,7 +15,7 @@ import { Employee } from '@/utils/types';
 interface AddEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  onAddEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
+  onAddEmployee: (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }

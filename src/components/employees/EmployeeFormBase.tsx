@@ -14,7 +14,7 @@ import { canAccessBranch } from '@/utils/employeeData';
 
 interface EmployeeFormBaseProps {
   employee?: Employee;
-  onSubmit: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
+  onSubmit: (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -25,7 +25,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   onCancel,
   isLoading = false
 }) => {
-  const { branches } = useBranches();
+  const { branches, loading: branchesLoading } = useBranches();
   const { roles } = useRoles();
   const { currentUser } = useAuth();
   
@@ -35,23 +35,38 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     phone: employee?.phone || '',
     password: employee?.password || '',
     role: employee?.role || 'sales',
-    profilePhoto: employee?.profilePhoto || '',
+    profile_photo: employee?.profile_photo || '',
     state: employee?.state || '',
     district: employee?.district || '',
     village: employee?.village || '',
-    accountHolderName: employee?.accountHolderName || '',
-    accountNumber: employee?.accountNumber || '',
-    bankName: employee?.bankName || '',
-    ifscCode: employee?.ifscCode || '',
-    branchId: employee?.branchId || employee?.branch_id || ''
+    account_holder_name: employee?.account_holder_name || '',
+    account_number: employee?.account_number || '',
+    bank_name: employee?.bank_name || '',
+    ifsc_code: employee?.ifsc_code || '',
+    branch_id: employee?.branch_id || '',
+    is_active: employee?.is_active !== false
   });
 
-  // Filter branches based on user permissions
-  const accessibleBranches = branches.filter(branch => 
-    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
-  );
+  // Debug logging to understand branch access
+  console.log('Current user:', currentUser);
+  console.log('All branches:', branches);
+  console.log('Branches loading:', branchesLoading);
 
-  const handleInputChange = (field: string, value: string) => {
+  // Filter branches based on user permissions with enhanced logging
+  const accessibleBranches = branches.filter(branch => {
+    const hasAccess = canAccessBranch(
+      currentUser?.role || '', 
+      currentUser?.branch_id || null, 
+      branch.id
+    );
+    console.log(`Branch ${branch.branch_name} (${branch.id}): Access = ${hasAccess}`);
+    return hasAccess;
+  });
+
+  console.log('Accessible branches:', accessibleBranches);
+
+  const handleInputChange = (field: string, value: string | boolean) => {
+    console.log(`Field ${field} changed to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -63,35 +78,45 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       return;
     }
 
-    const submissionData: Omit<Employee, 'id' | 'dateJoined'> = {
+    console.log('Submitting form data:', formData);
+
+    const submissionData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
       role: formData.role as any,
-      profilePhoto: formData.profilePhoto,
+      profile_photo: formData.profile_photo,
       state: formData.state,
       district: formData.district,
       village: formData.village,
-      accountHolderName: formData.accountHolderName,
-      accountNumber: formData.accountNumber,
-      bankName: formData.bankName,
-      ifscCode: formData.ifscCode,
-      branchId: formData.branchId,
-      branch_id: formData.branchId, // Ensure both fields are set
-      is_active: true
+      account_holder_name: formData.account_holder_name,
+      account_number: formData.account_number,
+      bank_name: formData.bank_name,
+      ifsc_code: formData.ifsc_code,
+      branch_id: formData.branch_id || null,
+      is_active: formData.is_active
     };
 
+    console.log('Final submission data:', submissionData);
     onSubmit(submissionData);
   };
+
+  if (branchesLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading branches...</div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
       {/* Photo Upload */}
       <div className="md:col-span-2 flex justify-center">
         <PhotoUploadField
-          value={formData.profilePhoto}
-          onChange={(photoUrl) => handleInputChange('profilePhoto', photoUrl)}
+          value={formData.profile_photo}
+          onChange={(photoUrl) => handleInputChange('profile_photo', photoUrl)}
           name="employee-profile-photo"
         />
       </div>
@@ -165,7 +190,10 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 
       <div className="space-y-2">
         <Label htmlFor="branch">Branch</Label>
-        <Select value={formData.branchId || ''} onValueChange={(value) => handleInputChange('branchId', value)}>
+        <Select 
+          value={formData.branch_id || ''} 
+          onValueChange={(value) => handleInputChange('branch_id', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select branch" />
           </SelectTrigger>
@@ -178,6 +206,11 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
             ))}
           </SelectContent>
         </Select>
+        {accessibleBranches.length === 0 && !branchesLoading && (
+          <p className="text-sm text-muted-foreground">
+            No accessible branches found. Contact an administrator.
+          </p>
+        )}
       </div>
 
       {/* Location Information */}
@@ -216,44 +249,44 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 
       {/* Bank Information */}
       <div className="space-y-2">
-        <Label htmlFor="accountHolderName">Account Holder Name</Label>
+        <Label htmlFor="account_holder_name">Account Holder Name</Label>
         <Input
-          id="accountHolderName"
-          value={formData.accountHolderName}
-          onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
+          id="account_holder_name"
+          value={formData.account_holder_name}
+          onChange={(e) => handleInputChange('account_holder_name', e.target.value)}
           placeholder="Enter account holder name"
           disabled={isLoading}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">Account Number</Label>
+        <Label htmlFor="account_number">Account Number</Label>
         <Input
-          id="accountNumber"
-          value={formData.accountNumber}
-          onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+          id="account_number"
+          value={formData.account_number}
+          onChange={(e) => handleInputChange('account_number', e.target.value)}
           placeholder="Enter account number"
           disabled={isLoading}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankName">Bank Name</Label>
+        <Label htmlFor="bank_name">Bank Name</Label>
         <Input
-          id="bankName"
-          value={formData.bankName}
-          onChange={(e) => handleInputChange('bankName', e.target.value)}
+          id="bank_name"
+          value={formData.bank_name}
+          onChange={(e) => handleInputChange('bank_name', e.target.value)}
           placeholder="Enter bank name"
           disabled={isLoading}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ifscCode">IFSC Code</Label>
+        <Label htmlFor="ifsc_code">IFSC Code</Label>
         <Input
-          id="ifscCode"
-          value={formData.ifscCode}
-          onChange={(e) => handleInputChange('ifscCode', e.target.value)}
+          id="ifsc_code"
+          value={formData.ifsc_code}
+          onChange={(e) => handleInputChange('ifsc_code', e.target.value)}
           placeholder="Enter IFSC code"
           disabled={isLoading}
         />

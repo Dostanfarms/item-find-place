@@ -1,4 +1,3 @@
-
 export interface Farmer {
   id: string;
   name: string;
@@ -140,25 +139,27 @@ export interface RoleData {
   updated_at: string;
 }
 
+// Fixed Employee interface to match database schema exactly
 export interface Employee {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
   role: Role;
-  profilePhoto?: string;
-  dateJoined: Date;
+  profile_photo?: string;
+  date_joined: string;
   state?: string;
   district?: string;
   village?: string;
-  accountHolderName?: string;
-  accountNumber?: string;
-  bankName?: string;
-  ifscCode?: string;
-  branchId?: string;
+  account_holder_name?: string;
+  account_number?: string;
+  bank_name?: string;
+  ifsc_code?: string;
   branch_id?: string;
-  is_active?: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Ticket system types
