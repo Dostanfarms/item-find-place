@@ -38,7 +38,7 @@ const AppLanding = () => {
           </Card>
         </Link>
         
-        <Link to="/customer-home" className="w-full">
+        <Link to="/app" className="w-full">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center p-6">
               <ShoppingBag className="h-8 w-8 mr-4 text-purple-600" />

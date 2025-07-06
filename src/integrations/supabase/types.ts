@@ -45,6 +45,39 @@ export type Database = {
         }
         Relationships: []
       }
+      branches: {
+        Row: {
+          branch_name: string
+          branch_owner_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          mobile_number: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          branch_name: string
+          branch_owner_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mobile_number: string
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          branch_name?: string
+          branch_owner_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mobile_number?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -74,6 +107,7 @@ export type Database = {
       }
       coupons: {
         Row: {
+          branch_id: string | null
           code: string
           created_at: string
           discount_type: string
@@ -87,6 +121,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           code: string
           created_at?: string
           discount_type: string
@@ -100,6 +135,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           code?: string
           created_at?: string
           discount_type?: string
@@ -112,7 +148,15 @@ export type Database = {
           target_user_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coupons_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -206,6 +250,7 @@ export type Database = {
           account_holder_name: string | null
           account_number: string | null
           bank_name: string | null
+          branch_id: string | null
           created_at: string
           date_joined: string
           district: string | null
@@ -226,6 +271,7 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -246,6 +292,7 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -262,7 +309,15 @@ export type Database = {
           updated_at?: string
           village?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       farmer_products: {
         Row: {
@@ -322,6 +377,7 @@ export type Database = {
           account_number: string | null
           address: string | null
           bank_name: string | null
+          branch_id: string | null
           created_at: string
           date_joined: string
           district: string | null
@@ -340,6 +396,7 @@ export type Database = {
           account_number?: string | null
           address?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -358,6 +415,7 @@ export type Database = {
           account_number?: string | null
           address?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -372,7 +430,15 @@ export type Database = {
           updated_at?: string
           village?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "farmers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fashion_product_sizes: {
         Row: {
@@ -412,6 +478,7 @@ export type Database = {
       fashion_products: {
         Row: {
           barcode: string | null
+          branch_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -424,6 +491,7 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
+          branch_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -436,6 +504,7 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
+          branch_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -446,7 +515,15 @@ export type Database = {
           price_per_unit?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fashion_products_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fruit_products: {
         Row: {
@@ -680,6 +757,7 @@ export type Database = {
       products: {
         Row: {
           barcode: string | null
+          branch_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -694,6 +772,7 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
+          branch_id?: string | null
           category: string
           created_at?: string
           description?: string | null
@@ -708,6 +787,7 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
+          branch_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -720,7 +800,15 @@ export type Database = {
           unit?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roles: {
         Row: {

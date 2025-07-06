@@ -1,4 +1,3 @@
-
 export interface Farmer {
   id: string;
   name: string;
@@ -155,6 +154,7 @@ export interface Employee {
   accountNumber?: string;
   bankName?: string;
   ifscCode?: string;
+  branchId?: string;
 }
 
 // Ticket system types

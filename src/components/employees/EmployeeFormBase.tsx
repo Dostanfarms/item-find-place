@@ -9,6 +9,7 @@ import { states, districts, villages, banks } from '@/utils/locationData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PhotoUploadField from '@/components/PhotoUploadField';
 import { useRoles } from '@/hooks/useRoles';
+import { useBranches } from '@/hooks/useBranches';
 
 export interface EmployeeFormData {
   name: string;
@@ -25,6 +26,7 @@ export interface EmployeeFormData {
   bankName: string;
   ifscCode: string;
   isActive: boolean;
+  branchId: string;
 }
 
 interface EmployeeFormBaseProps {
@@ -45,6 +47,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   const [statesList] = useState<string[]>(Object.keys(states));
   const [banksList] = useState<string[]>(banks);
   const { roles, loading: rolesLoading } = useRoles();
+  const { branches, loading: branchesLoading } = useBranches();
   
   useEffect(() => {
     if (formData.state) {
@@ -121,6 +124,28 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="branch">Branch</Label>
+            <Select 
+              value={formData.branchId} 
+              onValueChange={(value) => onChange({ branchId: value })}
+              disabled={branchesLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={branchesLoading ? "Loading branches..." : "Select branch"} />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.branch_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <Select 
               value={formData.role} 
@@ -139,23 +164,22 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="Email address"
-            value={formData.email}
-            onChange={handleInputChange}
-            required
-            className={formData.email && !validateEmail(formData.email) ? "border-red-500" : ""}
-          />
-          {formData.email && !validateEmail(formData.email) && 
-            <p className="text-xs text-red-500">Please enter a valid email address</p>
-          }
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Email address"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              className={formData.email && !validateEmail(formData.email) ? "border-red-500" : ""}
+            />
+            {formData.email && !validateEmail(formData.email) && 
+              <p className="text-xs text-red-500">Please enter a valid email address</p>
+            }
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">

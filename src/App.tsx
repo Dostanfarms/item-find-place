@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -66,7 +65,7 @@ function App() {
               <Routes>
                 {/* Landing page */}
                 <Route path="/" element={<AppLanding />} />
-                <Route path="/app" element={<AppLanding />} />
+                <Route path="/app" element={<CustomerHome />} />
                 
                 {/* Employee/Admin routes with sidebar */}
                 <Route path="/login" element={<EmployeeLogin />} />
@@ -84,6 +83,7 @@ function App() {
                 <Route path="/banners" element={<AdminLayout><Banners /></AdminLayout>} />
                 <Route path="/employees" element={<AdminLayout><Employees /></AdminLayout>} />
                 <Route path="/roles" element={<AdminLayout><Roles /></AdminLayout>} />
+                <Route path="/branches" element={<AdminLayout><Branches /></AdminLayout>} />
                 <Route path="/sales-dashboard" element={<AdminLayout><SalesDashboard /></AdminLayout>} />
                 <Route path="/sales" element={<AdminLayout><Sales /></AdminLayout>} />
                 <Route path="/checkout" element={<AdminLayout><Checkout /></AdminLayout>} />

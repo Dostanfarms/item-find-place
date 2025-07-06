@@ -1,103 +1,91 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Package, User, LogOut, Ticket, ShoppingCart, UserPlus } from 'lucide-react';
+import { Package, ShoppingCart, User, LogOut } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 interface CustomerHeaderProps {
-  customer?: any;
-  onLogout?: () => void;
+  customer: any;
+  onLogout: () => void;
 }
 
-const CustomerHeader: React.FC<CustomerHeaderProps> = ({
-  customer,
-  onLogout
-}) => {
+const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) => {
+  const { items } = useCart();
   const navigate = useNavigate();
-  const { totalItems, setIsCartOpen } = useCart();
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = () => {
     localStorage.removeItem('currentCustomer');
-    if (onLogout) {
-      onLogout();
-    }
+    onLogout();
+    navigate('/app');
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b p-4">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/customer-home')}>
-          <Package className="h-6 w-6 text-agri-primary" />
-          <span className="text-lg font-bold">Dostan Mart</span>
+    <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 border-b">
+      <div className="flex items-center justify-between px-4 py-3">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-green-600" />
+          <span className="text-lg font-bold text-gray-900">Dostan Mart</span>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {customer && <span className="text-sm font-medium">{customer.name}</span>}
-          
-          {/* Cart Icon */}
-          <Button variant="ghost" size="icon" className="relative" onClick={() => setIsCartOpen(true)}>
-            <ShoppingCart className="h-5 w-5" />
-            {totalItems > 0 && (
-              <Badge className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[1.25rem] h-5 flex items-center justify-center text-xs rounded-full px-1">
-                {totalItems}
-              </Badge>
-            )}
-          </Button>
 
-          {/* Conditional rendering based on authentication */}
-          {customer ? (
-            /* Profile Dropdown for authenticated users */
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={customer.profile_photo} alt={customer.name} />
-                    <AvatarFallback>
-                      {customer.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem onClick={() => navigate('/customer-profile')}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>My Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/customer-tickets')}>
-                  <Ticket className="mr-2 h-4 w-4" />
-                  <span>Support Tickets</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/customer-orders')}>
-                  <Package className="mr-2 h-4 w-4" />
-                  <span>My Orders</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            /* Login/Register buttons for non-authenticated users */
+        {/* Login buttons for non-authenticated users */}
+        {!customer && (
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/farmer-login')}
+              className="text-xs"
+            >
+              Farmer Login
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/employee-login')}
+              className="text-xs"
+            >
+              Employee Login
+            </Button>
+          </div>
+        )}
+
+        {/* User info and cart for authenticated users */}
+        {customer && (
+          <div className="flex items-center gap-3">
+            {/* Cart */}
+            <div className="relative">
+              <ShoppingCart className="h-6 w-6 text-gray-600" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </div>
+            
+            {/* User menu */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate('/customer-login')} className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                Login
-              </Button>
-              <Button variant="default" size="sm" onClick={() => navigate('/customer-register')} className="flex items-center gap-1 bg-agri-primary hover:bg-agri-secondary">
-                <UserPlus className="h-4 w-4" />
-                Register
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                  {customer.name}
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="p-2"
+              >
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
 };
 

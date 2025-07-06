@@ -66,6 +66,12 @@ const MastersMenu = () => {
       resource: 'banners'
     },
     {
+      title: 'Branches',
+      icon: Settings,
+      path: '/branches',
+      resource: 'branches'
+    },
+    {
       title: 'Employees',
       icon: UserCog,
       path: '/employees',
