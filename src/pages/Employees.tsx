@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -203,7 +202,6 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -239,7 +237,6 @@ const Employees = () => {
         </Card>
       </div>
 
-      {/* Employees Table */}
       <div className="flex-1 overflow-auto">
         {filteredEmployees.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
