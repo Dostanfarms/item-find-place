@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,8 @@ const Employees = () => {
     accountNumber: '',
     bankName: '',
     ifscCode: '',
-    isActive: true
+    isActive: true,
+    branchId: ''
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -71,7 +71,8 @@ const Employees = () => {
       accountNumber: employee.account_number || '',
       bankName: employee.bank_name || '',
       ifscCode: employee.ifsc_code || '',
-      isActive: employee.is_active !== false
+      isActive: employee.is_active !== false,
+      branchId: employee.branch_id || ''
     });
   };
 
@@ -183,7 +184,8 @@ const Employees = () => {
       accountNumber: '',
       bankName: '',
       ifscCode: '',
-      isActive: true
+      isActive: true,
+      branchId: ''
     });
   };
 

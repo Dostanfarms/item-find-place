@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -37,6 +38,7 @@ import Transactions from '@/pages/Transactions';
 import Settlements from '@/pages/Settlements';
 import Sales from '@/pages/Sales';
 import Checkout from '@/pages/Checkout';
+import Branches from '@/pages/Branches';
 import Sidebar from '@/components/Sidebar';
 
 const queryClient = new QueryClient();
