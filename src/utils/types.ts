@@ -30,10 +30,6 @@ export interface Product {
   updated_at: string;
   farmer_id?: string;
   barcode?: string;
-  branch_id?: string;
-  is_active: boolean;
-  description?: string;
-  image_url?: string;
 }
 
 export interface Transaction {
@@ -45,7 +41,6 @@ export interface Transaction {
   farmerId: string;
   settled: boolean;
   paymentMode?: 'Cash' | 'Online';
-  branch_id?: string;
 }
 
 export interface DailyEarning {
@@ -114,7 +109,6 @@ export interface Coupon {
   target_user_id: string | null;
   created_at: string;
   updated_at: string;
-  branch_id?: string;
 }
 
 export interface CouponValidationResult {
@@ -146,65 +140,25 @@ export interface RoleData {
   updated_at: string;
 }
 
-// Fixed Employee interface to match database schema exactly
 export interface Employee {
   id: string;
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   password: string;
   role: Role;
-  profile_photo?: string;
+  profilePhoto?: string;
+  dateJoined: Date;
   state?: string;
   district?: string;
   village?: string;
-  account_holder_name?: string;
-  account_number?: string;
-  bank_name?: string;
-  ifsc_code?: string;
+  accountHolderName?: string;
+  accountNumber?: string;
+  bankName?: string;
+  ifscCode?: string;
+  branchId?: string;
   branch_id?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  date_joined: string;
-}
-
-// Branch interface
-export interface Branch {
-  id: string;
-  branch_name: string;
-  branch_owner_name: string;
-  mobile_number: string;
-  state: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// Fashion product size interface - matching database schema
-export interface FashionProductSize {
-  id: string;
-  size: string;
-  pieces: number;
-  fashion_product_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// Fashion product interface
-export interface FashionProduct {
-  id: string;
-  name: string;
-  description?: string;
-  price_per_unit: number;
-  category: string;
-  barcode?: string;
-  image_url?: string;
-  is_active: boolean;
-  branch_id?: string;
-  created_at: string;
-  updated_at: string;
-  sizes?: FashionProductSize[];
+  is_active?: boolean;
 }
 
 // Ticket system types

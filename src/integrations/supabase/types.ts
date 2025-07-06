@@ -985,7 +985,6 @@ export type Database = {
       }
       transactions: {
         Row: {
-          branch_id: string | null
           coupon_used: string | null
           created_at: string
           customer_mobile: string
@@ -1000,7 +999,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          branch_id?: string | null
           coupon_used?: string | null
           created_at?: string
           customer_mobile: string
@@ -1015,7 +1013,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          branch_id?: string | null
           coupon_used?: string | null
           created_at?: string
           customer_mobile?: string
@@ -1029,15 +1026,7 @@ export type Database = {
           total?: number
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vegetable_products: {
         Row: {

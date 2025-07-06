@@ -6,9 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/useTransactions';
-import { useBranches } from '@/hooks/useBranches';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
-import BranchFilter from '@/components/BranchFilter';
 import { Search, Receipt, Calendar as CalendarIcon, Eye, FileDown } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import ProtectedAction from '@/components/ProtectedAction';
@@ -19,35 +17,24 @@ import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
 
 const Transactions = () => {
   const { transactions, loading } = useTransactions();
-  const { branches } = useBranches();
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Filter by search, status, branch, and selected date
+  // Filter by search, status, and selected date
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.customer_mobile.includes(searchTerm);
     const matchesStatus = filterStatus === 'all' || transaction.status === filterStatus;
-    const matchesBranch = !selectedBranch || transaction.branch_id === selectedBranch;
     const matchesDate = !selectedDate ||
       isSameDay(new Date(transaction.created_at), selectedDate);
-    
-    // Also search by branch name if search term is provided
-    const matchesBranchName = !searchTerm || (transaction.branch_id && branches.some(branch => 
-      branch.id === transaction.branch_id && 
-      (branch.branch_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       branch.branch_owner_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    ));
-
-    return matchesSearch && matchesStatus && matchesBranch && matchesDate && matchesBranchName;
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   const getTotalAmount = () => {
@@ -113,7 +100,6 @@ const Transactions = () => {
         'Date',
         'Payment Method',
         'Status',
-        'Branch',
         'Item Names',
         'Item Details',
         'Subtotal',
@@ -128,7 +114,6 @@ const Transactions = () => {
         const itemDetails = formatItemDetails(transaction.items);
         const discountAmount = Number(transaction.discount) || 0;
         const couponUsed = transaction.coupon_used || '';
-        const branch = branches.find(b => b.id === transaction.branch_id);
         
         return [
           transaction.id,
@@ -137,7 +122,6 @@ const Transactions = () => {
           format(new Date(transaction.created_at), 'yyyy-MM-dd HH:mm:ss'),
           transaction.payment_method,
           transaction.status,
-          branch ? `${branch.branch_name} - ${branch.branch_owner_name}` : 'No Branch',
           `"${itemNames}"`, // Wrap in quotes to handle commas
           `"${itemDetails}"`, // Wrap in quotes to handle semicolons
           Number(transaction.subtotal).toFixed(2),
@@ -212,6 +196,15 @@ const Transactions = () => {
           <p className="text-muted-foreground">View and manage all transactions</p>
         </div>
         <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by ID, customer name, or mobile..."
+              className="pl-8 w-full md:w-[250px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
           {/* Date Picker for filtering */}
           <div className="relative">
             <Popover>
@@ -270,17 +263,6 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Branch Filter */}
-      <div className="flex-none mb-6">
-        <BranchFilter
-          selectedBranch={selectedBranch}
-          onBranchChange={setSelectedBranch}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          placeholder="Search by ID, customer name, mobile, branch name or owner..."
-        />
-      </div>
-
       {/* Transactions Table */}
       <div className="flex-1 overflow-auto">
         {filteredTransactions.length === 0 ? (
@@ -288,7 +270,7 @@ const Transactions = () => {
             <Receipt className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-1">No transactions found</h3>
             <p className="text-muted-foreground text-center">
-              {searchTerm || filterStatus !== 'all' || selectedBranch
+              {searchTerm || filterStatus !== 'all' 
                 ? 'No transactions match your search criteria.' 
                 : 'No transactions have been recorded yet.'}
             </p>
@@ -308,72 +290,55 @@ const Transactions = () => {
                       <TableHead className="min-w-[100px] font-semibold">Mobile</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Items</TableHead>
                       <TableHead className="min-w-[100px] font-semibold">Amount</TableHead>
-                      <TableHead className="min-w-[120px] font-semibold">Branch</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
                       <TableHead className="min-w-[120px] font-semibold">Date</TableHead>
                       <TableHead className="min-w-[100px] text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTransactions.map((transaction) => {
-                      const branch = branches.find(b => b.id === transaction.branch_id);
-                      
-                      return (
-                        <TableRow key={transaction.id} className="hover:bg-gray-50 border-b">
-                          <TableCell className="font-medium">
-                            <div className="max-w-[120px] truncate font-mono text-sm" title={transaction.id}>
-                              #{transaction.id.slice(0, 8)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-[120px] truncate" title={transaction.customer_name}>
-                              {transaction.customer_name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {transaction.customer_mobile}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {Array.isArray(transaction.items) ? transaction.items.length : 0}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap font-medium text-green-600">
-                            ₹{Number(transaction.total).toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {branch ? (
-                                <>
-                                  <div className="font-medium">{branch.branch_name}</div>
-                                  <div className="text-muted-foreground text-xs">{branch.branch_owner_name}</div>
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">No Branch</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(transaction.status)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ProtectedAction resource="transactions" action="view">
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewTransaction(transaction)}
-                                className="h-7 px-2"
-                                title="View Details"
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                <span className="hidden sm:inline">View</span>
-                              </Button>
-                            </ProtectedAction>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {filteredTransactions.map((transaction) => (
+                      <TableRow key={transaction.id} className="hover:bg-gray-50 border-b">
+                        <TableCell className="font-medium">
+                          <div className="max-w-[120px] truncate font-mono text-sm" title={transaction.id}>
+                            #{transaction.id.slice(0, 8)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[120px] truncate" title={transaction.customer_name}>
+                            {transaction.customer_name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {transaction.customer_mobile}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {Array.isArray(transaction.items) ? transaction.items.length : 0}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-medium text-green-600">
+                          ₹{Number(transaction.total).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(transaction.status)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <ProtectedAction resource="transactions" action="view">
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewTransaction(transaction)}
+                              className="h-7 px-2"
+                              title="View Details"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              <span className="hidden sm:inline">View</span>
+                            </Button>
+                          </ProtectedAction>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>

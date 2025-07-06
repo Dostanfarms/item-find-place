@@ -17,7 +17,7 @@ interface EditEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   employee: Employee;
-  onUpdateEmployee: (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => void;
+  onUpdateEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }

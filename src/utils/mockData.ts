@@ -1,3 +1,4 @@
+
 import { Farmer, Product, Transaction } from './types';
 
 export const mockFarmers: Farmer[] = [
@@ -60,83 +61,58 @@ export const mockFarmers: Farmer[] = [
 export const mockProducts: Product[] = [
   {
     id: '1',
-    name: 'Fresh Tomatoes',
-    quantity: 50,
+    name: 'Wheat',
+    quantity: 500,
     unit: 'kg',
-    price_per_unit: 40,
-    category: 'Vegetables',
-    created_at: '2024-01-15T08:00:00Z',
-    updated_at: '2024-01-15T08:00:00Z',
-    farmer_id: '1',
-    is_active: true,
-    barcode: 'TOM001',
-    branch_id: '1',
-    description: 'Fresh organic tomatoes',
-    image_url: '/placeholder.svg'
+    price_per_unit: 25,
+    category: 'Grains',
+    created_at: '2023-06-15T00:00:00.000Z',
+    updated_at: '2023-06-15T00:00:00.000Z',
+    farmer_id: '1'
   },
   {
     id: '2',
-    name: 'Organic Carrots',
-    quantity: 30,
+    name: 'Rice',
+    quantity: 300,
     unit: 'kg',
     price_per_unit: 35,
-    category: 'Vegetables',
-    created_at: '2024-01-15T09:00:00Z',
-    updated_at: '2024-01-15T09:00:00Z',
-    farmer_id: '2',
-    is_active: true,
-    barcode: 'CAR001',
-    branch_id: '1',
-    description: 'Organic carrots from local farm',
-    image_url: '/placeholder.svg'
+    category: 'Grains',
+    created_at: '2023-06-20T00:00:00.000Z',
+    updated_at: '2023-06-20T00:00:00.000Z',
+    farmer_id: '1'
   },
   {
     id: '3',
-    name: 'Fresh Spinach',
-    quantity: 25,
+    name: 'Tomatoes',
+    quantity: 200,
     unit: 'kg',
-    price_per_unit: 50,
+    price_per_unit: 20,
     category: 'Vegetables',
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
-    farmer_id: '1',
-    is_active: true,
-    barcode: 'SPI001',
-    branch_id: '2',
-    description: 'Fresh green spinach',
-    image_url: '/placeholder.svg'
+    created_at: '2023-07-05T00:00:00.000Z',
+    updated_at: '2023-07-05T00:00:00.000Z',
+    farmer_id: '2'
   },
   {
     id: '4',
-    name: 'Farm Fresh Eggs',
-    quantity: 100,
-    unit: 'dozen',
-    price_per_unit: 120,
-    category: 'Dairy',
-    created_at: '2024-01-15T11:00:00Z',
-    updated_at: '2024-01-15T11:00:00Z',
-    farmer_id: '3',
-    is_active: true,
-    barcode: 'EGG001',
-    branch_id: '1',
-    description: 'Fresh farm eggs',
-    image_url: '/placeholder.svg'
+    name: 'Potatoes',
+    quantity: 450,
+    unit: 'kg',
+    price_per_unit: 15,
+    category: 'Vegetables',
+    created_at: '2023-07-10T00:00:00.000Z',
+    updated_at: '2023-07-10T00:00:00.000Z',
+    farmer_id: '2'
   },
   {
     id: '5',
-    name: 'Basmati Rice',
-    quantity: 200,
+    name: 'Apples',
+    quantity: 150,
     unit: 'kg',
-    price_per_unit: 80,
-    category: 'Grains',
-    created_at: '2024-01-15T12:00:00Z',
-    updated_at: '2024-01-15T12:00:00Z',
-    farmer_id: '2',
-    is_active: true,
-    barcode: 'RIC001',
-    branch_id: '2',
-    description: 'Premium basmati rice',
-    image_url: '/placeholder.svg'
+    price_per_unit: 60,
+    category: 'Fruits',
+    created_at: '2023-07-15T00:00:00.000Z',
+    updated_at: '2023-07-15T00:00:00.000Z',
+    farmer_id: '3'
   }
 ];
 

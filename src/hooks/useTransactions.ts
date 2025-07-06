@@ -14,7 +14,7 @@ export interface TransactionItem {
   quantity: number;
 }
 
-// Updated Transaction interface to match database schema with branch_id
+// Updated Transaction interface to match database schema
 export interface Transaction {
   id: string;
   customer_name: string;
@@ -28,7 +28,6 @@ export interface Transaction {
   status: string;
   created_at: string;
   updated_at: string;
-  branch_id?: string;
 }
 
 export const useTransactions = () => {
@@ -65,7 +64,6 @@ export const useTransactions = () => {
         status: dbTransaction.status,
         created_at: dbTransaction.created_at,
         updated_at: dbTransaction.updated_at,
-        branch_id: dbTransaction.branch_id || undefined,
       }));
       
       setTransactions(transformedTransactions);
@@ -91,7 +89,6 @@ export const useTransactions = () => {
         coupon_used: transactionData.coupon_used,
         payment_method: transactionData.payment_method,
         status: transactionData.status,
-        branch_id: transactionData.branch_id || null,
       };
 
       const { data, error } = await supabase

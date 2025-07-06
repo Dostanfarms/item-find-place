@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useEmployees } from '@/hooks/useEmployees';
-import { useBranches } from '@/hooks/useBranches';
-import { Plus, Users, UserCheck, UserX, Menu } from 'lucide-react';
+import { Search, Plus, Users, UserCheck, UserX, Menu } from 'lucide-react';
 import AddEmployeeDialog from '@/components/employees/AddEmployeeDialog';
 import EditEmployeeDialog from '@/components/employees/EditEmployeeDialog';
 import EmployeeTable from '@/components/employees/EmployeeTable';
 import ProtectedAction from '@/components/ProtectedAction';
-import BranchFilter from '@/components/BranchFilter';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Employee } from '@/utils/types';
@@ -19,31 +18,17 @@ const Employees = () => {
   const { toast } = useToast();
   const { hasPermission } = useAuth();
   const { employees, loading, deleteEmployee, updateEmployee, addEmployee } = useEmployees();
-  const { branches } = useBranches();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter employees based on search term and branch
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.phone && employee.phone.includes(searchTerm));
-
-    const matchesBranch = !selectedBranch || employee.branch_id === selectedBranch;
-
-    // Also search by branch name if search term is provided
-    const matchesBranchName = !searchTerm || (employee.branch_id && branches.some(branch => 
-      branch.id === employee.branch_id && 
-      (branch.branch_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       branch.branch_owner_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    ));
-
-    return matchesSearch && matchesBranch && matchesBranchName;
-  });
+  const filteredEmployees = employees.filter(employee =>
+    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (employee.phone && employee.phone.includes(searchTerm))
+  );
 
   const handleEdit = (employee: any) => {
     if (!hasPermission('employees', 'edit')) {
@@ -79,7 +64,7 @@ const Employees = () => {
     }
   };
 
-  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => {
+  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
     if (!hasPermission('employees', 'create')) {
       toast({
         title: "Access Denied",
@@ -91,7 +76,23 @@ const Employees = () => {
 
     setIsLoading(true);
     try {
-      const result = await addEmployee(employeeData);
+      const result = await addEmployee({
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone || '',
+        password: employeeData.password,
+        role: employeeData.role,
+        profile_photo: employeeData.profilePhoto,
+        state: employeeData.state,
+        district: employeeData.district,
+        village: employeeData.village,
+        account_holder_name: employeeData.accountHolderName,
+        account_number: employeeData.accountNumber,
+        bank_name: employeeData.bankName,
+        ifsc_code: employeeData.ifscCode,
+        is_active: employeeData.is_active !== false,
+        branch_id: employeeData.branchId || employeeData.branch_id
+      });
 
       if (result?.success) {
         setIsAddDialogOpen(false);
@@ -105,7 +106,7 @@ const Employees = () => {
     }
   };
 
-  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'>) => {
+  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
     if (!editingEmployee) return;
 
     if (!hasPermission('employees', 'edit')) {
@@ -119,7 +120,28 @@ const Employees = () => {
 
     setIsLoading(true);
     try {
-      const result = await updateEmployee(editingEmployee.id, employeeData);
+      const updateData: any = {
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone || '',
+        role: employeeData.role,
+        profile_photo: employeeData.profilePhoto,
+        state: employeeData.state,
+        district: employeeData.district,
+        village: employeeData.village,
+        account_holder_name: employeeData.accountHolderName,
+        account_number: employeeData.accountNumber,
+        bank_name: employeeData.bankName,
+        ifsc_code: employeeData.ifscCode,
+        is_active: employeeData.is_active !== false,
+        branch_id: employeeData.branchId || employeeData.branch_id
+      };
+
+      if (employeeData.password) {
+        updateData.password = employeeData.password;
+      }
+
+      const result = await updateEmployee(editingEmployee.id, updateData);
       if (result?.success) {
         setEditingEmployee(null);
         toast({
@@ -159,25 +181,25 @@ const Employees = () => {
             <p className="text-muted-foreground">Manage your team members and their roles</p>
           </div>
         </div>
-        <ProtectedAction resource="employees" action="create">
-          <Button 
-            className="bg-agri-primary hover:bg-agri-secondary"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
-        </ProtectedAction>
-      </div>
-
-      {/* Branch Filter */}
-      <div className="flex-none mb-6">
-        <BranchFilter
-          selectedBranch={selectedBranch}
-          onBranchChange={setSelectedBranch}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          placeholder="Search by name, email, role, phone, branch name or owner..."
-        />
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, role, or mobile..."
+              className="pl-8 w-full md:w-[250px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <ProtectedAction resource="employees" action="create">
+            <Button 
+              className="bg-agri-primary hover:bg-agri-secondary"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          </ProtectedAction>
+        </div>
       </div>
 
       <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -187,10 +209,8 @@ const Employees = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{filteredEmployees.length}</div>
-            <p className="text-xs text-green-600">
-              {selectedBranch ? 'In selected branch' : 'All employees'}
-            </p>
+            <div className="text-2xl font-bold">{employees.length}</div>
+            <p className="text-xs text-green-600">All employees</p>
           </CardContent>
         </Card>
 
@@ -200,9 +220,7 @@ const Employees = () => {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredEmployees.filter(emp => emp.is_active !== false).length}
-            </div>
+            <div className="text-2xl font-bold">{getActiveEmployees()}</div>
             <p className="text-xs text-green-600">Currently active</p>
           </CardContent>
         </Card>
@@ -213,9 +231,7 @@ const Employees = () => {
             <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredEmployees.filter(emp => emp.is_active === false).length}
-            </div>
+            <div className="text-2xl font-bold">{employees.length - getActiveEmployees()}</div>
             <p className="text-xs text-red-600">Inactive accounts</p>
           </CardContent>
         </Card>
@@ -227,9 +243,7 @@ const Employees = () => {
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-1">No employees found</h3>
             <p className="text-muted-foreground text-center">
-              {searchTerm || selectedBranch ? 
-                'No employees match your search criteria.' : 
-                'Get started by adding your first employee.'}
+              {searchTerm ? 'No employees match your search criteria.' : 'Get started by adding your first employee.'}
             </p>
           </div>
         ) : (
