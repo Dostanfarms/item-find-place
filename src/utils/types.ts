@@ -31,6 +31,9 @@ export interface Product {
   farmer_id?: string;
   barcode?: string;
   branch_id?: string;
+  is_active: boolean;
+  description?: string;
+  image_url?: string;
 }
 
 export interface Transaction {
@@ -178,11 +181,14 @@ export interface Branch {
   updated_at: string;
 }
 
-// Fashion product size interface
+// Fashion product size interface - matching database schema
 export interface FashionProductSize {
   id: string;
   size: string;
   pieces: number;
+  fashion_product_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Fashion product interface
