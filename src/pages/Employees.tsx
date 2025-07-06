@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -91,7 +92,7 @@ const Employees = () => {
         bank_name: employeeData.bankName,
         ifsc_code: employeeData.ifscCode,
         is_active: true,
-        branchId: employeeData.branchId
+        branch_id: employeeData.branchId
       });
 
       if (result?.success) {
@@ -134,7 +135,7 @@ const Employees = () => {
         bank_name: employeeData.bankName,
         ifsc_code: employeeData.ifscCode,
         is_active: true,
-        branchId: employeeData.branchId
+        branch_id: employeeData.branchId
       };
 
       if (employeeData.password) {
