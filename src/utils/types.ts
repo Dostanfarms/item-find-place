@@ -155,6 +155,7 @@ export interface Employee {
   bankName?: string;
   ifscCode?: string;
   branchId?: string;
+  branch_id?: string;
 }
 
 // Ticket system types

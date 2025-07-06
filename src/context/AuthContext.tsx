@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,6 +15,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  branch_id: string | null;
   permissions?: any[];
 }
 
@@ -137,12 +137,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Employee is active, creating user session');
       
-      // Create user object
+      // Create user object with branch_id
       const authenticatedUser: User = {
         id: employee.id,
         name: employee.name,
         email: employee.email,
-        role: employee.role
+        role: employee.role,
+        branch_id: employee.branch_id
       };
       
       console.log('Setting authenticated user:', authenticatedUser);
