@@ -15,6 +15,7 @@ export interface Farmer {
   state?: string;
   district?: string;
   village?: string;
+  branch_id?: string;
 }
 
 export interface Product {
