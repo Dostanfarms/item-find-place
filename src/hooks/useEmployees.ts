@@ -1,28 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-export interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  password: string;
-  role: string;
-  profile_photo?: string;
-  date_joined: string;
-  state?: string;
-  district?: string;
-  village?: string;
-  account_holder_name?: string;
-  account_number?: string;
-  bank_name?: string;
-  ifsc_code?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  branch_id?: string;
-}
+import { Employee } from '@/utils/types';
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -116,12 +96,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
-      toast({
-        title: "Success",
-        description: `${employeeData.name} was successfully added as ${employeeData.role}`
-      });
-      
+      await fetchEmployees();
       return { success: true, data };
     } catch (error) {
       console.error('Error in addEmployee:', error);
@@ -138,21 +113,12 @@ export const useEmployees = () => {
     try {
       const updateData: any = {};
       
-      if (employeeData.name !== undefined) updateData.name = employeeData.name;
-      if (employeeData.email !== undefined) updateData.email = employeeData.email;
-      if (employeeData.phone !== undefined) updateData.phone = employeeData.phone;
-      if (employeeData.password !== undefined && employeeData.password !== '') updateData.password = employeeData.password;
-      if (employeeData.role !== undefined) updateData.role = employeeData.role;
-      if (employeeData.profile_photo !== undefined) updateData.profile_photo = employeeData.profile_photo;
-      if (employeeData.state !== undefined) updateData.state = employeeData.state;
-      if (employeeData.district !== undefined) updateData.district = employeeData.district;
-      if (employeeData.village !== undefined) updateData.village = employeeData.village;
-      if (employeeData.account_holder_name !== undefined) updateData.account_holder_name = employeeData.account_holder_name;
-      if (employeeData.account_number !== undefined) updateData.account_number = employeeData.account_number;
-      if (employeeData.bank_name !== undefined) updateData.bank_name = employeeData.bank_name;
-      if (employeeData.ifsc_code !== undefined) updateData.ifsc_code = employeeData.ifsc_code;
-      if (employeeData.is_active !== undefined) updateData.is_active = employeeData.is_active;
-      if (employeeData.branch_id !== undefined) updateData.branch_id = employeeData.branch_id;
+      // Only include defined fields in the update
+      Object.keys(employeeData).forEach(key => {
+        if (employeeData[key as keyof Employee] !== undefined) {
+          updateData[key] = employeeData[key as keyof Employee];
+        }
+      });
 
       const { data, error } = await supabase
         .from('employees')
@@ -171,12 +137,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
-      toast({
-        title: "Success",
-        description: `Employee information was successfully updated`
-      });
-      
+      await fetchEmployees();
       return { success: true, data };
     } catch (error) {
       console.error('Error in updateEmployee:', error);
@@ -206,12 +167,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
-      toast({
-        title: "Success",
-        description: "Employee has been deleted successfully"
-      });
-      
+      await fetchEmployees();
       return { success: true };
     } catch (error) {
       console.error('Error in deleteEmployee:', error);

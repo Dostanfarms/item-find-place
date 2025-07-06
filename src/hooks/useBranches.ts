@@ -1,17 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Branch {
-  id: string;
-  branch_name: string;
-  branch_owner_name: string;
-  mobile_number: string;
-  state: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { Branch } from '@/utils/types';
 
 export const useBranches = () => {
   const { data: branches = [], isLoading: loading } = useQuery({

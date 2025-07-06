@@ -1,3 +1,4 @@
+
 export interface Farmer {
   id: string;
   name: string;
@@ -29,6 +30,7 @@ export interface Product {
   updated_at: string;
   farmer_id?: string;
   barcode?: string;
+  branch_id?: string;
 }
 
 export interface Transaction {
@@ -40,6 +42,7 @@ export interface Transaction {
   farmerId: string;
   settled: boolean;
   paymentMode?: 'Cash' | 'Online';
+  branch_id?: string;
 }
 
 export interface DailyEarning {
@@ -108,6 +111,7 @@ export interface Coupon {
   target_user_id: string | null;
   created_at: string;
   updated_at: string;
+  branch_id?: string;
 }
 
 export interface CouponValidationResult {
@@ -148,7 +152,6 @@ export interface Employee {
   password: string;
   role: Role;
   profile_photo?: string;
-  date_joined: string;
   state?: string;
   district?: string;
   village?: string;
@@ -157,6 +160,19 @@ export interface Employee {
   bank_name?: string;
   ifsc_code?: string;
   branch_id?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  date_joined: string;
+}
+
+// Branch interface
+export interface Branch {
+  id: string;
+  branch_name: string;
+  branch_owner_name: string;
+  mobile_number: string;
+  state: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

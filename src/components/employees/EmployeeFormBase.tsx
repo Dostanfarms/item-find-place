@@ -3,14 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhotoUploadField from '@/components/PhotoUploadField';
 import { Employee } from '@/utils/types';
 import { useBranches } from '@/hooks/useBranches';
 import { useRoles } from '@/hooks/useRoles';
-import { useAuth } from '@/context/AuthContext';
-import { canAccessBranch } from '@/utils/employeeData';
 
 interface EmployeeFormBaseProps {
   employee?: Employee;
@@ -27,7 +24,6 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 }) => {
   const { branches, loading: branchesLoading } = useBranches();
   const { roles } = useRoles();
-  const { currentUser } = useAuth();
   
   const [formData, setFormData] = useState({
     name: employee?.name || '',
@@ -47,26 +43,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     is_active: employee?.is_active !== false
   });
 
-  // Debug logging to understand branch access
-  console.log('Current user:', currentUser);
-  console.log('All branches:', branches);
-  console.log('Branches loading:', branchesLoading);
-
-  // Filter branches based on user permissions with enhanced logging
-  const accessibleBranches = branches.filter(branch => {
-    const hasAccess = canAccessBranch(
-      currentUser?.role || '', 
-      currentUser?.branch_id || null, 
-      branch.id
-    );
-    console.log(`Branch ${branch.branch_name} (${branch.id}): Access = ${hasAccess}`);
-    return hasAccess;
-  });
-
-  console.log('Accessible branches:', accessibleBranches);
-
   const handleInputChange = (field: string, value: string | boolean) => {
-    console.log(`Field ${field} changed to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -77,8 +54,6 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       alert('Please fill in all required fields');
       return;
     }
-
-    console.log('Submitting form data:', formData);
 
     const submissionData: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'date_joined'> = {
       name: formData.name,
@@ -94,18 +69,17 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       account_number: formData.account_number,
       bank_name: formData.bank_name,
       ifsc_code: formData.ifsc_code,
-      branch_id: formData.branch_id || null,
+      branch_id: formData.branch_id || undefined,
       is_active: formData.is_active
     };
 
-    console.log('Final submission data:', submissionData);
     onSubmit(submissionData);
   };
 
   if (branchesLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">Loading branches...</div>
+        <div className="text-muted-foreground">Loading form...</div>
       </div>
     );
   }
@@ -199,18 +173,13 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">No Branch</SelectItem>
-            {accessibleBranches.map((branch) => (
+            {branches.map((branch) => (
               <SelectItem key={branch.id} value={branch.id}>
-                {branch.branch_name}
+                {branch.branch_name} - {branch.branch_owner_name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {accessibleBranches.length === 0 && !branchesLoading && (
-          <p className="text-sm text-muted-foreground">
-            No accessible branches found. Contact an administrator.
-          </p>
-        )}
       </div>
 
       {/* Location Information */}
