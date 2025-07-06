@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -141,6 +140,10 @@ const CustomerProfile = () => {
     localStorage.removeItem('currentCustomer');
     navigate('/customer-login');
   };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
   
   if (!initialCustomer) {
     return null; // Redirect handled in useEffect
@@ -155,21 +158,38 @@ const CustomerProfile = () => {
         <div className="container mx-auto max-w-md">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                <span>My Profile</span>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  <span>My Profile</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  className="p-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {!isEditing ? (
                 <>
                   <div className="flex flex-col items-center mb-6">
-                    <PhotoUploadField
-                      value={customer.profile_photo}
-                      onChange={handleProfilePhotoChange}
-                      name="customer-profile-photo"
-                      className="w-24 h-24 mb-4"
-                    />
+                    <div className="w-24 h-24 mb-4 relative">
+                      {customer.profile_photo ? (
+                        <img 
+                          src={customer.profile_photo} 
+                          alt="Profile" 
+                          className="w-full h-full rounded-full object-cover border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                     <h2 className="text-xl font-bold">{customer.name}</h2>
                   </div>
                   

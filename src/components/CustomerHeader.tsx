@@ -18,7 +18,7 @@ interface CustomerHeaderProps {
 }
 
 const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) => {
-  const { items } = useCart();
+  const { items, setIsCartOpen } = useCart();
   const navigate = useNavigate();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -41,9 +41,8 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
   };
 
   const handleCartClick = () => {
-    // Toggle cart or navigate to cart page
-    const cartEvent = new CustomEvent('toggleCart');
-    window.dispatchEvent(cartEvent);
+    // Open cart sidebar
+    setIsCartOpen(true);
   };
 
   return (
@@ -120,7 +119,15 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-gray-600" />
+                  {customer.profile_photo ? (
+                    <img 
+                      src={customer.profile_photo} 
+                      alt="Profile" 
+                      className="h-5 w-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-gray-600" />
+                  )}
                   <span className="text-sm font-medium text-gray-700 hidden sm:block">
                     {customer.name}
                   </span>

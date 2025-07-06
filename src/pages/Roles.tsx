@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -57,7 +56,8 @@ const resources = [
   { id: 'tickets', name: 'Tickets' },
   { id: 'orders', name: 'Orders' },
   { id: 'manage', name: 'Manage' },
-  { id: 'masters', name: 'Masters' }
+  { id: 'masters', name: 'Masters' },
+  { id: 'branches', name: 'Branches' }
 ];
 
 const actions = [

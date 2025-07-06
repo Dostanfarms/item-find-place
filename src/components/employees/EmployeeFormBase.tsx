@@ -1,368 +1,273 @@
-import React, { useEffect, useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Eye, EyeOff } from 'lucide-react';
-import { states, districts, villages, banks } from '@/utils/locationData';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import PhotoUploadField from '@/components/PhotoUploadField';
-import { useRoles } from '@/hooks/useRoles';
-import { useBranches } from '@/hooks/useBranches';
 
-export interface EmployeeFormData {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  role: string;
-  state: string;
-  district: string;
-  village: string;
-  profilePhoto?: string;
-  accountHolderName: string;
-  accountNumber: string;
-  bankName: string;
-  ifscCode: string;
-  isActive: boolean;
-  branchId: string;
-}
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PhotoUploadField from '@/components/PhotoUploadField';
+import { Employee } from '@/utils/types';
+import { useBranches } from '@/hooks/useBranches';
+import { useRoles } from '@/hooks/useRoles';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessBranch } from '@/utils/employeeData';
 
 interface EmployeeFormBaseProps {
-  formData: EmployeeFormData;
-  onChange: (data: Partial<EmployeeFormData>) => void;
-  showPassword: boolean;
-  togglePasswordVisibility: () => void;
+  employee?: Employee;
+  onSubmit: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
 }
 
 const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
-  formData,
-  onChange,
-  showPassword,
-  togglePasswordVisibility
+  employee,
+  onSubmit,
+  onCancel,
+  isLoading = false
 }) => {
-  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
-  const [availableVillages, setAvailableVillages] = useState<string[]>([]);
-  const [statesList] = useState<string[]>(Object.keys(states));
-  const [banksList] = useState<string[]>(banks);
-  const { roles, loading: rolesLoading } = useRoles();
-  const { branches, loading: branchesLoading } = useBranches();
+  const { branches } = useBranches();
+  const { roles } = useRoles();
+  const { currentUser } = useAuth();
   
-  useEffect(() => {
-    if (formData.state) {
-      setAvailableDistricts(districts[formData.state] || []);
-      if (!districts[formData.state]?.includes(formData.district)) {
-        onChange({ district: '', village: '' });
-      }
-    } else {
-      setAvailableDistricts([]);
+  const [formData, setFormData] = useState({
+    name: employee?.name || '',
+    email: employee?.email || '',
+    phone: employee?.phone || '',
+    password: employee?.password || '',
+    role: employee?.role || 'sales',
+    profilePhoto: employee?.profilePhoto || '',
+    state: employee?.state || '',
+    district: employee?.district || '',
+    village: employee?.village || '',
+    accountHolderName: employee?.accountHolderName || '',
+    accountNumber: employee?.accountNumber || '',
+    bankName: employee?.bankName || '',
+    ifscCode: employee?.ifscCode || '',
+    branchId: employee?.branchId || employee?.branch_id || ''
+  });
+
+  // Filter branches based on user permissions
+  const accessibleBranches = branches.filter(branch => 
+    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
+  );
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.password) {
+      alert('Please fill in all required fields');
+      return;
     }
-  }, [formData.state]);
 
-  useEffect(() => {
-    if (formData.district) {
-      setAvailableVillages(villages[formData.district] || []);
-      if (!villages[formData.district]?.includes(formData.village)) {
-        onChange({ village: '' });
-      }
-    } else {
-      setAvailableVillages([]);
-    }
-  }, [formData.district]);
+    const submissionData: Omit<Employee, 'id' | 'dateJoined'> = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      role: formData.role as any,
+      profilePhoto: formData.profilePhoto,
+      state: formData.state,
+      district: formData.district,
+      village: formData.village,
+      accountHolderName: formData.accountHolderName,
+      accountNumber: formData.accountNumber,
+      bankName: formData.bankName,
+      ifscCode: formData.ifscCode,
+      branchId: formData.branchId,
+      branch_id: formData.branchId // Ensure both fields are set
+    };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    onChange({ [name]: value });
-  };
-
-  // Email validation function
-  const validateEmail = (email: string) => {
-    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    return re.test(String(email).toLowerCase());
-  };
-
-  // Phone validation function (Indian mobile format)
-  const validatePhone = (phone: string) => {
-    const re = /^[6-9]\d{9}$/;
-    return re.test(String(phone));
-  };
-
-  // IFSC code validation
-  const validateIFSC = (ifsc: string) => {
-    const re = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-    return re.test(String(ifsc));
-  };
-
-  // Account number validation
-  const validateAccountNumber = (accountNumber: string) => {
-    const re = /^\d{9,18}$/;
-    return re.test(String(accountNumber));
+    onSubmit(submissionData);
   };
 
   return (
-    <ScrollArea className="h-[70vh] pr-4">
-      <div className="grid gap-4 py-4">
-        <div className="flex justify-center mb-4">
-          <PhotoUploadField 
-            value={formData.profilePhoto}
-            onChange={(value) => onChange({ profilePhoto: value })}
-            className="w-24 h-24"
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="branch">Branch</Label>
-            <Select 
-              value={formData.branchId} 
-              onValueChange={(value) => onChange({ branchId: value })}
-              disabled={branchesLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={branchesLoading ? "Loading branches..." : "Select branch"} />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.branch_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(value) => onChange({ role: value })}
-              disabled={rolesLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.name.toLowerCase()}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="Email address"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              className={formData.email && !validateEmail(formData.email) ? "border-red-500" : ""}
-            />
-            {formData.email && !validateEmail(formData.email) && 
-              <p className="text-xs text-red-500">Please enter a valid email address</p>
-            }
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="Phone number"
-              value={formData.phone}
-              onChange={handleInputChange}
-              required
-              className={formData.phone && !validatePhone(formData.phone) ? "border-red-500" : ""}
-            />
-            {formData.phone && !validatePhone(formData.phone) && 
-              <p className="text-xs text-red-500">Please enter a valid 10-digit mobile number</p>
-            }
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input 
-                id="password" 
-                name="password" 
-                type={showPassword ? "text" : "password"}
-                placeholder="Set password" 
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={togglePasswordVisibility}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Radio Buttons */}
-        <div className="space-y-3">
-          <Label>Employee Status</Label>
-          <RadioGroup 
-            value={formData.isActive ? 'active' : 'inactive'} 
-            onValueChange={(value) => onChange({ isActive: value === 'active' })}
-            className="flex gap-6"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="active" id="active" />
-              <Label htmlFor="active" className="text-green-600 font-medium">Active</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="inactive" id="inactive" />
-              <Label htmlFor="inactive" className="text-red-600 font-medium">Inactive</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        
-        {/* Bank Account Details */}
-        <div className="border-t pt-4 mt-2">
-          <h3 className="font-medium mb-3">Bank Account Details</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="accountHolderName">Account Holder Name</Label>
-              <Input
-                id="accountHolderName"
-                name="accountHolderName"
-                placeholder="Account holder name"
-                value={formData.accountHolderName}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bankName">Bank Name</Label>
-              <Select 
-                value={formData.bankName} 
-                onValueChange={(value) => onChange({ bankName: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bank" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {banksList.map(bank => (
-                    <SelectItem key={bank} value={bank}>{bank}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number</Label>
-              <Input
-                id="accountNumber"
-                name="accountNumber"
-                placeholder="Account number"
-                value={formData.accountNumber}
-                onChange={handleInputChange}
-                className={formData.accountNumber && !validateAccountNumber(formData.accountNumber) ? "border-red-500" : ""}
-              />
-              {formData.accountNumber && !validateAccountNumber(formData.accountNumber) && 
-                <p className="text-xs text-red-500">Account number should be 9-18 digits</p>
-              }
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ifscCode">IFSC Code</Label>
-              <Input
-                id="ifscCode"
-                name="ifscCode"
-                placeholder="IFSC code"
-                value={formData.ifscCode}
-                onChange={handleInputChange}
-                className={formData.ifscCode && !validateIFSC(formData.ifscCode) ? "border-red-500" : ""}
-              />
-              {formData.ifscCode && !validateIFSC(formData.ifscCode) && 
-                <p className="text-xs text-red-500">Please enter a valid IFSC code</p>
-              }
-            </div>
-          </div>
-        </div>
-        
-        {/* Location fields */}
-        <div className="border-t pt-4 mt-2">
-          <h3 className="font-medium mb-3">Location Details</h3>
-          <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
-            <Select 
-              value={formData.state} 
-              onValueChange={(value) => onChange({ state: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
-                {statesList.map(state => (
-                  <SelectItem key={state} value={state}>{state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="district">District</Label>
-              <Select 
-                value={formData.district} 
-                onValueChange={(value) => onChange({ district: value })}
-                disabled={!formData.state || availableDistricts.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select district" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {availableDistricts.map(district => (
-                    <SelectItem key={district} value={district}>{district}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="village">Village</Label>
-              <Select 
-                value={formData.village} 
-                onValueChange={(value) => onChange({ village: value })}
-                disabled={!formData.district || availableVillages.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select village" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {availableVillages.map(village => (
-                    <SelectItem key={village} value={village}>{village}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      {/* Photo Upload */}
+      <div className="md:col-span-2 flex justify-center">
+        <PhotoUploadField
+          value={formData.profilePhoto}
+          onChange={(photoUrl) => handleInputChange('profilePhoto', photoUrl)}
+          name="employee-profile-photo"
+        />
       </div>
-    </ScrollArea>
+
+      {/* Basic Information */}
+      <div className="space-y-2">
+        <Label htmlFor="name">Full Name *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          placeholder="Enter full name"
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleInputChange('email', e.target.value)}
+          placeholder="Enter email address"
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone</Label>
+        <Input
+          id="phone"
+          value={formData.phone}
+          onChange={(e) => handleInputChange('phone', e.target.value)}
+          placeholder="Enter phone number"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">Password *</Label>
+        <Input
+          id="password"
+          type="password"
+          value={formData.password}
+          onChange={(e) => handleInputChange('password', e.target.value)}
+          placeholder="Enter password"
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      {/* Role and Branch */}
+      <div className="space-y-2">
+        <Label htmlFor="role">Role *</Label>
+        <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                {role.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="branch">Branch</Label>
+        <Select value={formData.branchId} onValueChange={(value) => handleInputChange('branchId', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select branch" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No Branch</SelectItem>
+            {accessibleBranches.map((branch) => (
+              <SelectItem key={branch.id} value={branch.id}>
+                {branch.branch_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Location Information */}
+      <div className="space-y-2">
+        <Label htmlFor="state">State</Label>
+        <Input
+          id="state"
+          value={formData.state}
+          onChange={(e) => handleInputChange('state', e.target.value)}
+          placeholder="Enter state"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="district">District</Label>
+        <Input
+          id="district"
+          value={formData.district}
+          onChange={(e) => handleInputChange('district', e.target.value)}
+          placeholder="Enter district"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="village">Village</Label>
+        <Input
+          id="village"
+          value={formData.village}
+          onChange={(e) => handleInputChange('village', e.target.value)}
+          placeholder="Enter village"
+          disabled={isLoading}
+        />
+      </div>
+
+      {/* Bank Information */}
+      <div className="space-y-2">
+        <Label htmlFor="accountHolderName">Account Holder Name</Label>
+        <Input
+          id="accountHolderName"
+          value={formData.accountHolderName}
+          onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
+          placeholder="Enter account holder name"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="accountNumber">Account Number</Label>
+        <Input
+          id="accountNumber"
+          value={formData.accountNumber}
+          onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+          placeholder="Enter account number"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="bankName">Bank Name</Label>
+        <Input
+          id="bankName"
+          value={formData.bankName}
+          onChange={(e) => handleInputChange('bankName', e.target.value)}
+          placeholder="Enter bank name"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="ifscCode">IFSC Code</Label>
+        <Input
+          id="ifscCode"
+          value={formData.ifscCode}
+          onChange={(e) => handleInputChange('ifscCode', e.target.value)}
+          placeholder="Enter IFSC code"
+          disabled={isLoading}
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="md:col-span-2 flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Saving...' : employee ? 'Update Employee' : 'Add Employee'}
+        </Button>
+      </div>
+    </form>
   );
 };
 
