@@ -21,6 +21,7 @@ export interface Employee {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  branch_id?: string;
 }
 
 export const useEmployees = () => {
@@ -64,7 +65,8 @@ export const useEmployees = () => {
         ifsc_code: emp.ifsc_code,
         is_active: emp.is_active,
         created_at: emp.created_at,
-        updated_at: emp.updated_at
+        updated_at: emp.updated_at,
+        branch_id: emp.branch_id
       })) || [];
 
       setEmployees(formattedEmployees);
@@ -98,7 +100,8 @@ export const useEmployees = () => {
           account_number: employeeData.account_number,
           bank_name: employeeData.bank_name,
           ifsc_code: employeeData.ifsc_code,
-          is_active: employeeData.is_active
+          is_active: employeeData.is_active,
+          branch_id: employeeData.branch_id
         }])
         .select()
         .single();
@@ -149,6 +152,7 @@ export const useEmployees = () => {
       if (employeeData.bank_name !== undefined) updateData.bank_name = employeeData.bank_name;
       if (employeeData.ifsc_code !== undefined) updateData.ifsc_code = employeeData.ifsc_code;
       if (employeeData.is_active !== undefined) updateData.is_active = employeeData.is_active;
+      if (employeeData.branch_id !== undefined) updateData.branch_id = employeeData.branch_id;
 
       const { data, error } = await supabase
         .from('employees')

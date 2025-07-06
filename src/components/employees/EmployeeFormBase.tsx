@@ -165,12 +165,12 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 
       <div className="space-y-2">
         <Label htmlFor="branch">Branch</Label>
-        <Select value={formData.branchId} onValueChange={(value) => handleInputChange('branchId', value)}>
+        <Select value={formData.branchId || ''} onValueChange={(value) => handleInputChange('branchId', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select branch" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="no-branch">No Branch</SelectItem>
+            <SelectItem value="">No Branch</SelectItem>
             {accessibleBranches.map((branch) => (
               <SelectItem key={branch.id} value={branch.id}>
                 {branch.branch_name}
