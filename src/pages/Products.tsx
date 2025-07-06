@@ -13,6 +13,7 @@ import GeneralProductForm from '@/components/GeneralProductForm';
 import { useCategories } from '@/hooks/useCategories';
 import BranchFilter from '@/components/BranchFilter';
 import { useBranches } from '@/hooks/useBranches';
+import { Product, FashionProduct } from '@/utils/types';
 
 const Products = () => {
   const { products, loading: productsLoading, deleteProduct } = useProducts();
@@ -24,13 +25,13 @@ const Products = () => {
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<(Product & { type: 'general' }) | (FashionProduct & { type: 'fashion' }) | null>(null);
   const [productType, setProductType] = useState<'general' | 'fashion'>('general');
 
   // Combine all products with branch information
   const allProducts = useMemo(() => {
-    const generalProducts = products.map(p => ({ ...p, type: 'general' }));
-    const fashionProductsWithType = fashionProducts.map(p => ({ ...p, type: 'fashion' }));
+    const generalProducts = products.map(p => ({ ...p, type: 'general' as const }));
+    const fashionProductsWithType = fashionProducts.map(p => ({ ...p, type: 'fashion' as const }));
     return [...generalProducts, ...fashionProductsWithType];
   }, [products, fashionProducts]);
 
@@ -67,19 +68,23 @@ const Products = () => {
   const getTotalStock = () => {
     return filteredProducts.reduce((sum, product) => {
       if (product.type === 'fashion') {
-        return sum + (product.sizes?.reduce((sizeSum: number, size: any) => sizeSum + size.pieces, 0) || 0);
+        const fashionProduct = product as FashionProduct & { type: 'fashion' };
+        return sum + (fashionProduct.sizes?.reduce((sizeSum, size) => sizeSum + size.pieces, 0) || 0);
       }
-      return sum + (product.quantity || 0);
+      const generalProduct = product as Product & { type: 'general' };
+      return sum + (generalProduct.quantity || 0);
     }, 0);
   };
 
   const getActiveProducts = () => {
-    return filteredProducts.filter(product => 
-      product.is_active !== false && 
-      (product.type === 'fashion' 
-        ? product.sizes?.some((size: any) => size.pieces > 0)
-        : product.quantity > 0)
-    ).length;
+    return filteredProducts.filter(product => {
+      if (product.type === 'fashion') {
+        const fashionProduct = product as FashionProduct & { type: 'fashion' };
+        return product.is_active !== false && fashionProduct.sizes?.some(size => size.pieces > 0);
+      }
+      const generalProduct = product as Product & { type: 'general' };
+      return product.is_active !== false && generalProduct.quantity > 0;
+    }).length;
   };
 
   if (productsLoading || fashionLoading) {
@@ -214,9 +219,19 @@ const Products = () => {
                   <tbody>
                     {filteredProducts.map((product) => {
                       const branch = branches.find(b => b.id === product.branch_id);
-                      const stock = product.type === 'fashion' 
-                        ? product.sizes?.reduce((sum: number, size: any) => sum + size.pieces, 0) || 0
-                        : product.quantity || 0;
+                      
+                      let stock = 0;
+                      let unit = '';
+                      
+                      if (product.type === 'fashion') {
+                        const fashionProduct = product as FashionProduct & { type: 'fashion' };
+                        stock = fashionProduct.sizes?.reduce((sum, size) => sum + size.pieces, 0) || 0;
+                        unit = 'pieces';
+                      } else {
+                        const generalProduct = product as Product & { type: 'general' };
+                        stock = generalProduct.quantity || 0;
+                        unit = generalProduct.unit || 'units';
+                      }
                       
                       return (
                         <tr key={`${product.type}-${product.id}`} className="border-b hover:bg-muted/25">
@@ -232,7 +247,7 @@ const Products = () => {
                               <div>
                                 <div className="font-medium">{product.name}</div>
                                 <div className="text-sm text-muted-foreground">
-                                  {product.type === 'fashion' ? 'Fashion Item' : `${product.unit || 'piece'}`}
+                                  {product.type === 'fashion' ? 'Fashion Item' : unit}
                                 </div>
                               </div>
                             </div>
@@ -242,9 +257,7 @@ const Products = () => {
                           </td>
                           <td className="p-4">
                             <div className="font-medium">{stock}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {product.type === 'fashion' ? 'pieces' : product.unit || 'units'}
-                            </div>
+                            <div className="text-sm text-muted-foreground">{unit}</div>
                           </td>
                           <td className="p-4">
                             <div className="font-medium">₹{product.price_per_unit}</div>
@@ -300,13 +313,11 @@ const Products = () => {
       {isAddingProduct && (
         productType === 'general' ? (
           <GeneralProductForm
-            open={isAddingProduct}
-            onClose={() => setIsAddingProduct(false)}
+            onCancel={() => setIsAddingProduct(false)}
           />
         ) : (
           <FashionProductForm
-            open={isAddingProduct}
-            onClose={() => setIsAddingProduct(false)}
+            onCancel={() => setIsAddingProduct(false)}
           />
         )
       )}
@@ -314,15 +325,13 @@ const Products = () => {
       {editingProduct && (
         editingProduct.type === 'general' ? (
           <GeneralProductForm
-            open={!!editingProduct}
-            onClose={() => setEditingProduct(null)}
-            product={editingProduct}
+            onCancel={() => setEditingProduct(null)}
+            editProduct={editingProduct as Product}
           />
         ) : (
           <FashionProductForm
-            open={!!editingProduct}
-            onClose={() => setEditingProduct(null)}
-            product={editingProduct}
+            onCancel={() => setEditingProduct(null)}
+            editProduct={editingProduct as FashionProduct}
           />
         )
       )}

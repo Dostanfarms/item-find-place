@@ -178,6 +178,29 @@ export interface Branch {
   updated_at: string;
 }
 
+// Fashion product size interface
+export interface FashionProductSize {
+  id: string;
+  size: string;
+  pieces: number;
+}
+
+// Fashion product interface
+export interface FashionProduct {
+  id: string;
+  name: string;
+  description?: string;
+  price_per_unit: number;
+  category: string;
+  barcode?: string;
+  image_url?: string;
+  is_active: boolean;
+  branch_id?: string;
+  created_at: string;
+  updated_at: string;
+  sizes?: FashionProductSize[];
+}
+
 // Ticket system types
 export interface Ticket {
   id: string;

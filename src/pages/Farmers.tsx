@@ -252,14 +252,14 @@ const Farmers = () => {
       </div>
 
       {/* Add/Edit Farmer Dialogs */}
-      <FarmerForm
-        open={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
-      />
+      {isAddDialogOpen && (
+        <FarmerForm
+          onClose={() => setIsAddDialogOpen(false)}
+        />
+      )}
 
       {editingFarmer && (
         <FarmerForm
-          open={!!editingFarmer}
           onClose={() => setEditingFarmer(null)}
           farmer={editingFarmer}
         />
