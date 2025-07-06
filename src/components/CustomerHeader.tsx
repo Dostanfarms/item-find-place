@@ -1,7 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Package, ShoppingCart, User, LogOut } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Package, ShoppingCart, User, LogOut, UserCircle, History, Ticket } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +28,24 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
     navigate('/app');
   };
 
+  const handleProfileClick = () => {
+    navigate('/customer-profile');
+  };
+
+  const handleOrdersClick = () => {
+    navigate('/customer-orders');
+  };
+
+  const handleTicketsClick = () => {
+    navigate('/customer-tickets');
+  };
+
+  const handleCartClick = () => {
+    // Toggle cart or navigate to cart page
+    const cartEvent = new CustomEvent('toggleCart');
+    window.dispatchEvent(cartEvent);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 border-b">
       <div className="flex items-center justify-between px-4 py-3">
@@ -31,7 +56,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
             <span className="text-lg font-bold text-gray-900">Dostan Mart</span>
           </div>
           
-          {/* Login buttons beside logo */}
+          {/* Login buttons beside logo - only show when not logged in */}
           {!customer && (
             <div className="flex items-center gap-2">
               <Button 
@@ -57,14 +82,19 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
         {/* Right side - Cart and customer auth */}
         <div className="flex items-center gap-3">
           {/* Cart */}
-          <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCartClick}
+            className="relative p-2"
+          >
             <ShoppingCart className="h-6 w-6 text-gray-600" />
             {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {totalItems}
               </span>
             )}
-          </div>
+          </Button>
           
           {/* Customer auth buttons or user menu */}
           {!customer ? (
@@ -87,22 +117,35 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700 hidden sm:block">
-                  {customer.name}
-                </span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout}
-                className="p-2"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                    {customer.name}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleProfileClick}>
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOrdersClick}>
+                  <History className="h-4 w-4 mr-2" />
+                  My Orders
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleTicketsClick}>
+                  <Ticket className="h-4 w-4 mr-2" />
+                  Support Tickets
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
