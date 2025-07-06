@@ -9,32 +9,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import EmployeeFormBase, { EmployeeFormData } from './EmployeeFormBase';
+import EmployeeFormBase from './EmployeeFormBase';
+import { Employee } from '@/utils/types';
 
 interface AddEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  formData: EmployeeFormData;
-  onChange: (data: Partial<EmployeeFormData>) => void;
-  showPassword: boolean;
-  togglePasswordVisibility: () => void;
-  onAddEmployee: () => void;
+  onAddEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
 const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
   isOpen,
   setIsOpen,
-  formData,
-  onChange,
-  showPassword,
-  togglePasswordVisibility,
   onAddEmployee,
-  onCancel
+  onCancel,
+  isLoading = false
 }) => {
+  const handleCancel = () => {
+    onCancel();
+    setIsOpen(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
           <DialogDescription>
@@ -43,18 +43,10 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
         </DialogHeader>
         
         <EmployeeFormBase
-          formData={formData}
-          onChange={onChange}
-          showPassword={showPassword}
-          togglePasswordVisibility={togglePasswordVisibility}
+          onSubmit={onAddEmployee}
+          onCancel={handleCancel}
+          isLoading={isLoading}
         />
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={onAddEmployee}>Create Employee</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

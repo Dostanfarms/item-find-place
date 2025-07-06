@@ -9,39 +9,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import EmployeeFormBase, { EmployeeFormData } from './EmployeeFormBase';
+import EmployeeFormBase from './EmployeeFormBase';
+import { Employee } from '@/utils/types';
 import { ArrowLeft } from 'lucide-react';
 
 interface EditEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  formData: EmployeeFormData;
-  onChange: (data: Partial<EmployeeFormData>) => void;
-  showPassword: boolean;
-  togglePasswordVisibility: () => void;
-  onUpdateEmployee: () => void;
+  employee: Employee;
+  onUpdateEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
 const EditEmployeeDialog: React.FC<EditEmployeeDialogProps> = ({
   isOpen,
   setIsOpen,
-  formData,
-  onChange,
-  showPassword,
-  togglePasswordVisibility,
+  employee,
   onUpdateEmployee,
-  onCancel
+  onCancel,
+  isLoading = false
 }) => {
+  const handleCancel = () => {
+    onCancel();
+    setIsOpen(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center">
           <Button 
             variant="ghost" 
             size="icon" 
             className="mr-2" 
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="sr-only">Back</span>
@@ -55,18 +57,11 @@ const EditEmployeeDialog: React.FC<EditEmployeeDialogProps> = ({
         </DialogHeader>
         
         <EmployeeFormBase
-          formData={formData}
-          onChange={onChange}
-          showPassword={showPassword}
-          togglePasswordVisibility={togglePasswordVisibility}
+          employee={employee}
+          onSubmit={onUpdateEmployee}
+          onCancel={handleCancel}
+          isLoading={isLoading}
         />
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={onUpdateEmployee}>Update Employee</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

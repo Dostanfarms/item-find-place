@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import EmployeeTable from '@/components/employees/EmployeeTable';
 import ProtectedAction from '@/components/ProtectedAction';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { Employee } from '@/utils/types';
 
 const Employees = () => {
   const { toast } = useToast();
@@ -20,24 +22,7 @@ const Employees = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: '',
-    state: '',
-    district: '',
-    village: '',
-    profilePhoto: '',
-    accountHolderName: '',
-    accountNumber: '',
-    bankName: '',
-    ifscCode: '',
-    isActive: true,
-    branchId: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,23 +42,6 @@ const Employees = () => {
     }
 
     setEditingEmployee(employee);
-    setFormData({
-      name: employee.name || '',
-      email: employee.email || '',
-      phone: employee.phone || '',
-      password: '',
-      role: employee.role || 'sales',
-      state: employee.state || '',
-      district: employee.district || '',
-      village: employee.village || '',
-      profilePhoto: employee.profile_photo || '',
-      accountHolderName: employee.account_holder_name || '',
-      accountNumber: employee.account_number || '',
-      bankName: employee.bank_name || '',
-      ifscCode: employee.ifsc_code || '',
-      isActive: employee.is_active !== false,
-      branchId: employee.branch_id || ''
-    });
   };
 
   const handleDelete = async (id: string) => {
@@ -97,7 +65,7 @@ const Employees = () => {
     }
   };
 
-  const handleAddEmployee = async () => {
+  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
     if (!hasPermission('employees', 'create')) {
       toast({
         title: "Access Denied",
@@ -107,30 +75,39 @@ const Employees = () => {
       return;
     }
 
-    const result = await addEmployee({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-      role: formData.role,
-      profile_photo: formData.profilePhoto,
-      state: formData.state,
-      district: formData.district,
-      village: formData.village,
-      account_holder_name: formData.accountHolderName,
-      account_number: formData.accountNumber,
-      bank_name: formData.bankName,
-      ifsc_code: formData.ifscCode,
-      is_active: formData.isActive
-    });
+    setIsLoading(true);
+    try {
+      const result = await addEmployee({
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        password: employeeData.password,
+        role: employeeData.role,
+        profile_photo: employeeData.profilePhoto,
+        state: employeeData.state,
+        district: employeeData.district,
+        village: employeeData.village,
+        account_holder_name: employeeData.accountHolderName,
+        account_number: employeeData.accountNumber,
+        bank_name: employeeData.bankName,
+        ifsc_code: employeeData.ifscCode,
+        is_active: true,
+        branch_id: employeeData.branchId
+      });
 
-    if (result?.success) {
-      setIsAddDialogOpen(false);
-      resetForm();
+      if (result?.success) {
+        setIsAddDialogOpen(false);
+        toast({
+          title: "Employee added",
+          description: "Employee has been created successfully."
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleUpdateEmployee = async () => {
+  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
     if (!editingEmployee) return;
 
     if (!hasPermission('employees', 'edit')) {
@@ -142,57 +119,45 @@ const Employees = () => {
       return;
     }
 
-    const updateData: any = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      profile_photo: formData.profilePhoto,
-      state: formData.state,
-      district: formData.district,
-      village: formData.village,
-      account_holder_name: formData.accountHolderName,
-      account_number: formData.accountNumber,
-      bank_name: formData.bankName,
-      ifsc_code: formData.ifscCode,
-      is_active: formData.isActive
-    };
+    setIsLoading(true);
+    try {
+      const updateData: any = {
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        role: employeeData.role,
+        profile_photo: employeeData.profilePhoto,
+        state: employeeData.state,
+        district: employeeData.district,
+        village: employeeData.village,
+        account_holder_name: employeeData.accountHolderName,
+        account_number: employeeData.accountNumber,
+        bank_name: employeeData.bankName,
+        ifsc_code: employeeData.ifscCode,
+        is_active: true,
+        branch_id: employeeData.branchId
+      };
 
-    if (formData.password) {
-      updateData.password = formData.password;
+      if (employeeData.password) {
+        updateData.password = employeeData.password;
+      }
+
+      const result = await updateEmployee(editingEmployee.id, updateData);
+      if (result?.success) {
+        setEditingEmployee(null);
+        toast({
+          title: "Employee updated",
+          description: "Employee has been updated successfully."
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    const result = await updateEmployee(editingEmployee.id, updateData);
-    if (result?.success) {
-      setEditingEmployee(null);
-      resetForm();
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      password: '',
-      role: '',
-      state: '',
-      district: '',
-      village: '',
-      profilePhoto: '',
-      accountHolderName: '',
-      accountNumber: '',
-      bankName: '',
-      ifscCode: '',
-      isActive: true,
-      branchId: ''
-    });
   };
 
   const handleCancel = () => {
     setIsAddDialogOpen(false);
     setEditingEmployee(null);
-    resetForm();
   };
 
   const getActiveEmployees = () => employees.filter(emp => emp.is_active !== false).length;
@@ -299,12 +264,9 @@ const Employees = () => {
         <AddEmployeeDialog 
           isOpen={isAddDialogOpen}
           setIsOpen={setIsAddDialogOpen}
-          formData={formData}
-          onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
-          showPassword={showPassword}
-          togglePasswordVisibility={() => setShowPassword(!showPassword)}
           onAddEmployee={handleAddEmployee}
           onCancel={handleCancel}
+          isLoading={isLoading}
         />
       )}
 
@@ -312,12 +274,10 @@ const Employees = () => {
         <EditEmployeeDialog 
           isOpen={!!editingEmployee}
           setIsOpen={(open) => !open && setEditingEmployee(null)}
-          formData={formData}
-          onChange={(data) => setFormData(prev => ({ ...prev, ...data }))}
-          showPassword={showPassword}
-          togglePasswordVisibility={() => setShowPassword(!showPassword)}
+          employee={editingEmployee}
           onUpdateEmployee={handleUpdateEmployee}
           onCancel={handleCancel}
+          isLoading={isLoading}
         />
       )}
     </div>
