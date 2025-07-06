@@ -41,7 +41,14 @@ export const useCoupons = () => {
         return;
       }
 
-      setCoupons(data || []);
+      // Type cast the data to ensure proper typing
+      const typedCoupons = (data || []).map(coupon => ({
+        ...coupon,
+        discount_type: coupon.discount_type as 'percentage' | 'fixed',
+        target_type: coupon.target_type as 'all' | 'customer' | 'employee'
+      }));
+
+      setCoupons(typedCoupons);
     } catch (error) {
       console.error('Error in fetchCoupons:', error);
       toast({
@@ -202,6 +209,73 @@ export const useCoupons = () => {
     }
   };
 
+  const verifyMobileNumber = async (mobile: string, userType: 'customer' | 'employee') => {
+    try {
+      const tableName = userType === 'customer' ? 'customers' : 'employees';
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('id, name, mobile, phone')
+        .or(`mobile.eq.${mobile},phone.eq.${mobile}`)
+        .single();
+
+      if (error || !data) {
+        return { 
+          success: false, 
+          error: `${userType === 'customer' ? 'Customer' : 'Employee'} not found with this mobile number` 
+        };
+      }
+
+      return { 
+        success: true, 
+        user: { 
+          id: data.id, 
+          name: data.name, 
+          mobile: data.mobile || data.phone 
+        } 
+      };
+    } catch (error) {
+      console.error('Error verifying mobile number:', error);
+      return { success: false, error: 'Failed to verify mobile number' };
+    }
+  };
+
+  const validateCouponForUser = async (code: string, userId: string, userType: 'customer' | 'employee') => {
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code)
+        .eq('is_active', true)
+        .gte('expiry_date', new Date().toISOString())
+        .single();
+
+      if (error || !data) {
+        return { success: false, error: 'Coupon not found or expired' };
+      }
+
+      // Check target restrictions
+      if (data.target_type === userType && data.target_user_id && data.target_user_id !== userId) {
+        return { success: false, error: 'This coupon is not valid for your account' };
+      }
+
+      if (data.target_type !== 'all' && data.target_type !== userType) {
+        return { success: false, error: 'This coupon is not valid for your user type' };
+      }
+
+      return { 
+        success: true, 
+        coupon: {
+          ...data,
+          discount_type: data.discount_type as 'percentage' | 'fixed',
+          target_type: data.target_type as 'all' | 'customer' | 'employee'
+        }
+      };
+    } catch (error) {
+      console.error('Error validating coupon for user:', error);
+      return { success: false, error: 'Failed to validate coupon' };
+    }
+  };
+
   useEffect(() => {
     fetchCoupons();
   }, []);
@@ -213,6 +287,8 @@ export const useCoupons = () => {
     addCoupon,
     updateCoupon,
     deleteCoupon,
-    validateCoupon
+    validateCoupon,
+    verifyMobileNumber,
+    validateCouponForUser
   };
 };

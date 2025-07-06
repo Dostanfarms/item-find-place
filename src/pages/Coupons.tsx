@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,25 +9,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent, CheckCircle } from 'lucide-react';
-import { useCoupons } from '@/hooks/useCoupons';
+import { useCoupons, Coupon } from '@/hooks/useCoupons';
 
 const Coupons = () => {
   const { toast } = useToast();
   const { coupons, loading, addCoupon, updateCoupon, deleteCoupon, verifyMobileNumber } = useCoupons();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [verifiedUser, setVerifiedUser] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   
   const [formData, setFormData] = useState({
     code: '',
-    discount_type: 'percentage',
+    discount_type: 'percentage' as 'percentage' | 'fixed',
     discount_value: '',
     expiry_date: '',
     is_active: true,
     max_discount_limit: '',
-    target_type: 'all',
+    target_type: 'all' as 'all' | 'customer' | 'employee',
     target_user_id: ''
   });
 
@@ -46,7 +47,7 @@ const Coupons = () => {
     }
 
     setIsVerifying(true);
-    const result = await verifyMobileNumber(formData.target_user_id, formData.target_type);
+    const result = await verifyMobileNumber(formData.target_user_id, formData.target_type as 'customer' | 'employee');
     
     if (result.success) {
       setVerifiedUser(result.user);
@@ -104,7 +105,7 @@ const Coupons = () => {
     }
   };
 
-  const handleEdit = (coupon: any) => {
+  const handleEdit = (coupon: Coupon) => {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
@@ -148,7 +149,7 @@ const Coupons = () => {
     }
   };
 
-  const handleTargetTypeChange = (value: string) => {
+  const handleTargetTypeChange = (value: 'all' | 'customer' | 'employee') => {
     setFormData(prev => ({ ...prev, target_type: value, target_user_id: '' }));
     setVerifiedUser(null);
   };
@@ -208,7 +209,7 @@ const Coupons = () => {
                       id="discount_type"
                       className="w-full p-2 border rounded-md"
                       value={formData.discount_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value as 'percentage' | 'fixed' }))}
                     >
                       <option value="percentage">Percentage</option>
                       <option value="fixed">Fixed Amount</option>
