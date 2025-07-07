@@ -49,7 +49,7 @@ export const useCoupons = () => {
       );
 
       console.log('Filtered coupons after branch restriction:', filteredCoupons.length, 'items');
-      setCoupons(filteredCoupons);
+      setCoupons(filteredCoupons as Coupon[]);
     } catch (error) {
       console.error('Error in fetchCoupons:', error);
     } finally {
@@ -140,6 +140,43 @@ export const useCoupons = () => {
     }
   };
 
+  const validateCouponForUser = async (couponCode: string, userMobile: string, userType: 'customer' | 'employee') => {
+    try {
+      console.log('Validating coupon:', couponCode, 'for user:', userMobile, 'type:', userType);
+      
+      const { data: coupon, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        console.error('Error fetching coupon:', error);
+        return { success: false, error: 'Coupon not found' };
+      }
+
+      // Check if coupon is expired
+      if (new Date(coupon.expiry_date) <= new Date()) {
+        return { success: false, error: 'Coupon has expired' };
+      }
+
+      // Check if coupon is for all users or specific user
+      if (coupon.target_type === 'all') {
+        return { success: true, coupon };
+      }
+
+      if (coupon.target_type === userType && coupon.target_user_id === userMobile) {
+        return { success: true, coupon };
+      }
+
+      return { success: false, error: 'Coupon is not valid for this user' };
+    } catch (error) {
+      console.error('Error in validateCouponForUser:', error);
+      return { success: false, error: 'Failed to validate coupon' };
+    }
+  };
+
   useEffect(() => {
     fetchCoupons();
   }, [currentUser?.branch_id]);
@@ -150,6 +187,7 @@ export const useCoupons = () => {
     fetchCoupons,
     addCoupon,
     updateCoupon,
-    deleteCoupon
+    deleteCoupon,
+    validateCouponForUser
   };
 };

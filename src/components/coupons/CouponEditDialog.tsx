@@ -31,11 +31,11 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({
   
   const [formData, setFormData] = useState({
     code: '',
-    discount_type: 'percentage',
+    discount_type: 'percentage' as 'percentage' | 'fixed',
     discount_value: '',
     max_discount_limit: '',
     expiry_date: new Date(),
-    target_type: 'all',
+    target_type: 'all' as 'all' | 'customer' | 'employee',
     target_user_id: '',
     is_active: true
   });
@@ -132,7 +132,7 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({
               <Label htmlFor="discount_type">Discount Type *</Label>
               <Select
                 value={formData.discount_type}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, discount_type: value }))}
+                onValueChange={(value: 'percentage' | 'fixed') => setFormData(prev => ({ ...prev, discount_type: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -199,7 +199,7 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({
             <Label htmlFor="target_type">Target Type</Label>
             <Select
               value={formData.target_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, target_type: value }))}
+              onValueChange={(value: 'all' | 'customer' | 'employee') => setFormData(prev => ({ ...prev, target_type: value }))}
             >
               <SelectTrigger>
                 <SelectValue />
