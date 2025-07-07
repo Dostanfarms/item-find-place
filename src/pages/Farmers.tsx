@@ -13,6 +13,7 @@ import ProtectedAction from '@/components/ProtectedAction';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+
 const Farmers = () => {
   const navigate = useNavigate();
   const {
@@ -42,6 +43,7 @@ const Farmers = () => {
   const getProductCount = (farmerId: string) => {
     return allProducts.filter(product => product.farmer_id === farmerId).length;
   };
+
   const exportToCSV = () => {
     if (!hasPermission('farmers', 'view')) {
       toast({
@@ -97,6 +99,7 @@ const Farmers = () => {
       setIsExporting(false);
     }
   };
+
   const handleAddFarmer = async (farmerData: Farmer) => {
     let result;
     if (selectedFarmer) {
@@ -127,6 +130,7 @@ const Farmers = () => {
       setSelectedFarmer(undefined);
     }
   };
+
   const handleEditFarmer = (farmer: Farmer) => {
     if (!hasPermission('farmers', 'edit')) {
       toast({
@@ -139,6 +143,7 @@ const Farmers = () => {
     setSelectedFarmer(farmer);
     setIsDialogOpen(true);
   };
+
   const handleViewFarmer = (farmer: Farmer) => {
     if (!hasPermission('farmers', 'view')) {
       toast({
@@ -148,8 +153,10 @@ const Farmers = () => {
       });
       return;
     }
-    navigate(`/farmer/${farmer.id}`);
+    // Navigate to farmer details page with correct route
+    navigate(`/farmer-products/${farmer.id}`);
   };
+
   const handleCreateFarmer = () => {
     if (!hasPermission('farmers', 'create')) {
       toast({
@@ -171,11 +178,13 @@ const Farmers = () => {
         </div>
       </div>;
   }
+
   if (loading) {
     return <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground text-lg">Loading farmers...</div>
       </div>;
   }
+
   return <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Fixed Header */}
       <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
@@ -300,4 +309,5 @@ const Farmers = () => {
       </div>
     </div>;
 };
+
 export default Farmers;
