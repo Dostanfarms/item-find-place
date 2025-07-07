@@ -5,11 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fetchAllOrders } from "@/api/orders";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Package, View as ViewIcon, Search as SearchIcon, Calendar as CalendarIcon, Phone as PhoneIcon } from "lucide-react";
+import { Package, MoreHorizontal, Eye, Building, Calendar as CalendarIcon, Phone as PhoneIcon } from "lucide-react";
 import OrderDetailsDialog from "@/components/OrderDetailsDialog";
+import BranchAssignmentDialog from "@/components/BranchAssignmentDialog";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,6 +26,7 @@ interface Order {
   created_at: string;
   payment_method: string;
   total: number;
+  branch_id?: string | null;
 }
 
 interface Customer {
@@ -44,7 +47,7 @@ const getStatusColor = (status: string) => {
 };
 
 const OrdersManagement: React.FC = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentUser } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,11 @@ const OrdersManagement: React.FC = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [orderDate, setOrderDate] = useState<Date | undefined>();
   const [mobileSearch, setMobileSearch] = useState("");
+  const [assignmentDialog, setAssignmentDialog] = useState<{
+    open: boolean;
+    orderId: string;
+    currentBranchId?: string | null;
+  }>({ open: false, orderId: '' });
 
   // Fetch all orders and related customers
   useEffect(() => {
@@ -125,6 +133,21 @@ const OrdersManagement: React.FC = () => {
   const handleUpdateStatusInDialog = async (newStatus: string) => {
     if (!selectedOrder) return;
     await handleStatusChange(selectedOrder.id, newStatus);
+  };
+
+  const handleAssignToBranch = (orderId: string, currentBranchId?: string | null) => {
+    setAssignmentDialog({
+      open: true,
+      orderId,
+      currentBranchId
+    });
+  };
+
+  const handleAssignmentSuccess = async () => {
+    // Refresh orders list
+    const { orders: fetchedOrders } = await fetchAllOrders();
+    setOrders(fetchedOrders || []);
+    setAssignmentDialog({ open: false, orderId: '' });
   };
 
   // Get mobile number for customer_id
@@ -243,7 +266,7 @@ const OrdersManagement: React.FC = () => {
                   <TableHead>Payment</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Mobile</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -267,19 +290,30 @@ const OrdersManagement: React.FC = () => {
                       <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
                       <TableCell>{getCustomerMobile(order.customer_id)}</TableCell>
                       <TableCell>
-                        <ProtectedAction resource="orders" action="view">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            aria-label="View Order Details"
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setDetailsOpen(true);
-                            }}
-                          >
-                            <ViewIcon className="h-4 w-4" />
-                          </Button>
-                        </ProtectedAction>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <ProtectedAction resource="orders" action="view">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order);
+                                setDetailsOpen(true);
+                              }}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                            </ProtectedAction>
+                            {hasPermission('orders', 'edit') && (
+                              <DropdownMenuItem onClick={() => handleAssignToBranch(order.id, order.branch_id)}>
+                                <Building className="h-4 w-4 mr-2" />
+                                Assign to Branch
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -289,12 +323,23 @@ const OrdersManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      
       <OrderDetailsDialog
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         order={selectedOrder}
         onUpdateStatus={handleUpdateStatusInDialog}
         statusOptions={STATUS_OPTIONS}
+      />
+
+      {/* Branch Assignment Dialog */}
+      <BranchAssignmentDialog
+        open={assignmentDialog.open}
+        onClose={() => setAssignmentDialog({ open: false, orderId: '' })}
+        itemId={assignmentDialog.orderId}
+        itemType="order"
+        currentBranchId={assignmentDialog.currentBranchId}
+        onSuccess={handleAssignmentSuccess}
       />
     </div>
   );

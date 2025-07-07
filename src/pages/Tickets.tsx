@@ -28,7 +28,7 @@ const TicketsPage: React.FC = () => {
   // Filter tickets based on selected branch for admin users
   const filteredTickets = React.useMemo(() => {
     if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
-      return tickets.filter(ticket => ticket.branch_id === selectedBranch);
+      return tickets.filter(ticket => (ticket as any).branch_id === selectedBranch);
     }
     return tickets;
   }, [tickets, selectedBranch, currentUser]);
