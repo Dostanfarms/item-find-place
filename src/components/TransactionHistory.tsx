@@ -1,205 +1,229 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Transaction, DailyEarning, MonthlyEarning } from '@/utils/types';
-import { format } from 'date-fns';
-import { FarmerProduct } from '@/hooks/useFarmerProducts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Search, MoreHorizontal, Receipt, Eye, Building2, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import TransactionDetailsDialog from './TransactionDetailsDialog';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useBranchName } from '@/hooks/useBranchName';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+
+interface Transaction {
+  id: string;
+  customer_name: string;
+  customer_mobile: string;
+  items: any[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  payment_method: string;
+  status: string;
+  coupon_used?: string;
+  branch_id?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface TransactionHistoryProps {
-  transactions: Transaction[];
-  dailyEarnings: (DailyEarning & { settledAmount?: number; unsettledAmount?: number })[];
-  monthlyEarnings: (MonthlyEarning & { settledAmount?: number; unsettledAmount?: number })[];
-  products?: FarmerProduct[];
+  transactions?: Transaction[];
+  dailyEarnings?: any[];
+  monthlyEarnings?: any[];
+  products?: any[];
 }
 
-interface MonthlyProductSummary {
-  name: string;
-  category: string;
-  unit: string;
-  payment_status: string;
-  quantity: number;
-  totalAmount: number;
-  count: number;
-}
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'completed': return 'bg-green-100 text-green-800';
+    case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'cancelled': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ 
-  transactions, 
-  dailyEarnings, 
-  monthlyEarnings,
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({
+  transactions: propTransactions = [],
+  dailyEarnings = [],
+  monthlyEarnings = [],
   products = []
 }) => {
-  const [tab, setTab] = useState('daily');
+  const { transactions: hookTransactions, loading } = useTransactions();
+  const { getBranchName } = useBranchName();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, 'MMM dd, yyyy');
-  };
-  
-  // Format month for display
-  const formatMonth = (monthYear: string) => {
-    const [year, month] = monthYear.split('-');
-    return `${new Date(0, parseInt(month) - 1).toLocaleString('default', { month: 'long' })} ${year}`;
-  };
+  // Use prop transactions if provided, otherwise use hook transactions
+  const transactions = propTransactions.length > 0 ? propTransactions : hookTransactions;
 
-  // Group products by date for daily view
-  const getDailyProductDetails = () => {
-    const dailyGroups = new Map();
-    
-    products.forEach(product => {
-      const productDate = format(new Date(product.created_at), 'yyyy-MM-dd');
-      if (!dailyGroups.has(productDate)) {
-        dailyGroups.set(productDate, []);
-      }
-      dailyGroups.get(productDate).push(product);
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter(transaction => {
+      const matchesSearch = transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           transaction.customer_mobile.includes(searchTerm) ||
+                           transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
+      const matchesDate = !dateFilter || 
+                         format(new Date(transaction.created_at), 'yyyy-MM-dd') === format(dateFilter, 'yyyy-MM-dd');
+      
+      return matchesSearch && matchesStatus && matchesDate;
     });
-    
-    return Array.from(dailyGroups.entries())
-      .map(([date, products]) => ({ date, products }))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, searchTerm, statusFilter, dateFilter]);
+
+  const handleViewTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDetailsOpen(true);
   };
 
-  // Group and merge products by month for monthly view
-  const getMonthlyProductSummary = () => {
-    const monthlyGroups = new Map<string, Map<string, MonthlyProductSummary>>();
-    
-    products.forEach(product => {
-      const monthKey = format(new Date(product.created_at), 'yyyy-MM');
-      if (!monthlyGroups.has(monthKey)) {
-        monthlyGroups.set(monthKey, new Map());
-      }
-      
-      const monthData = monthlyGroups.get(monthKey)!;
-      const productKey = `${product.name}_${product.payment_status}`;
-      
-      if (!monthData.has(productKey)) {
-        monthData.set(productKey, {
-          name: product.name,
-          category: product.category,
-          unit: product.unit,
-          payment_status: product.payment_status,
-          quantity: 0,
-          totalAmount: 0,
-          count: 0
-        });
-      }
-      
-      const existing = monthData.get(productKey)!;
-      existing.quantity += product.quantity;
-      existing.totalAmount += (product.quantity * product.price_per_unit);
-      existing.count += 1;
-    });
-    
-    return Array.from(monthlyGroups.entries())
-      .map(([month, productMap]) => ({
-        month,
-        products: Array.from(productMap.values())
-      }))
-      .sort((a, b) => b.month.localeCompare(a.month));
-  };
-
-  const dailyProductDetails = getDailyProductDetails();
-  const monthlyProductSummary = getMonthlyProductSummary();
-  
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Earnings History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="daily" className="w-full" onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="daily">Daily</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="daily" className="pt-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Daily Product Details</h4>
-              <div className="border rounded-md max-h-96 overflow-y-auto">
-                {dailyProductDetails.length > 0 ? (
-                  dailyProductDetails.map((dayData, index) => (
-                    <div key={index} className="border-b last:border-b-0">
-                      <div className="bg-muted p-3 font-medium">
-                        {formatDate(dayData.date)}
-                      </div>
-                      <div className="p-2">
-                        {dayData.products.map((product: FarmerProduct, productIndex) => (
-                          <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                            <div className="flex-1">
-                              <div className="font-medium">{product.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {product.quantity} {product.unit} × ₹{product.price_per_unit}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">
-                                ₹{(product.quantity * product.price_per_unit).toFixed(2)}
-                              </div>
-                              <Badge 
-                                variant={product.payment_status === 'settled' ? 'default' : 'destructive'}
-                                className="text-xs"
-                              >
-                                {product.payment_status}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-4">No daily product data available</div>
-                )}
-              </div>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-6 w-6 text-blue-600" />
+              <CardTitle className="text-2xl font-bold">Transaction History</CardTitle>
             </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="monthly" className="pt-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Monthly Product Summary</h4>
-              <div className="border rounded-md max-h-96 overflow-y-auto">
-                {monthlyProductSummary.length > 0 ? (
-                  monthlyProductSummary.map((monthData, index) => (
-                    <div key={index} className="border-b last:border-b-0">
-                      <div className="bg-muted p-3 font-medium">
-                        {formatMonth(monthData.month)}
-                      </div>
-                      <div className="p-2">
-                        {monthData.products.map((product: MonthlyProductSummary, productIndex) => (
-                          <div key={productIndex} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                            <div className="flex-1">
-                              <div className="font-medium">{product.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                Total: {product.quantity} {product.unit} | Transactions: {product.count}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">
-                                ₹{product.totalAmount.toFixed(2)}
-                              </div>
-                              <Badge 
-                                variant={product.payment_status === 'settled' ? 'default' : 'destructive'}
-                                className="text-xs"
-                              >
-                                {product.payment_status}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-4">No monthly product data available</div>
-                )}
-              </div>
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search by customer name, mobile, or transaction ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-40 justify-start text-left">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {dateFilter ? format(dateFilter, "PPP") : "Pick date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dateFilter}
+                  onSelect={setDateFilter}
+                  initialFocus
+                />
+                {dateFilter && (
+                  <div className="p-3 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setDateFilter(undefined)}
+                      className="w-full"
+                    >
+                      Clear filter
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">Loading transactions...</div>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">No transactions found</div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="font-mono text-sm">
+                        #{transaction.id.slice(-8)}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {transaction.customer_name}
+                      </TableCell>
+                      <TableCell>{transaction.customer_mobile}</TableCell>
+                      <TableCell>{getBranchName(transaction.branch_id)}</TableCell>
+                      <TableCell className="font-medium">
+                        ₹{Number(transaction.total).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(transaction.status)}>
+                          {transaction.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm')}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewTransaction(transaction)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <TransactionDetailsDialog
+        transaction={selectedTransaction}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+      />
+    </>
   );
 };
 

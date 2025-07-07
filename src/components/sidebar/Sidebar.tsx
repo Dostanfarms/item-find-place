@@ -10,8 +10,6 @@ import {
   Users, 
   Sprout,
   Receipt,
-  Settings,
-  LogOut,
   Ticket,
   Tag,
   Images,
@@ -20,12 +18,11 @@ import {
   Shield
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import UserSection from './UserSection';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 const Sidebar = () => {
   const location = useLocation();
-  const { logout, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -223,20 +220,6 @@ const Sidebar = () => {
             </>
           )}
         </nav>
-      </div>
-
-      <div className="border-t">
-        <UserSection />
-        <div className="p-4">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={logout}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
-        </div>
       </div>
     </div>
   );

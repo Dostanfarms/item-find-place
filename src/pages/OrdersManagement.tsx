@@ -19,6 +19,8 @@ import { format } from "date-fns";
 import ProtectedAction from "@/components/ProtectedAction";
 import BranchFilter from "@/components/BranchFilter";
 import { useAuth } from "@/context/AuthContext";
+import { useBranchName } from "@/hooks/useBranchName";
+import AdminHeader from "@/components/AdminHeader";
 
 interface Order {
   id: string;
@@ -49,6 +51,7 @@ const getStatusColor = (status: string) => {
 
 const OrdersManagement: React.FC = () => {
   const { hasPermission, currentUser, selectedBranch } = useAuth();
+  const { getBranchName } = useBranchName();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,174 +186,175 @@ const OrdersManagement: React.FC = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-6 w-6 text-agri-primary" />
-              <CardTitle className="text-2xl font-bold">Order Management</CardTitle>
-            </div>
-            <div className="flex flex-col lg:flex-row items-center gap-2 w-full lg:w-auto">
-              <BranchFilter />
-              {/* Status Filter */}
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue>
-                    {statusFilter === "all" ? "All Statuses" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {STATUS_OPTIONS.map(status => (
-                    <SelectItem value={status} key={status}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {/* Order Date Filter */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-40 justify-start text-left"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {orderDate ? format(orderDate, "PPP") : <span>Pick Order Date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={orderDate}
-                    onSelect={setOrderDate}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
+    <div className="flex flex-col min-h-screen">
+      <AdminHeader />
+      <div className="flex-1 p-6">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-6 w-6 text-agri-primary" />
+                <CardTitle className="text-2xl font-bold">Order Management</CardTitle>
+              </div>
+              <div className="flex flex-col lg:flex-row items-center gap-2 w-full lg:w-auto">
+                <BranchFilter />
+                {/* Status Filter */}
+                <Select
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue>
+                      {statusFilter === "all" ? "All Statuses" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {STATUS_OPTIONS.map(status => (
+                      <SelectItem value={status} key={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Order Date Filter */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-40 justify-start text-left"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {orderDate ? format(orderDate, "PPP") : <span>Pick Order Date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={orderDate}
+                      onSelect={setOrderDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                    {orderDate && (
+                      <div className="text-right mt-2">
+                        <Button size="sm" variant="ghost" onClick={() => setOrderDate(undefined)}>Clear</Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                {/* Mobile Search */}
+                <div className="flex items-center gap-1 border rounded px-2 py-1 bg-white">
+                  <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search Mobile"
+                    className="w-32 border-0 focus-visible:ring-0 text-base"
+                    value={mobileSearch}
+                    onChange={(e) => setMobileSearch(e.target.value)}
+                    autoComplete="off"
                   />
-                  {orderDate && (
-                    <div className="text-right mt-2">
-                      <Button size="sm" variant="ghost" onClick={() => setOrderDate(undefined)}>Clear</Button>
-                    </div>
+                  {mobileSearch && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-1 ml-2"
+                      title="Clear"
+                      onClick={() => setMobileSearch("")}
+                    >
+                      <span className="text-xs">✕</span>
+                    </Button>
                   )}
-                </PopoverContent>
-              </Popover>
-              {/* Mobile Search */}
-              <div className="flex items-center gap-1 border rounded px-2 py-1 bg-white">
-                <PhoneIcon className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search Mobile"
-                  className="w-32 border-0 focus-visible:ring-0 text-base"
-                  value={mobileSearch}
-                  onChange={(e) => setMobileSearch(e.target.value)}
-                  autoComplete="off"
-                />
-                {mobileSearch && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-1 ml-2"
-                    title="Clear"
-                    onClick={() => setMobileSearch("")}
-                  >
-                    <span className="text-xs">✕</span>
-                  </Button>
-                )}
+                </div>
               </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center p-8 text-muted-foreground">Loading orders...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Mobile</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.length === 0 ? (
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center p-8 text-muted-foreground">Loading orders...</div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      No orders found.
-                    </TableCell>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono">#{order.id.slice(-8)}</TableCell>
-                      <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{order.payment_method === "upi" || order.payment_method === "card" ? "Online" : "Cash"}</Badge>
-                      </TableCell>
-                      <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
-                      <TableCell>{getCustomerMobile(order.customer_id)}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <ProtectedAction resource="orders" action="view">
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedOrder(order);
-                                setDetailsOpen(true);
-                              }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                            </ProtectedAction>
-                            {hasPermission('orders', 'edit') && (
-                              <DropdownMenuItem onClick={() => handleAssignToBranch(order.id, order.branch_id)}>
-                                <Building className="h-4 w-4 mr-2" />
-                                Assign to Branch
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        No orders found.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      
-      <OrderDetailsDialog
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        order={selectedOrder}
-        onUpdateStatus={handleUpdateStatusInDialog}
-        statusOptions={STATUS_OPTIONS}
-      />
+                  ) : (
+                    filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono">#{order.id.slice(-8)}</TableCell>
+                        <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                        </TableCell>
+                        <TableCell>{getBranchName(order.branch_id)}</TableCell>
+                        <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
+                        <TableCell>{getCustomerMobile(order.customer_id)}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <ProtectedAction resource="orders" action="view">
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedOrder(order);
+                                  setDetailsOpen(true);
+                                }}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                              </ProtectedAction>
+                              {hasPermission('orders', 'edit') && (
+                                <DropdownMenuItem onClick={() => handleAssignToBranch(order.id, order.branch_id)}>
+                                  <Building className="h-4 w-4 mr-2" />
+                                  Assign to Branch
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        
+        <OrderDetailsDialog
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          order={selectedOrder}
+          onUpdateStatus={handleUpdateStatusInDialog}
+          statusOptions={STATUS_OPTIONS}
+        />
 
-      {/* Branch Assignment Dialog */}
-      <BranchAssignmentDialog
-        open={assignmentDialog.open}
-        onClose={() => setAssignmentDialog({ open: false, orderId: '' })}
-        itemId={assignmentDialog.orderId}
-        itemType="order"
-        currentBranchId={assignmentDialog.currentBranchId}
-        onSuccess={handleAssignmentSuccess}
-      />
+        {/* Branch Assignment Dialog */}
+        <BranchAssignmentDialog
+          open={assignmentDialog.open}
+          onClose={() => setAssignmentDialog({ open: false, orderId: '' })}
+          itemId={assignmentDialog.orderId}
+          itemType="order"
+          currentBranchId={assignmentDialog.currentBranchId}
+          onSuccess={handleAssignmentSuccess}
+        />
+      </div>
     </div>
   );
 };

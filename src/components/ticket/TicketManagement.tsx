@@ -1,287 +1,246 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Search, Ticket as TicketIcon, UserCheck, Building } from 'lucide-react';
-import { Ticket } from '@/utils/types';
-import EnhancedTicketDialog from './EnhancedTicketDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Search, MoreHorizontal, Eye, Building, MessageCircle, Ticket as TicketIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import EnhancedTicketDialog from './EnhancedTicketDialog';
+import CreateTicketDialog from './CreateTicketDialog';
+import { useBranchName } from '@/hooks/useBranchName';
+
+export interface Ticket {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_type: 'customer' | 'farmer' | 'employee';
+  user_contact: string;
+  message: string;
+  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
+  assigned_to?: string;
+  resolution?: string;
+  attachment_url?: string;
+  branch_id?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface TicketManagementProps {
   tickets: Ticket[];
   onUpdateTicket: (ticketId: string, updatedData: any) => void;
   onAssignToBranch?: (ticketId: string, currentBranchId?: string | null) => void;
-  loading?: boolean;
+  loading: boolean;
 }
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'in_progress': return 'bg-blue-100 text-blue-800';
+    case 'resolved': return 'bg-green-100 text-green-800';
+    case 'closed': return 'bg-gray-100 text-gray-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getUserTypeColor = (userType: string) => {
+  switch (userType) {
+    case 'customer': return 'bg-purple-100 text-purple-800';
+    case 'farmer': return 'bg-green-100 text-green-800';
+    case 'employee': return 'bg-blue-100 text-blue-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
 const TicketManagement: React.FC<TicketManagementProps> = ({
   tickets,
   onUpdateTicket,
   onAssignToBranch,
-  loading = false
+  loading
 }) => {
+  const { getBranchName } = useBranchName();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [userTypeFilter, setUserTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [showTicketDialog, setShowTicketDialog] = useState(false);
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  const filteredTickets = useMemo(() => {
+    return tickets.filter(ticket => {
+      const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           ticket.user_contact.includes(searchTerm) ||
+                           ticket.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+      const matchesUserType = userTypeFilter === 'all' || ticket.user_type === userTypeFilter;
+      
+      return matchesSearch && matchesStatus && matchesUserType;
+    });
+  }, [tickets, searchTerm, statusFilter, userTypeFilter]);
 
   const handleViewTicket = (ticket: Ticket) => {
     setSelectedTicket(ticket);
-    setShowTicketDialog(true);
+    setIsTicketDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setShowTicketDialog(false);
-    setSelectedTicket(null);
-  };
-
-  // Filter tickets based on search and filters
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.user_contact.includes(searchTerm);
-    
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesUserType = userTypeFilter === 'all' || ticket.user_type === userTypeFilter;
-    
-    return matchesSearch && matchesStatus && matchesUserType;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'in-review':
-        return 'bg-blue-100 text-blue-800';
-      case 'closed':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleUpdateTicket = (updatedData: any) => {
+    if (selectedTicket) {
+      onUpdateTicket(selectedTicket.id, updatedData);
+      setIsTicketDialogOpen(false);
     }
   };
 
-  const getUserTypeColor = (userType: string) => {
-    return userType === 'farmer' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
-  };
-
-  const getPriorityByStatus = (status: string) => {
-    switch (status) {
-      case 'pending': return 1;
-      case 'in-review': return 2;
-      case 'closed': return 3;
-      default: return 4;
+  const handleAssignToBranch = (ticket: Ticket) => {
+    if (onAssignToBranch) {
+      onAssignToBranch(ticket.id, ticket.branch_id);
     }
   };
-
-  // Sort tickets by priority (pending first, then in-review, then closed)
-  const sortedTickets = [...filteredTickets].sort((a, b) => {
-    const priorityA = getPriorityByStatus(a.status);
-    const priorityB = getPriorityByStatus(b.status);
-    
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-    
-    // If same priority, sort by creation date (newest first)
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading tickets...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <TicketIcon className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Support Tickets</h1>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tickets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tickets.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {tickets.filter(t => t.status === 'pending').length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              In Review
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {tickets.filter(t => t.status === 'in-review').length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Closed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {tickets.filter(t => t.status === 'closed').length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
+    <>
       <Card>
         <CardHeader>
-          <CardTitle>Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <TicketIcon className="h-6 w-6 text-blue-600" />
+              <CardTitle className="text-2xl font-bold">Support Tickets</CardTitle>
+            </div>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              Create New Ticket
+            </Button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search by user name, message, or contact..."
+                placeholder="Search tickets by name, contact, or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="pl-10"
               />
             </div>
+            
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-review">In Review</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
                 <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
+            
             <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="User Type" />
+                <SelectValue placeholder="Filter by user type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Users</SelectItem>
-                <SelectItem value="farmer">Farmers</SelectItem>
                 <SelectItem value="customer">Customers</SelectItem>
+                <SelectItem value="farmer">Farmers</SelectItem>
+                <SelectItem value="employee">Employees</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-mono">
-                      #{ticket.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{ticket.user_name}</span>
-                        <Badge className={getUserTypeColor(ticket.user_type)}>
+        </CardHeader>
+        
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">Loading tickets...</div>
+            </div>
+          ) : filteredTickets.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">No tickets found</div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket ID</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTickets.map((ticket) => (
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-mono text-sm">
+                        #{ticket.id.slice(-8)}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {ticket.user_name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getUserTypeColor(ticket.user_type)}>
                           {ticket.user_type}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>{ticket.user_contact}</TableCell>
-                    <TableCell>
-                      <div className="max-w-xs truncate" title={ticket.message}>
-                        {ticket.message}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(ticket.status)}>
-                        {ticket.status.replace('-', ' ').toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewTicket(ticket)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {onAssignToBranch && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onAssignToBranch(ticket.id, (ticket as any).branch_id)}
-                            title="Assign to Branch"
-                          >
-                            <Building className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {sortedTickets.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No tickets found matching your criteria.
+                      </TableCell>
+                      <TableCell>{ticket.user_contact}</TableCell>
+                      <TableCell>{getBranchName(ticket.branch_id)}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(ticket.status)}>
+                          {ticket.status.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewTicket(ticket)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            {onAssignToBranch && (
+                              <DropdownMenuItem onClick={() => handleAssignToBranch(ticket)}>
+                                <Building className="h-4 w-4 mr-2" />
+                                Assign to Branch
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Enhanced Ticket Dialog */}
       <EnhancedTicketDialog
         ticket={selectedTicket}
-        isOpen={showTicketDialog}
-        onClose={handleCloseDialog}
-        onUpdateTicket={onUpdateTicket}
+        open={isTicketDialogOpen}
+        onOpenChange={setIsTicketDialogOpen}
+        onUpdateTicket={handleUpdateTicket}
       />
-    </div>
+
+      <CreateTicketDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+    </>
   );
 };
 
