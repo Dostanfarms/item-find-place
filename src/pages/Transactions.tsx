@@ -6,18 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Receipt, Search, Calendar, Eye } from 'lucide-react';
+import { Receipt, Search, Eye, Download } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useEmployees } from '@/hooks/useEmployees';
+import { useBranchName } from '@/hooks/useBranchName';
 import { format } from 'date-fns';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
 import BranchFilter from '@/components/BranchFilter';
 import { useAuth } from '@/context/AuthContext';
+import { exportTransactionsToCSV } from '@/utils/csvExport';
 
 const Transactions = () => {
   const { transactions, loading, fetchTransactions } = useTransactions();
   const { employees } = useEmployees();
   const { currentUser, selectedBranch } = useAuth();
+  const { getBranchName } = useBranchName();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -41,25 +44,10 @@ const Transactions = () => {
     }
   };
 
-  const getPaymentMethodColor = (method: string) => {
-    switch (method.toLowerCase()) {
-      case 'cash':
-        return 'bg-blue-100 text-blue-800';
-      case 'card':
-        return 'bg-purple-100 text-purple-800';
-      case 'upi':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   // Get employee's branch ID based on transaction created_by field
   const getTransactionBranchId = (transaction: any) => {
-    // If transaction has direct branch_id, use it
     if (transaction.branch_id) return transaction.branch_id;
     
-    // If transaction has created_by, find the employee and get their branch
     if (transaction.created_by) {
       const employee = employees.find(emp => emp.email === transaction.created_by);
       return employee?.branch_id || employee?.branchId || null;
@@ -72,22 +60,18 @@ const Transactions = () => {
   const filteredTransactions = transactions.filter(transaction => {
     // Branch filter logic
     if (currentUser?.role?.toLowerCase() === 'admin') {
-      // Admin can filter by selected branch or see all if no branch selected
       if (selectedBranch) {
         const transactionBranchId = getTransactionBranchId(transaction);
         if (transactionBranchId !== selectedBranch) return false;
       }
     } else {
-      // Non-admin users can only see transactions from their assigned branch
       const transactionBranchId = getTransactionBranchId(transaction);
       const userBranchId = currentUser?.branch_id;
       
-      // If user has a branch assigned, only show transactions from that branch
       if (userBranchId && transactionBranchId !== userBranchId) {
         return false;
       }
       
-      // If user has no branch, only show transactions with no branch assignment
       if (!userBranchId && transactionBranchId !== null) {
         return false;
       }
@@ -117,8 +101,13 @@ const Transactions = () => {
     setShowDetailsDialog(true);
   };
 
-  const totalAmount = filteredTransactions.reduce((sum, transaction) => sum + transaction.total, 0);
-  const totalTransactions = filteredTransactions.length;
+  const handleExport = () => {
+    const exportData = filteredTransactions.map(transaction => ({
+      ...transaction,
+      branch_name: getBranchName(getTransactionBranchId(transaction))
+    }));
+    exportTransactionsToCSV(exportData);
+  };
 
   if (loading) {
     return (
@@ -135,48 +124,16 @@ const Transactions = () => {
         <h1 className="text-2xl font-bold">Transaction History</h1>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Transactions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTransactions}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Amount
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Average Transaction
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{totalTransactions > 0 ? (totalAmount / totalTransactions).toFixed(2) : '0.00'}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Transactions</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Transactions</CardTitle>
+            <Button onClick={handleExport} className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -221,11 +178,8 @@ const Transactions = () => {
                   <TableHead>Transaction ID</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Payment Method</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Branch</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Created By</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -245,27 +199,10 @@ const Transactions = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {Array.isArray(transaction.items) ? transaction.items.length : 0} items
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getPaymentMethodColor(transaction.payment_method)}>
-                        {transaction.payment_method.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(transaction.status)}>
-                        {transaction.status.toUpperCase()}
-                      </Badge>
+                      {getBranchName(getTransactionBranchId(transaction))}
                     </TableCell>
                     <TableCell className="font-medium">
                       ₹{transaction.total.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground">
-                        {transaction.created_by || 'System'}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <Button

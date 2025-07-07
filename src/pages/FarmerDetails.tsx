@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Edit, DollarSign, Package, Calendar, MapPin, Phone, Mail, User, Building2 } from 'lucide-react';
+import { ArrowLeft, DollarSign, Package, Calendar, MapPin, Phone, Mail, User, Building2, Plus } from 'lucide-react';
 import { useFarmers } from '@/hooks/useFarmers';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import FarmerProductsTable from '@/components/FarmerProductsTable';
 import TransactionHistory from '@/components/TransactionHistory';
-import EditProfileDialog from '@/components/farmer/EditProfileDialog';
 import FarmerSettlements from '@/components/farmer/FarmerSettlements';
 import { format } from 'date-fns';
 import { Farmer } from '@/utils/types';
@@ -20,7 +19,6 @@ const FarmerDetails = () => {
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
   const { farmerProducts, loading: productsLoading } = useFarmerProducts(id || '');
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentFarmer, setCurrentFarmer] = useState<Farmer | null>(null);
 
   const farmer = farmers.find(f => f.id === id);
@@ -33,14 +31,19 @@ const FarmerDetails = () => {
 
   useEffect(() => {
     if (!loading && !farmer && id) {
-      // Farmer not found, redirect back to farmers list
       console.error('Farmer not found with ID:', id);
       navigate('/farmers');
     }
   }, [farmer, loading, id, navigate]);
 
-  const handleProfileUpdate = (updatedFarmer: Farmer) => {
-    setCurrentFarmer(updatedFarmer);
+  const handleAddProducts = () => {
+    // TODO: Implement add products functionality
+    console.log('Add products clicked for farmer:', id);
+  };
+
+  const handleSettlePayment = () => {
+    // TODO: Implement settle payment functionality
+    console.log('Settle payment clicked for farmer:', id);
   };
 
   if (loading) {
@@ -76,6 +79,28 @@ const FarmerDetails = () => {
     .filter(product => product.payment_status === 'unsettled')
     .reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
 
+  // Filter transactions to show only farmer products (not sales transactions)
+  const farmerTransactions = farmerProducts.map(product => ({
+    id: product.id,
+    customer_name: currentFarmer.name,
+    customer_mobile: currentFarmer.phone,
+    items: [{
+      id: product.id,
+      name: product.name,
+      price: product.price_per_unit,
+      quantity: product.quantity
+    }],
+    subtotal: product.quantity * product.price_per_unit,
+    discount: 0,
+    total: product.quantity * product.price_per_unit,
+    payment_method: 'farmer_product',
+    status: product.payment_status === 'settled' ? 'completed' : 'pending',
+    created_at: product.created_at,
+    updated_at: product.updated_at,
+    created_by: 'farmer',
+    branch_id: null
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,10 +119,16 @@ const FarmerDetails = () => {
             <p className="text-muted-foreground">Farmer Profile & Activity</p>
           </div>
         </div>
-        <Button onClick={() => setShowEditDialog(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Profile
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleAddProducts} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Products
+          </Button>
+          <Button onClick={handleSettlePayment} variant="outline">
+            <DollarSign className="h-4 w-4 mr-2" />
+            Settle Payment
+          </Button>
+        </div>
       </div>
 
       {/* Profile Summary Cards */}
@@ -253,7 +284,7 @@ const FarmerDetails = () => {
         
         <TabsContent value="transactions">
           <TransactionHistory 
-            transactions={[]}
+            transactions={farmerTransactions}
             dailyEarnings={[]}
             monthlyEarnings={[]}
             products={farmerProducts}
@@ -264,14 +295,6 @@ const FarmerDetails = () => {
           <FarmerSettlements products={farmerProducts} loading={productsLoading} />
         </TabsContent>
       </Tabs>
-
-      {/* Edit Profile Dialog */}
-      <EditProfileDialog
-        open={showEditDialog}
-        onOpenChange={() => setShowEditDialog(false)}
-        farmer={currentFarmer}
-        onProfileUpdate={handleProfileUpdate}
-      />
     </div>
   );
 };

@@ -11,7 +11,6 @@ import { Package } from 'lucide-react';
 import TopLevelMenu from './TopLevelMenu';
 import ManageMenu from './ManageMenu';
 import MastersMenu from './MastersMenu';
-import UserSection from './UserSection';
 
 const SidebarComponent = () => {
   const { open } = useSidebar();
@@ -23,7 +22,7 @@ const SidebarComponent = () => {
           <SidebarTrigger className="-ml-1" />
           <Package className="h-6 w-6 text-primary" />
           {open && (
-            <h2 className="text-lg font-semibold">AgriPay</h2>
+            <h2 className="text-lg font-semibold">Dostan Mart</h2>
           )}
         </div>
       </SidebarHeader>
@@ -34,7 +33,6 @@ const SidebarComponent = () => {
           <ManageMenu />
           <MastersMenu />
         </div>
-        <UserSection />
       </SidebarContent>
     </Sidebar>
   );
