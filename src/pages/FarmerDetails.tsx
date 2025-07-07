@@ -18,7 +18,7 @@ const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
-  const { products, dailyEarnings, monthlyEarnings } = useFarmerProducts(id || '');
+  const { farmerProducts, loading: productsLoading } = useFarmerProducts(id || '');
   const [showEditDialog, setShowEditDialog] = useState(false);
 
   const farmer = farmers.find(f => f.id === id);
@@ -55,12 +55,12 @@ const FarmerDetails = () => {
   }
 
   // Calculate farmer statistics
-  const totalProducts = products.length;
-  const totalEarnings = products.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
-  const settledAmount = products
+  const totalProducts = farmerProducts.length;
+  const totalEarnings = farmerProducts.reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
+  const settledAmount = farmerProducts
     .filter(product => product.payment_status === 'settled')
     .reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
-  const unsettledAmount = products
+  const unsettledAmount = farmerProducts
     .filter(product => product.payment_status === 'unsettled')
     .reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
 
@@ -236,27 +236,27 @@ const FarmerDetails = () => {
         </TabsList>
         
         <TabsContent value="products">
-          <FarmerProductsTable farmerId={farmer.id} />
+          <FarmerProductsTable products={farmerProducts} loading={productsLoading} />
         </TabsContent>
         
         <TabsContent value="transactions">
           <TransactionHistory 
             transactions={[]}
-            dailyEarnings={dailyEarnings}
-            monthlyEarnings={monthlyEarnings}
-            products={products}
+            dailyEarnings={[]}
+            monthlyEarnings={[]}
+            products={farmerProducts}
           />
         </TabsContent>
         
         <TabsContent value="settlements">
-          <FarmerSettlements farmerId={farmer.id} />
+          <FarmerSettlements products={farmerProducts} loading={productsLoading} />
         </TabsContent>
       </Tabs>
 
       {/* Edit Profile Dialog */}
       <EditProfileDialog
         open={showEditDialog}
-        onClose={() => setShowEditDialog(false)}
+        onOpenChange={() => setShowEditDialog(false)}
         farmer={farmer}
       />
     </div>

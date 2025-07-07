@@ -231,7 +231,7 @@ const CouponCreateDialog: React.FC<CouponCreateDialogProps> = ({
                   mode="single"
                   selected={formData.expiry_date}
                   onSelect={(date) => date && setFormData(prev => ({ ...prev, expiry_date: date }))}
-                  disabled={(date) => date < new Date().setHours(0, 0, 0, 0)}
+                  disabled={(date) => date < new Date(Date.now() - 24 * 60 * 60 * 1000)}
                   initialFocus
                 />
               </PopoverContent>
