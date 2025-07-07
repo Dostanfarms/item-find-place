@@ -1,461 +1,220 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Search, Ticket, Edit, Trash2 } from 'lucide-react';
+import { useCoupons } from '@/hooks/useCoupons';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, Gift, Calendar, Percent, CheckCircle } from 'lucide-react';
-import { useCoupons, Coupon } from '@/hooks/useCoupons';
-import { useBranches } from '@/hooks/useBranches';
+import { format } from 'date-fns';
+import BranchFilter from '@/components/BranchFilter';
 import { useAuth } from '@/context/AuthContext';
-import { canAccessBranch } from '@/utils/employeeData';
-import ProtectedAction from '@/components/ProtectedAction';
 
 const Coupons = () => {
+  const { coupons, loading, fetchCoupons, deleteCoupon } = useCoupons();
+  const { currentUser, selectedBranch } = useAuth();
   const { toast } = useToast();
-  const { coupons, loading, addCoupon, updateCoupon, deleteCoupon, verifyMobileNumber } = useCoupons();
-  const { branches } = useBranches();
-  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
-  const [verifiedUser, setVerifiedUser] = useState<any>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    code: '',
-    discount_type: 'percentage' as 'percentage' | 'fixed',
-    discount_value: '',
-    expiry_date: '',
-    is_active: true,
-    max_discount_limit: '',
-    target_type: 'all' as 'all' | 'customer' | 'employee',
-    target_user_id: '',
-    branch_id: ''
-  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
-  // Filter branches based on user permissions
-  const accessibleBranches = branches.filter(branch => 
-    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
-  );
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
 
-  const filteredCoupons = coupons.filter(coupon =>
-    coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (coupon.target_user_id && coupon.target_user_id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const handleVerifyMobile = async () => {
-    if (!formData.target_user_id || formData.target_type === 'all') {
-      toast({
-        title: "Error",
-        description: "Please enter a mobile number and select customer or employee target type",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsVerifying(true);
-    const result = await verifyMobileNumber(formData.target_user_id, formData.target_type as 'customer' | 'employee');
-    
-    if (result.success) {
-      setVerifiedUser(result.user);
-      toast({
-        title: "Mobile Verified",
-        description: `Found ${formData.target_type}: ${result.user?.name}`,
-      });
-    } else {
-      setVerifiedUser(null);
-      toast({
-        title: "Verification Failed",
-        description: result.error,
-        variant: "destructive"
-      });
-    }
-    setIsVerifying(false);
+  const getStatusColor = (isActive: boolean, expiryDate: string) => {
+    if (!isActive) return 'bg-gray-100 text-gray-800';
+    if (new Date(expiryDate) < new Date()) return 'bg-red-100 text-red-800';
+    return 'bg-green-100 text-green-800';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if ((formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && !verifiedUser) {
-      toast({
-        title: "Error",
-        description: "Please verify the mobile number before creating the coupon",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const couponData = {
-      code: formData.code,
-      discount_type: formData.discount_type,
-      discount_value: Number(formData.discount_value),
-      expiry_date: formData.expiry_date,
-      is_active: formData.is_active,
-      max_discount_limit: formData.max_discount_limit ? Number(formData.max_discount_limit) : null,
-      target_type: formData.target_type,
-      target_user_id: formData.target_user_id || null,
-      branch_id: formData.branch_id || null
-    };
-
-    let result;
-    if (editingCoupon) {
-      result = await updateCoupon(editingCoupon.id, couponData);
-    } else {
-      result = await addCoupon(couponData);
-    }
-
-    if (result?.success) {
-      toast({
-        title: editingCoupon ? "Coupon updated" : "Coupon created",
-        description: `Coupon ${couponData.code} has been ${editingCoupon ? 'updated' : 'created'} successfully.`
-      });
-      handleCloseDialog();
-    }
+  const getStatusText = (isActive: boolean, expiryDate: string) => {
+    if (!isActive) return 'Inactive';
+    if (new Date(expiryDate) < new Date()) return 'Expired';
+    return 'Active';
   };
 
-  const handleEdit = (coupon: Coupon) => {
-    setEditingCoupon(coupon);
-    setFormData({
-      code: coupon.code,
-      discount_type: coupon.discount_type,
-      discount_value: coupon.discount_value.toString(),
-      expiry_date: coupon.expiry_date ? new Date(coupon.expiry_date).toISOString().split('T')[0] : '',
-      is_active: coupon.is_active,
-      max_discount_limit: coupon.max_discount_limit?.toString() || '',
-      target_type: coupon.target_type,
-      target_user_id: coupon.target_user_id || '',
-      branch_id: coupon.branch_id || ''
-    });
-    setVerifiedUser(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingCoupon(null);
-    setVerifiedUser(null);
-    setFormData({
-      code: '',
-      discount_type: 'percentage',
-      discount_value: '',
-      expiry_date: '',
-      is_active: true,
-      max_discount_limit: '',
-      target_type: 'all',
-      target_user_id: '',
-      branch_id: ''
-    });
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this coupon?')) {
-      const result = await deleteCoupon(id);
-      if (result?.success) {
+  const handleDeleteCoupon = async (couponId: string) => {
+    if (confirm('Are you sure you want to delete this coupon?')) {
+      const result = await deleteCoupon(couponId);
+      if (result.success) {
         toast({
           title: "Coupon deleted",
-          description: "Coupon has been deleted successfully."
+          description: "The coupon has been successfully deleted.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete coupon",
+          variant: "destructive",
         });
       }
     }
   };
 
-  const handleTargetTypeChange = (value: 'all' | 'customer' | 'employee') => {
-    setFormData(prev => ({ ...prev, target_type: value, target_user_id: '' }));
-    setVerifiedUser(null);
-  };
+  // Apply branch filtering
+  const filteredCoupons = coupons.filter(coupon => {
+    // Branch filter for admin users
+    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
+      if (coupon.branch_id !== selectedBranch) return false;
+    }
+    
+    // Search filter
+    if (searchTerm && !coupon.code.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      const isActive = coupon.is_active && new Date(coupon.expiry_date) >= new Date();
+      if (statusFilter === 'active' && !isActive) return false;
+      if (statusFilter === 'inactive' && isActive) return false;
+    }
+    
+    // Type filter
+    if (typeFilter !== 'all' && coupon.discount_type !== typeFilter) {
+      return false;
+    }
+    
+    return true;
+  });
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-muted-foreground text-lg">Loading coupons...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading coupons...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col p-6">
-      <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Coupons Management</h1>
-          <p className="text-muted-foreground">Manage discount coupons and promotions</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Ticket className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Coupon Management</h1>
         </div>
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by code, mobile or name..."
-              className="pl-8 w-full md:w-[250px]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <ProtectedAction resource="coupons" action="create">
-                <Button className="bg-agri-primary hover:bg-agri-secondary">
-                  <Plus className="mr-2 h-4 w-4" /> Add Coupon
-                </Button>
-              </ProtectedAction>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCoupon ? 'Edit Coupon' : 'Add New Coupon'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="code">Coupon Code</Label>
-                    <Input
-                      id="code"
-                      value={formData.code}
-                      onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                      placeholder="SAVE20"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="discount_type">Discount Type</Label>
-                    <select
-                      id="discount_type"
-                      className="w-full p-2 border rounded-md"
-                      value={formData.discount_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value as 'percentage' | 'fixed' }))}
-                    >
-                      <option value="percentage">Percentage</option>
-                      <option value="fixed">Fixed Amount</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="discount_value">
-                      Discount Value {formData.discount_type === 'percentage' ? '(%)' : '(₹)'}
-                    </Label>
-                    <Input
-                      id="discount_value"
-                      type="number"
-                      value={formData.discount_value}
-                      onChange={(e) => setFormData(prev => ({ ...prev, discount_value: e.target.value }))}
-                      placeholder="20"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="max_discount_limit">Max Discount Amount (₹)</Label>
-                    <Input
-                      id="max_discount_limit"
-                      type="number"
-                      value={formData.max_discount_limit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, max_discount_limit: e.target.value }))}
-                      placeholder="100"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="target_type">Target Type</Label>
-                    <select
-                      id="target_type"
-                      className="w-full p-2 border rounded-md"
-                      value={formData.target_type}
-                      onChange={(e) => handleTargetTypeChange(e.target.value as 'all' | 'customer' | 'employee')}
-                    >
-                      <option value="all">All Users</option>
-                      <option value="customer">Customer</option>
-                      <option value="employee">Employee</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="branch">Branch</Label>
-                    <select
-                      id="branch"
-                      className="w-full p-2 border rounded-md"
-                      value={formData.branch_id}
-                      onChange={(e) => setFormData(prev => ({ ...prev, branch_id: e.target.value }))}
-                    >
-                      <option value="">All Branches</option>
-                      {accessibleBranches.map((branch) => (
-                        <option key={branch.id} value={branch.id}>
-                          {branch.branch_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="target_user_id">
-                    {formData.target_type === 'customer' ? 'Customer Mobile' : 
-                     formData.target_type === 'employee' ? 'Employee Mobile' : 'Target User ID'} (Optional)
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="target_user_id"
-                      value={formData.target_user_id}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, target_user_id: e.target.value }));
-                        setVerifiedUser(null);
-                      }}
-                      placeholder={formData.target_type === 'customer' || formData.target_type === 'employee' ? 
-                                   "Mobile Number" : "User ID"}
-                      disabled={formData.target_type === 'all'}
-                    />
-                    {(formData.target_type === 'customer' || formData.target_type === 'employee') && formData.target_user_id && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleVerifyMobile}
-                        disabled={isVerifying}
-                        className="whitespace-nowrap"
-                      >
-                        {isVerifying ? 'Verifying...' : verifiedUser ? <CheckCircle className="h-4 w-4 text-green-600" /> : 'Verify'}
-                      </Button>
-                    )}
-                  </div>
-                  {verifiedUser && (
-                    <p className="text-sm text-green-600 mt-1">
-                      ✓ Verified: {verifiedUser.name}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="expiry_date">Expiry Date</Label>
-                  <Input
-                    id="expiry_date"
-                    type="date"
-                    value={formData.expiry_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                  />
-                  <Label htmlFor="is_active">Active</Label>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingCoupon ? 'Update' : 'Create'} Coupon
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Coupon
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        {filteredCoupons.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
-            <Gift className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">No coupons found</h3>
-            <p className="text-muted-foreground text-center">
-              {searchTerm ? 'No coupons match your search criteria.' : 'Get started by creating your first coupon.'}
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Coupons</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <BranchFilter />
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by coupon code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive/Expired</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed Amount</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Coupons List</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Mobile/Name</TableHead>
-                    <TableHead>Expiry</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Discount</TableHead>
+                  <TableHead>Max Limit</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Expiry Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCoupons.map((coupon) => (
+                  <TableRow key={coupon.id}>
+                    <TableCell className="font-mono font-medium">
+                      {coupon.code}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {coupon.discount_type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {coupon.discount_type === 'percentage' 
+                        ? `${coupon.discount_value}%` 
+                        : `₹${coupon.discount_value}`}
+                    </TableCell>
+                    <TableCell>
+                      {coupon.max_discount_limit ? `₹${coupon.max_discount_limit}` : 'No limit'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {coupon.target_type === 'all' ? 'All Users' : 'Specific User'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(coupon.expiry_date), 'MMM dd, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(coupon.is_active, coupon.expiry_date)}>
+                        {getStatusText(coupon.is_active, coupon.expiry_date)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteCoupon(coupon.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCoupons.map((coupon) => (
-                    <TableRow key={coupon.id}>
-                      <TableCell className="font-medium text-primary">
-                        {coupon.code}
-                      </TableCell>
-                      <TableCell>
-                        {coupon.discount_type === 'percentage' ? 'Percentage' : 'Fixed'}
-                      </TableCell>
-                      <TableCell>
-                        {coupon.discount_type === 'percentage' 
-                          ? `${coupon.discount_value}%`
-                          : `₹${coupon.discount_value}`
-                        }
-                        {coupon.max_discount_limit && (
-                          <div className="text-xs text-muted-foreground">
-                            Max: ₹{coupon.max_discount_limit}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {coupon.target_type === 'all' ? 'All Users' : 
-                           coupon.target_type === 'customer' ? 'Customer' : 'Employee'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {coupon.target_user_id ? coupon.target_user_id : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {coupon.expiry_date ? 
-                          new Date(coupon.expiry_date).toLocaleDateString() : 
-                          'No expiry'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={coupon.is_active ? "default" : "secondary"}>
-                          {coupon.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleEdit(coupon)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            onClick={() => handleDelete(coupon.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredCoupons.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No coupons found matching your criteria.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

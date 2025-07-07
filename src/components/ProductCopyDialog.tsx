@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,11 +25,17 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
   onSuccess
 }) => {
   const [targetBranchId, setTargetBranchId] = useState<string>('');
-  const [productsToProcess, setProductsToProcess] = useState(selectedProducts);
+  const [productsToProcess, setProductsToProcess] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { branches } = useBranches();
   const { toast } = useToast();
   const { currentUser } = useAuth();
+
+  // Update productsToProcess when selectedProducts changes
+  useEffect(() => {
+    console.log('Selected products received:', selectedProducts);
+    setProductsToProcess(selectedProducts);
+  }, [selectedProducts]);
 
   const removeProduct = (productId: string) => {
     setProductsToProcess(prev => prev.filter(p => p.id !== productId));
@@ -214,9 +220,9 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             {product.type === 'fashion' ? (
-                              `${product.totalPieces} pieces`
+                              `${product.totalPieces || 0} pieces`
                             ) : (
-                              `${product.quantity} ${product.unit}`
+                              `${product.quantity || 0} ${product.unit || 'pcs'}`
                             )}
                           </div>
                         </div>

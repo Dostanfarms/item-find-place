@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import ProtectedAction from "@/components/ProtectedAction";
+import BranchFilter from "@/components/BranchFilter";
 import { useAuth } from "@/context/AuthContext";
 
 interface Order {
@@ -47,7 +48,7 @@ const getStatusColor = (status: string) => {
 };
 
 const OrdersManagement: React.FC = () => {
-  const { hasPermission, currentUser } = useAuth();
+  const { hasPermission, currentUser, selectedBranch } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,21 +156,29 @@ const OrdersManagement: React.FC = () => {
     return customers.find((c) => c.id === customer_id)?.mobile || "-";
   };
 
-  // Apply Filters: by status, date, mobile search
+  // Apply branch filtering based on selected branch
   const filteredOrders = orders.filter((order) => {
+    // Branch filter for admin users
+    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
+      if (order.branch_id !== selectedBranch) return false;
+    }
+    
     // Status filter
     if (statusFilter !== "all" && order.status !== statusFilter) return false;
+    
     // Date filter
     if (orderDate) {
       const orderDateStr = new Date(order.created_at).toLocaleDateString();
       const selectedDateStr = orderDate.toLocaleDateString();
       if (orderDateStr !== selectedDateStr) return false;
     }
+    
     // Mobile search filter
     if (mobileSearch && mobileSearch.trim() !== "") {
       const mobile = getCustomerMobile(order.customer_id);
       if (!mobile.includes(mobileSearch.trim())) return false;
     }
+    
     return true;
   });
 
@@ -182,7 +191,8 @@ const OrdersManagement: React.FC = () => {
               <Package className="h-6 w-6 text-agri-primary" />
               <CardTitle className="text-2xl font-bold">Order Management</CardTitle>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col lg:flex-row items-center gap-2 w-full lg:w-auto">
+              <BranchFilter />
               {/* Status Filter */}
               <Select
                 value={statusFilter}
