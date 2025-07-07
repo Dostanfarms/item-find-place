@@ -113,6 +113,10 @@ function App() {
                 <Route path="/profile" element={<CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute>} />
                 <Route path="/my-tickets" element={<CustomerProtectedRoute><CustomerTicketHistory /></CustomerProtectedRoute>} />
 
+                {/* Additional Customer Routes for better navigation */}
+                <Route path="/customer-home" element={<CustomerProtectedRoute><CustomerHome /></CustomerProtectedRoute>} />
+                <Route path="/customer-products" element={<CustomerProtectedRoute><CustomerProducts /></CustomerProtectedRoute>} />
+
                 {/* Catch all route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
