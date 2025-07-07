@@ -76,28 +76,28 @@ function App() {
                 <Route path="/access-denied" element={<AccessDenied />} />
                 
                 {/* Admin/Employee Protected Routes */}
-                <Route path="/dashboard" element={<ProtectedRoute resource="dashboard" action="view"><Dashboard /></ProtectedRoute>} />
-                <Route path="/products" element={<ProtectedRoute resource="products" action="view"><Products /></ProtectedRoute>} />
-                <Route path="/transactions" element={<ProtectedRoute resource="transactions" action="view"><Transactions /></ProtectedRoute>} />
-                <Route path="/farmers" element={<ProtectedRoute resource="farmers" action="view"><Farmers /></ProtectedRoute>} />
-                <Route path="/farmers/:id" element={<ProtectedRoute resource="farmers" action="view"><FarmerDetails /></ProtectedRoute>} />
-                <Route path="/customers" element={<ProtectedRoute resource="customers" action="view"><Customers /></ProtectedRoute>} />
-                <Route path="/employees" element={<ProtectedRoute resource="employees" action="view"><Employees /></ProtectedRoute>} />
-                <Route path="/categories" element={<ProtectedRoute resource="categories" action="view"><Categories /></ProtectedRoute>} />
-                <Route path="/coupons" element={<ProtectedRoute resource="coupons" action="view"><Coupons /></ProtectedRoute>} />
-                <Route path="/banners" element={<ProtectedRoute resource="banners" action="view"><Banners /></ProtectedRoute>} />
-                <Route path="/branches" element={<ProtectedRoute resource="branches" action="view"><Branches /></ProtectedRoute>} />
-                <Route path="/roles" element={<ProtectedRoute resource="roles" action="view"><Roles /></ProtectedRoute>} />
-                <Route path="/tickets" element={<ProtectedRoute resource="tickets" action="view"><Tickets /></ProtectedRoute>} />
-                <Route path="/settlements" element={<ProtectedRoute resource="settlements" action="view"><Settlements /></ProtectedRoute>} />
-                <Route path="/orders" element={<ProtectedRoute resource="orders" action="view"><OrdersManagement /></ProtectedRoute>} />
-                <Route path="/sales" element={<ProtectedRoute resource="sales" action="view"><Sales /></ProtectedRoute>} />
-                <Route path="/sales-dashboard" element={<ProtectedRoute resource="sales" action="view"><SalesDashboard /></ProtectedRoute>} />
-                <Route path="/order-history" element={<ProtectedRoute resource="orders" action="view"><OrderHistory /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+                <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+                <Route path="/farmers" element={<ProtectedRoute><Farmers /></ProtectedRoute>} />
+                <Route path="/farmers/:id" element={<ProtectedRoute><FarmerDetails /></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+                <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+                <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+                <Route path="/coupons" element={<ProtectedRoute><Coupons /></ProtectedRoute>} />
+                <Route path="/banners" element={<ProtectedRoute><Banners /></ProtectedRoute>} />
+                <Route path="/branches" element={<ProtectedRoute><Branches /></ProtectedRoute>} />
+                <Route path="/roles" element={<ProtectedRoute><Roles /></ProtectedRoute>} />
+                <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
+                <Route path="/settlements" element={<ProtectedRoute><Settlements /></ProtectedRoute>} />
+                <Route path="/orders" element={<ProtectedRoute><OrdersManagement /></ProtectedRoute>} />
+                <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+                <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
+                <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
 
                 {/* Farmer Protected Routes */}
-                <Route path="/farmer-dashboard" element={<ProtectedRoute resource="farmer-dashboard" action="view"><FarmerDashboard /></ProtectedRoute>} />
-                <Route path="/farmer-tickets" element={<ProtectedRoute resource="tickets" action="view"><FarmerTicketHistory /></ProtectedRoute>} />
+                <Route path="/farmer-dashboard" element={<ProtectedRoute><FarmerDashboard /></ProtectedRoute>} />
+                <Route path="/farmer-tickets" element={<ProtectedRoute><FarmerTicketHistory /></ProtectedRoute>} />
 
                 {/* Customer Protected Routes */}
                 <Route path="/home" element={<CustomerProtectedRoute><CustomerHome /></CustomerProtectedRoute>} />
@@ -112,10 +112,6 @@ function App() {
                 <Route path="/my-orders" element={<CustomerProtectedRoute><CustomerOrderHistory /></CustomerProtectedRoute>} />
                 <Route path="/profile" element={<CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute>} />
                 <Route path="/my-tickets" element={<CustomerProtectedRoute><CustomerTicketHistory /></CustomerProtectedRoute>} />
-
-                {/* Additional Customer Routes for better navigation */}
-                <Route path="/customer-home" element={<CustomerProtectedRoute><CustomerHome /></CustomerProtectedRoute>} />
-                <Route path="/customer-products" element={<CustomerProtectedRoute><CustomerProducts /></CustomerProtectedRoute>} />
 
                 {/* Catch all route */}
                 <Route path="*" element={<NotFound />} />

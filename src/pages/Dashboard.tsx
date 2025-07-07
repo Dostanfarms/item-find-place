@@ -7,7 +7,6 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useTickets } from '@/hooks/useTickets';
 import { useTransactions } from '@/hooks/useTransactions';
-import Layout from '@/components/Layout';
 import {
   TrendingUp,
   Users,
@@ -91,39 +90,38 @@ const Dashboard = () => {
   };
 
   return (
-    <Layout>
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
-          </div>
-          <Button onClick={handleNewSaleClick} className="bg-green-600 hover:bg-green-700 text-white">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">New Sale</span>
-            <span className="sm:hidden">Sale</span>
-          </Button>
-        </div>
-
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {actionButtons.map((action, idx) => (
-              <Button
-                key={action.title}
-                onClick={action.onClick}
-                className={`flex flex-col items-start p-5 h-full w-full min-h-[110px] transition-all ${action.color} shadow group rounded-lg`}
-              >
-                <div className="mb-2">{action.icon}</div>
-                <div className="font-semibold text-base">{action.title}</div>
-                <div className="text-xs whitespace-pre-line text-left">{action.description}</div>
-              </Button>
-            ))}
-          </div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
+        </div>
+        <Button onClick={handleNewSaleClick} className="bg-green-600 hover:bg-green-700 text-white">
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">New Sale</span>
+          <span className="sm:hidden">Sale</span>
+        </Button>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {actionButtons.map((action, idx) => (
+            <Button
+              key={action.title}
+              onClick={action.onClick}
+              className={`flex flex-col items-start p-5 h-full w-full min-h-[110px] transition-all ${action.color} shadow group rounded-lg`}
+            >
+              <div className="mb-2">{action.icon}</div>
+              <div className="font-semibold text-base">{action.title}</div>
+              <div className="text-xs whitespace-pre-line text-left">{action.description}</div>
+            </Button>
+          ))}
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
 export default Dashboard;
+

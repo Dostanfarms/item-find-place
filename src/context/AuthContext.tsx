@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -181,7 +182,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('Resource:', resource, 'Action:', action);
     console.log('User:', user.name, 'Role:', user.role);
     
-    // Admin has all permissions (case-insensitive)
+    // Admin has all permissions
     if (user.role.toLowerCase() === 'admin') {
       console.log('Admin user - granting all permissions');
       return true;
@@ -189,19 +190,23 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     
     console.log('Available permissions:', rolePermissions);
     
-    // First check database permissions - with fallback to hardcoded permissions
+    // First check database permissions - strict enforcement
     if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
       const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
       console.log('Found resource permission from DB:', resourcePermission);
       
       if (resourcePermission && Array.isArray(resourcePermission.actions)) {
         const hasPermission = resourcePermission.actions.includes(action);
-        console.log('DB Permission result:', hasPermission);
+        console.log('DB Permission result (STRICT):', hasPermission);
         return hasPermission;
+      } else {
+        // If no specific permission found in database, deny access
+        console.log('No database permission found - denying access');
+        return false;
       }
     }
 
-    // If no database permissions available or not found, fallback to hardcoded permissions
+    // If no database permissions available, fallback to hardcoded (should not happen in production)
     console.log('Falling back to hardcoded permissions');
     const hasHardcodedPermission = checkRolePermission(user.role, resource, action);
     console.log('Hardcoded permission result:', hasHardcodedPermission);
