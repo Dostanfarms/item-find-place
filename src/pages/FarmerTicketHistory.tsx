@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useTickets } from '@/hooks/useTickets';
-import TicketDialog from '@/components/ticket/TicketDialog';
+import CreateTicketDialog from '@/components/ticket/CreateTicketDialog';
 import { Package, ChevronLeft, LogOut, Menu } from 'lucide-react';
 
 const FarmerTicketHistory = () => {
@@ -178,7 +178,7 @@ const FarmerTicketHistory = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Support Tickets</h1>
-          <TicketDialog
+          <CreateTicketDialog
             userType="farmer"
             userId={farmer.id}
             userName={farmer.name}
@@ -198,7 +198,7 @@ const FarmerTicketHistory = () => {
           <Card>
             <CardContent className="flex flex-col items-center justify-center p-6">
               <p className="text-muted-foreground text-center mb-4">You haven't raised any support tickets yet.</p>
-              <TicketDialog
+              <CreateTicketDialog
                 userType="farmer"
                 userId={farmer.id}
                 userName={farmer.name}

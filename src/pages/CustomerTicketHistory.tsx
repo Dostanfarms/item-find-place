@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ArrowLeft, MessageSquare, Plus, Calendar, Clock, CheckCircle, XCircle, AlertCircle, User, LogOut, Ticket, ShoppingCart, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTickets } from '@/hooks/useTickets';
-import TicketDialog from '@/components/ticket/TicketDialog';
+import CreateTicketDialog from '@/components/ticket/CreateTicketDialog';
 import { useCart } from '@/contexts/CartContext';
 
 const CustomerTicketHistory = () => {
@@ -159,7 +158,7 @@ const CustomerTicketHistory = () => {
               </div>
             </div>
             
-            <TicketDialog
+            <CreateTicketDialog
               userType="customer"
               userId={customer?.id}
               userName={customer?.name}
@@ -182,7 +181,7 @@ const CustomerTicketHistory = () => {
                 <p className="text-muted-foreground mb-4">
                   Need help? Create your first support ticket and we'll get back to you soon.
                 </p>
-                <TicketDialog
+                <CreateTicketDialog
                   userType="customer"
                   userId={customer?.id}
                   userName={customer?.name}
