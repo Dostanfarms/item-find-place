@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,26 +8,26 @@ import { CartProvider } from "./contexts/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Index from "./pages/Index";
-import CustomerLogin from "./pages/customer/CustomerLogin";
-import CustomerRegister from "./pages/customer/CustomerRegister";
-import FarmerLogin from "./pages/farmer/FarmerLogin";
-import EmployeeLogin from "./pages/employee/EmployeeLogin";
-import EmployeeRegister from "./pages/employee/EmployeeRegister";
-import AppLanding from "./pages/customer/AppLanding";
-import CustomerHome from "./pages/customer/CustomerHome";
-import CustomerProducts from "./pages/customer/CustomerProducts";
-import ProductDetails from "./pages/customer/ProductDetails";
-import CartPage from "./pages/customer/CartPage";
-import Checkout from "./pages/customer/Checkout";
-import CustomerPayment from "./pages/customer/CustomerPayment";
-import PaymentPage from "./pages/customer/PaymentPage";
-import OrderReceiptPage from "./pages/customer/OrderReceiptPage";
-import CustomerOrderHistory from "./pages/customer/CustomerOrderHistory";
-import OrderTracking from "./pages/customer/OrderTracking";
-import CustomerProfile from "./pages/customer/CustomerProfile";
-import CustomerTicketHistory from "./pages/customer/CustomerTicketHistory";
-import FarmerDashboard from "./pages/farmer/FarmerDashboard";
-import FarmerTicketHistory from "./pages/farmer/FarmerTicketHistory";
+import CustomerLogin from "./pages/CustomerLogin";
+import CustomerRegister from "./pages/CustomerRegister";
+import FarmerLogin from "./pages/FarmerLogin";
+import EmployeeLogin from "./pages/EmployeeLogin";
+import EmployeeRegister from "./pages/EmployeeRegister";
+import AppLanding from "./pages/AppLanding";
+import CustomerHome from "./pages/CustomerHome";
+import CustomerProducts from "./pages/CustomerProducts";
+import ProductDetails from "./pages/ProductDetails";
+import CartPage from "./pages/CartPage";
+import Checkout from "./pages/Checkout";
+import CustomerPayment from "./pages/CustomerPayment";
+import PaymentPage from "./pages/PaymentPage";
+import OrderReceiptPage from "./pages/OrderReceiptPage";
+import CustomerOrderHistory from "./pages/CustomerOrderHistory";
+import OrderTracking from "./pages/OrderTracking";
+import CustomerProfile from "./pages/CustomerProfile";
+import CustomerTicketHistory from "./pages/CustomerTicketHistory";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import FarmerTicketHistory from "./pages/FarmerTicketHistory";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import OrdersManagement from "./pages/OrdersManagement";
@@ -48,6 +49,7 @@ import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CustomerProtectedRoute from "./components/CustomerProtectedRoute";
+import Sidebar from "./components/Sidebar";
 
 const queryClient = new QueryClient();
 
@@ -84,12 +86,12 @@ const App = () => (
               <Route path="/customer-tickets" element={<CustomerProtectedRoute><CustomerTicketHistory /></CustomerProtectedRoute>} />
 
               {/* Farmer routes */}
-              <Route path="/farmer-dashboard" element={<ProtectedRoute><FarmerDashboard /></ProtectedRoute>} />
-              <Route path="/farmer-tickets" element={<ProtectedRoute><FarmerTicketHistory /></ProtectedRoute>} />
+              <Route path="/farmer-dashboard" element={<ProtectedRoute resource="dashboard" action="view"><FarmerDashboard /></ProtectedRoute>} />
+              <Route path="/farmer-tickets" element={<ProtectedRoute resource="tickets" action="view"><FarmerTicketHistory /></ProtectedRoute>} />
 
               {/* Admin/Employee routes with Sidebar layout */}
               <Route path="/dashboard" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="dashboard" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -102,7 +104,7 @@ const App = () => (
               } />
               
               <Route path="/products" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="products" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -115,7 +117,7 @@ const App = () => (
               } />
               
               <Route path="/orders" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="orders" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -128,7 +130,7 @@ const App = () => (
               } />
               
               <Route path="/customers" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="customers" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -141,7 +143,7 @@ const App = () => (
               } />
               
               <Route path="/farmers" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="farmers" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -154,7 +156,7 @@ const App = () => (
               } />
               
               <Route path="/farmer-details/:id" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="farmers" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -167,7 +169,7 @@ const App = () => (
               } />
               
               <Route path="/transactions" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="transactions" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -180,7 +182,7 @@ const App = () => (
               } />
               
               <Route path="/settlements" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="settlements" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -193,7 +195,7 @@ const App = () => (
               } />
               
               <Route path="/tickets" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="tickets" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -206,7 +208,7 @@ const App = () => (
               } />
               
               <Route path="/categories" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="categories" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -219,7 +221,7 @@ const App = () => (
               } />
               
               <Route path="/coupons" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="coupons" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -232,7 +234,7 @@ const App = () => (
               } />
               
               <Route path="/banners" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="banners" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -245,7 +247,7 @@ const App = () => (
               } />
               
               <Route path="/branches" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="branches" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -258,7 +260,7 @@ const App = () => (
               } />
               
               <Route path="/employees" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="employees" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -271,7 +273,7 @@ const App = () => (
               } />
               
               <Route path="/roles" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="roles" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -284,7 +286,7 @@ const App = () => (
               } />
               
               <Route path="/sales" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="sales" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
@@ -297,7 +299,7 @@ const App = () => (
               } />
               
               <Route path="/sales-dashboard" element={
-                <ProtectedRoute>
+                <ProtectedRoute resource="dashboard" action="view">
                   <SidebarProvider>
                     <div className="flex min-h-screen w-full">
                       <Sidebar />
