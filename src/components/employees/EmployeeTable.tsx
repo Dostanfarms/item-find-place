@@ -81,16 +81,16 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({
               </td>
               <td className="p-4">
                 <Badge 
-                  variant={employee.is_active ? "default" : "destructive"}
-                  className={employee.is_active ? "bg-green-500 hover:bg-green-600" : ""}
+                  variant={employee.isActive ? "default" : "destructive"}
+                  className={employee.isActive ? "bg-green-500 hover:bg-green-600" : ""}
                 >
-                  {employee.is_active ? "Active" : "Inactive"}
+                  {employee.isActive ? "Active" : "Inactive"}
                 </Badge>
               </td>
               <td className="p-4">
                 <div className="text-sm">
-                  {employee.date_joined ? 
-                    format(new Date(employee.date_joined), 'MMM dd, yyyy') : 
+                  {employee.dateJoined ? 
+                    format(new Date(employee.dateJoined), 'MMM dd, yyyy') : 
                     'Not available'}
                 </div>
               </td>

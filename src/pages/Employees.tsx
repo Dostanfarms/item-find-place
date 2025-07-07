@@ -64,7 +64,7 @@ const Employees = () => {
     }
   };
 
-  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!hasPermission('employees', 'create')) {
       toast({
         title: "Access Denied",
@@ -92,7 +92,7 @@ const Employees = () => {
         ifscCode: employeeData.ifscCode,
         isActive: employeeData.isActive !== false,
         branchId: employeeData.branchId || employeeData.branch_id,
-        dateJoined: new Date(),
+        dateJoined: employeeData.dateJoined || new Date().toISOString(),
         createdAt: '',
         updatedAt: ''
       });
