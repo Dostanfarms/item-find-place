@@ -1,4 +1,3 @@
-
 export interface Farmer {
   id: string;
   name: string;
@@ -158,7 +157,7 @@ export interface Employee {
   ifscCode?: string;
   branchId?: string;
   branch_id?: string;
-  is_active?: boolean;
+  isActive?: boolean;
 }
 
 // Ticket system types

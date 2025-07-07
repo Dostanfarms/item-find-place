@@ -65,9 +65,10 @@ function App() {
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
-                {/* Landing page */}
-                <Route path="/" element={<AppLanding />} />
+                {/* Landing page - now points to CustomerHome */}
+                <Route path="/" element={<CustomerHome />} />
                 <Route path="/app" element={<CustomerHome />} />
+                <Route path="/app-landing" element={<AppLanding />} />
                 
                 {/* Employee/Admin routes with sidebar */}
                 <Route path="/login" element={<EmployeeLogin />} />

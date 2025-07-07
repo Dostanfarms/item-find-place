@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Farmer {
   id: string;
@@ -26,6 +28,7 @@ export const useFarmers = () => {
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchFarmers = async () => {
     try {
@@ -65,7 +68,14 @@ export const useFarmers = () => {
         transactions: []
       })) || [];
 
-      setFarmers(formattedFarmers);
+      // Apply branch filtering
+      const filteredFarmers = getBranchRestrictedData(
+        formattedFarmers, 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
+
+      setFarmers(filteredFarmers);
     } catch (error) {
       console.error('Error in fetchFarmers:', error);
       toast({
@@ -80,6 +90,12 @@ export const useFarmers = () => {
 
   const addFarmer = async (farmerData: Omit<Farmer, 'id' | 'date_joined' | 'products' | 'transactions'>) => {
     try {
+      // Auto-assign current user's branch if not admin
+      let branchId = farmerData.branch_id;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+      }
+
       const { data, error } = await supabase
         .from('farmers')
         .insert([{
@@ -95,7 +111,7 @@ export const useFarmers = () => {
           account_number: farmerData.account_number,
           ifsc_code: farmerData.ifsc_code,
           profile_photo: farmerData.profile_photo,
-          branch_id: farmerData.branch_id
+          branch_id: branchId
         }])
         .select()
         .single();

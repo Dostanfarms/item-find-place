@@ -1,6 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Employee {
   id: string;
@@ -9,18 +12,19 @@ export interface Employee {
   phone?: string;
   password: string;
   role: string;
-  profile_photo?: string;
-  date_joined: string;
+  profilePhoto?: string;
+  dateJoined: string;
   state?: string;
   district?: string;
   village?: string;
-  account_holder_name?: string;
-  account_number?: string;
-  bank_name?: string;
-  ifsc_code?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  accountHolderName?: string;
+  accountNumber?: string;
+  bankName?: string;
+  ifscCode?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  branchId?: string;
   branch_id?: string;
 }
 
@@ -28,6 +32,7 @@ export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchEmployees = async () => {
     try {
@@ -47,6 +52,7 @@ export const useEmployees = () => {
         return;
       }
 
+      // Map database fields to component expected fields
       const formattedEmployees = data?.map(emp => ({
         id: emp.id,
         name: emp.name,
@@ -54,22 +60,30 @@ export const useEmployees = () => {
         phone: emp.phone || '',
         password: emp.password,
         role: emp.role,
-        profile_photo: emp.profile_photo,
-        date_joined: emp.date_joined,
+        profilePhoto: emp.profile_photo,
+        dateJoined: emp.date_joined,
         state: emp.state,
         district: emp.district,
         village: emp.village,
-        account_holder_name: emp.account_holder_name,
-        account_number: emp.account_number,
-        bank_name: emp.bank_name,
-        ifsc_code: emp.ifsc_code,
-        is_active: emp.is_active,
-        created_at: emp.created_at,
-        updated_at: emp.updated_at,
+        accountHolderName: emp.account_holder_name,
+        accountNumber: emp.account_number,
+        bankName: emp.bank_name,
+        ifscCode: emp.ifsc_code,
+        isActive: emp.is_active,
+        createdAt: emp.created_at,
+        updatedAt: emp.updated_at,
+        branchId: emp.branch_id,
         branch_id: emp.branch_id
       })) || [];
 
-      setEmployees(formattedEmployees);
+      // Apply branch filtering
+      const filteredEmployees = getBranchRestrictedData(
+        formattedEmployees, 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
+
+      setEmployees(filteredEmployees);
     } catch (error) {
       console.error('Error in fetchEmployees:', error);
       toast({
@@ -82,8 +96,14 @@ export const useEmployees = () => {
     }
   };
 
-  const addEmployee = async (employeeData: Omit<Employee, 'id' | 'date_joined' | 'created_at' | 'updated_at'>) => {
+  const addEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     try {
+      // Auto-assign current user's branch if not admin
+      let branchId = employeeData.branchId;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+      }
+
       const { data, error } = await supabase
         .from('employees')
         .insert([{
@@ -92,16 +112,16 @@ export const useEmployees = () => {
           phone: employeeData.phone,
           password: employeeData.password,
           role: employeeData.role,
-          profile_photo: employeeData.profile_photo,
+          profile_photo: employeeData.profilePhoto,
           state: employeeData.state,
           district: employeeData.district,
           village: employeeData.village,
-          account_holder_name: employeeData.account_holder_name,
-          account_number: employeeData.account_number,
-          bank_name: employeeData.bank_name,
-          ifsc_code: employeeData.ifsc_code,
-          is_active: employeeData.is_active,
-          branch_id: employeeData.branch_id
+          account_holder_name: employeeData.accountHolderName,
+          account_number: employeeData.accountNumber,
+          bank_name: employeeData.bankName,
+          ifsc_code: employeeData.ifscCode,
+          is_active: employeeData.isActive,
+          branch_id: branchId
         }])
         .select()
         .single();
@@ -116,7 +136,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
+      await fetchEmployees();
       toast({
         title: "Success",
         description: `${employeeData.name} was successfully added as ${employeeData.role}`
@@ -143,16 +163,16 @@ export const useEmployees = () => {
       if (employeeData.phone !== undefined) updateData.phone = employeeData.phone;
       if (employeeData.password !== undefined && employeeData.password !== '') updateData.password = employeeData.password;
       if (employeeData.role !== undefined) updateData.role = employeeData.role;
-      if (employeeData.profile_photo !== undefined) updateData.profile_photo = employeeData.profile_photo;
+      if (employeeData.profilePhoto !== undefined) updateData.profile_photo = employeeData.profilePhoto;
       if (employeeData.state !== undefined) updateData.state = employeeData.state;
       if (employeeData.district !== undefined) updateData.district = employeeData.district;
       if (employeeData.village !== undefined) updateData.village = employeeData.village;
-      if (employeeData.account_holder_name !== undefined) updateData.account_holder_name = employeeData.account_holder_name;
-      if (employeeData.account_number !== undefined) updateData.account_number = employeeData.account_number;
-      if (employeeData.bank_name !== undefined) updateData.bank_name = employeeData.bank_name;
-      if (employeeData.ifsc_code !== undefined) updateData.ifsc_code = employeeData.ifsc_code;
-      if (employeeData.is_active !== undefined) updateData.is_active = employeeData.is_active;
-      if (employeeData.branch_id !== undefined) updateData.branch_id = employeeData.branch_id;
+      if (employeeData.accountHolderName !== undefined) updateData.account_holder_name = employeeData.accountHolderName;
+      if (employeeData.accountNumber !== undefined) updateData.account_number = employeeData.accountNumber;
+      if (employeeData.bankName !== undefined) updateData.bank_name = employeeData.bankName;
+      if (employeeData.ifscCode !== undefined) updateData.ifsc_code = employeeData.ifscCode;
+      if (employeeData.isActive !== undefined) updateData.is_active = employeeData.isActive;
+      if (employeeData.branchId !== undefined) updateData.branch_id = employeeData.branchId;
 
       const { data, error } = await supabase
         .from('employees')
@@ -171,7 +191,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
+      await fetchEmployees();
       toast({
         title: "Success",
         description: `Employee information was successfully updated`
@@ -206,7 +226,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      await fetchEmployees(); // Refresh the list
+      await fetchEmployees();
       toast({
         title: "Success",
         description: "Employee has been deleted successfully"

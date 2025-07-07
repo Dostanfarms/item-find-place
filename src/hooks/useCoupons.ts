@@ -1,7 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Coupon {
   id: string;
@@ -22,6 +23,7 @@ export const useCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchCoupons = async () => {
     try {
@@ -48,7 +50,14 @@ export const useCoupons = () => {
         target_type: coupon.target_type as 'all' | 'customer' | 'employee'
       }));
 
-      setCoupons(typedCoupons);
+      // Apply branch filtering
+      const filteredCoupons = getBranchRestrictedData(
+        typedCoupons, 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
+
+      setCoupons(filteredCoupons);
     } catch (error) {
       console.error('Error in fetchCoupons:', error);
       toast({
@@ -63,9 +72,15 @@ export const useCoupons = () => {
 
   const addCoupon = async (couponData: Omit<Coupon, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      // Auto-assign current user's branch if not admin
+      let branchId = couponData.branch_id;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+      }
+
       const insertData = {
         ...couponData,
-        branch_id: couponData.branch_id || null
+        branch_id: branchId || null
       };
 
       const { data, error } = await supabase

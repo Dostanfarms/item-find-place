@@ -82,16 +82,19 @@ const Employees = () => {
         phone: employeeData.phone || '',
         password: employeeData.password,
         role: employeeData.role,
-        profile_photo: employeeData.profilePhoto,
+        profilePhoto: employeeData.profilePhoto,
         state: employeeData.state,
         district: employeeData.district,
         village: employeeData.village,
-        account_holder_name: employeeData.accountHolderName,
-        account_number: employeeData.accountNumber,
-        bank_name: employeeData.bankName,
-        ifsc_code: employeeData.ifscCode,
-        is_active: employeeData.is_active !== false,
-        branch_id: employeeData.branchId || employeeData.branch_id
+        accountHolderName: employeeData.accountHolderName,
+        accountNumber: employeeData.accountNumber,
+        bankName: employeeData.bankName,
+        ifscCode: employeeData.ifscCode,
+        isActive: employeeData.isActive !== false,
+        branchId: employeeData.branchId || employeeData.branch_id,
+        dateJoined: new Date(),
+        createdAt: '',
+        updatedAt: ''
       });
 
       if (result?.success) {
@@ -120,26 +123,26 @@ const Employees = () => {
 
     setIsLoading(true);
     try {
-      const updateData: any = {
+      const updateData = {
         name: employeeData.name,
         email: employeeData.email,
         phone: employeeData.phone || '',
         role: employeeData.role,
-        profile_photo: employeeData.profilePhoto,
+        profilePhoto: employeeData.profilePhoto,
         state: employeeData.state,
         district: employeeData.district,
         village: employeeData.village,
-        account_holder_name: employeeData.accountHolderName,
-        account_number: employeeData.accountNumber,
-        bank_name: employeeData.bankName,
-        ifsc_code: employeeData.ifscCode,
-        is_active: employeeData.is_active !== false,
-        branch_id: employeeData.branchId || employeeData.branch_id
+        accountHolderName: employeeData.accountHolderName,
+        accountNumber: employeeData.accountNumber,
+        bankName: employeeData.bankName,
+        ifscCode: employeeData.ifscCode,
+        isActive: employeeData.isActive !== false,
+        branchId: employeeData.branchId || employeeData.branch_id,
+        password: employeeData.password || undefined,
+        dateJoined: editingEmployee.dateJoined,
+        createdAt: editingEmployee.createdAt,
+        updatedAt: editingEmployee.updatedAt
       };
-
-      if (employeeData.password) {
-        updateData.password = employeeData.password;
-      }
 
       const result = await updateEmployee(editingEmployee.id, updateData);
       if (result?.success) {
@@ -159,7 +162,7 @@ const Employees = () => {
     setEditingEmployee(null);
   };
 
-  const getActiveEmployees = () => employees.filter(emp => emp.is_active !== false).length;
+  const getActiveEmployees = () => employees.filter(emp => emp.isActive !== false).length;
 
   if (loading) {
     return (

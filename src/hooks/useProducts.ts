@@ -1,5 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Product {
   id: string;
@@ -20,6 +23,7 @@ export interface Product {
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   const fetchProducts = async () => {
     try {
@@ -34,7 +38,14 @@ export const useProducts = () => {
         return;
       }
 
-      setProducts(data || []);
+      // Apply branch filtering
+      const filteredProducts = getBranchRestrictedData(
+        data || [], 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
+
+      setProducts(filteredProducts);
     } catch (error) {
       console.error('Error in fetchProducts:', error);
     } finally {
@@ -70,6 +81,12 @@ export const useProducts = () => {
       
       const barcode = await generateUniqueBarcode();
       
+      // Auto-assign current user's branch if not admin
+      let branchId = productData.branch_id;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+      }
+      
       // Ensure all fields are properly formatted
       const insertData = {
         name: productData.name.trim(),
@@ -81,7 +98,7 @@ export const useProducts = () => {
         barcode: barcode,
         image_url: productData.image_url || null,
         is_active: Boolean(productData.is_active),
-        branch_id: productData.branch_id || null
+        branch_id: branchId || null
       };
 
       console.log('Insert data for product:', insertData);

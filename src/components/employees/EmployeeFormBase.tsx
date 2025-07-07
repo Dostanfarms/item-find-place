@@ -79,7 +79,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       ifscCode: formData.ifscCode,
       branchId: formData.branchId,
       branch_id: formData.branchId,
-      is_active: true
+      isActive: true
     };
 
     onSubmit(submissionData);
