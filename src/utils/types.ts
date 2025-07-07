@@ -158,6 +158,8 @@ export interface Employee {
   branchId?: string;
   branch_id?: string;
   isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Ticket system types

@@ -64,7 +64,7 @@ const Employees = () => {
     }
   };
 
-  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     if (!hasPermission('employees', 'create')) {
       toast({
         title: "Access Denied",
@@ -107,7 +107,7 @@ const Employees = () => {
     }
   };
 
-  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     if (!editingEmployee) return;
 
     if (!hasPermission('employees', 'edit')) {

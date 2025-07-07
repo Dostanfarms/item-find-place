@@ -77,8 +77,8 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       accountNumber: formData.accountNumber,
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
-      branchId: formData.branchId,
-      branch_id: formData.branchId,
+      branchId: formData.branchId || null,
+      branch_id: formData.branchId || null,
       isActive: true
     };
 
@@ -166,12 +166,15 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 
         <div className="space-y-2">
           <Label htmlFor="branch">Branch</Label>
-          <Select value={formData.branchId || ''} onValueChange={(value) => handleInputChange('branchId', value)}>
+          <Select 
+            value={formData.branchId || 'no-branch'} 
+            onValueChange={(value) => handleInputChange('branchId', value === 'no-branch' ? '' : value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select branch" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Branch</SelectItem>
+              <SelectItem value="no-branch">No Branch</SelectItem>
               {accessibleBranches.map((branch) => (
                 <SelectItem key={branch.id} value={branch.id}>
                   {branch.branch_name}
