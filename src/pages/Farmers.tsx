@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,10 +12,12 @@ import { format } from 'date-fns';
 import FarmerForm from '@/components/FarmerForm';
 import BranchFilter from '@/components/BranchFilter';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Farmers = () => {
   const { farmers, loading, fetchFarmers } = useFarmers();
   const { currentUser, selectedBranch } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +26,10 @@ const Farmers = () => {
   useEffect(() => {
     fetchFarmers();
   }, []);
+
+  const handleViewFarmer = (farmer: any) => {
+    navigate(`/farmer-details/${farmer.id}`);
+  };
 
   const handleEditFarmer = (farmer: any) => {
     setSelectedFarmer(farmer);
@@ -183,7 +190,11 @@ const Farmers = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewFarmer(farmer)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button 

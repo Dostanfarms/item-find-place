@@ -11,6 +11,7 @@ import { useCoupons } from '@/hooks/useCoupons';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import BranchFilter from '@/components/BranchFilter';
+import CouponEditDialog from '@/components/coupons/CouponEditDialog';
 import { useAuth } from '@/context/AuthContext';
 
 const Coupons = () => {
@@ -20,6 +21,8 @@ const Coupons = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
 
   useEffect(() => {
     fetchCoupons();
@@ -35,6 +38,11 @@ const Coupons = () => {
     if (!isActive) return 'Inactive';
     if (new Date(expiryDate) < new Date()) return 'Expired';
     return 'Active';
+  };
+
+  const handleEditCoupon = (coupon: any) => {
+    setSelectedCoupon(coupon);
+    setShowEditDialog(true);
   };
 
   const handleDeleteCoupon = async (couponId: string) => {
@@ -53,6 +61,12 @@ const Coupons = () => {
         });
       }
     }
+  };
+
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setSelectedCoupon(null);
+    fetchCoupons();
   };
 
   // Apply branch filtering
@@ -189,7 +203,11 @@ const Coupons = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditCoupon(coupon)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
@@ -215,6 +233,12 @@ const Coupons = () => {
           )}
         </CardContent>
       </Card>
+
+      <CouponEditDialog
+        open={showEditDialog}
+        onClose={handleCloseEditDialog}
+        coupon={selectedCoupon}
+      />
     </div>
   );
 };

@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { getBranchRestrictedData } from '@/utils/employeeData';
 
-export interface Coupon {
+interface Coupon {
   id: string;
   code: string;
   discount_type: 'percentage' | 'fixed';
@@ -14,20 +14,21 @@ export interface Coupon {
   max_discount_limit: number | null;
   target_type: 'all' | 'customer' | 'employee';
   target_user_id: string | null;
-  branch_id?: string;
   created_at: string;
   updated_at: string;
+  branch_id?: string | null;
 }
 
 export const useCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
   const { currentUser } = useAuth();
 
   const fetchCoupons = async () => {
     try {
       setLoading(true);
+      console.log('Fetching coupons for user:', currentUser);
+      
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
@@ -35,36 +36,22 @@ export const useCoupons = () => {
 
       if (error) {
         console.error('Error fetching coupons:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load coupons",
-          variant: "destructive"
-        });
         return;
       }
 
-      // Type cast the data to ensure proper typing
-      const typedCoupons = (data || []).map(coupon => ({
-        ...coupon,
-        discount_type: coupon.discount_type as 'percentage' | 'fixed',
-        target_type: coupon.target_type as 'all' | 'customer' | 'employee'
-      }));
+      console.log('Raw coupons from database:', data?.length, 'items');
 
       // Apply branch filtering
       const filteredCoupons = getBranchRestrictedData(
-        typedCoupons, 
+        data || [], 
         currentUser?.role || '', 
         currentUser?.branch_id || null
       );
 
+      console.log('Filtered coupons after branch restriction:', filteredCoupons.length, 'items');
       setCoupons(filteredCoupons);
     } catch (error) {
       console.error('Error in fetchCoupons:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load coupons",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
@@ -72,90 +59,64 @@ export const useCoupons = () => {
 
   const addCoupon = async (couponData: Omit<Coupon, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      console.log('Adding coupon:', couponData);
+      
       // Auto-assign current user's branch if not admin
       let branchId = couponData.branch_id;
       if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
         branchId = currentUser.branch_id;
+        console.log('Auto-assigning branch to coupon:', branchId);
       }
-
+      
       const insertData = {
         ...couponData,
         branch_id: branchId || null
       };
 
-      const { data, error } = await supabase
+      console.log('Insert data for coupon:', insertData);
+
+      const { data: coupon, error: couponError } = await supabase
         .from('coupons')
         .insert([insertData])
         .select()
         .single();
 
-      if (error) {
-        console.error('Error adding coupon:', error);
-        toast({
-          title: "Error",
-          description: "Failed to add coupon",
-          variant: "destructive"
-        });
-        return { success: false, error };
+      if (couponError) {
+        console.error('Error adding coupon:', couponError);
+        return { success: false, error: couponError.message };
       }
 
+      console.log('Coupon added successfully:', coupon);
       await fetchCoupons();
-      toast({
-        title: "Success",
-        description: `Coupon ${couponData.code} was successfully created`
-      });
-      
-      return { success: true, data };
+      return { success: true, data: coupon };
     } catch (error) {
       console.error('Error in addCoupon:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add coupon",
-        variant: "destructive"
-      });
-      return { success: false, error };
+      return { success: false, error: 'Failed to add coupon' };
     }
   };
 
   const updateCoupon = async (id: string, couponData: Partial<Coupon>) => {
     try {
-      const updateData = {
-        ...couponData,
-        branch_id: couponData.branch_id || null
-      };
+      console.log('Updating coupon:', id, couponData);
 
-      const { data, error } = await supabase
+      const { data: coupon, error: couponError } = await supabase
         .from('coupons')
-        .update(updateData)
+        .update(couponData)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error updating coupon:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update coupon",
-          variant: "destructive"
-        });
-        return { success: false, error };
+      if (couponError) {
+        console.error('Error updating coupon:', couponError);
+        return { success: false, error: couponError.message };
       }
 
+      console.log('Coupon updated successfully:', coupon);
       await fetchCoupons();
-      toast({
-        title: "Success",
-        description: `Coupon was successfully updated`
-      });
-      
-      return { success: true, data };
+      return { success: true, data: coupon };
     } catch (error) {
       console.error('Error in updateCoupon:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update coupon",
-        variant: "destructive"
-      });
-      return { success: false, error };
+      return { success: false, error: 'Failed to update coupon' };
     }
   };
 
@@ -168,155 +129,20 @@ export const useCoupons = () => {
 
       if (error) {
         console.error('Error deleting coupon:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete coupon",
-          variant: "destructive"
-        });
-        return { success: false, error };
+        return { success: false, error: error.message };
       }
 
       await fetchCoupons();
-      toast({
-        title: "Success",
-        description: "Coupon has been deleted successfully"
-      });
-      
       return { success: true };
     } catch (error) {
       console.error('Error in deleteCoupon:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete coupon",
-        variant: "destructive"
-      });
-      return { success: false, error };
-    }
-  };
-
-  const validateCoupon = async (code: string, customerId?: string, employeeId?: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('code', code)
-        .eq('is_active', true)
-        .gte('expiry_date', new Date().toISOString())
-        .single();
-
-      if (error) {
-        return { success: false, error: 'Coupon not found or expired' };
-      }
-
-      // Check target restrictions
-      if (data.target_type === 'customer' && data.target_user_id !== customerId) {
-        return { success: false, error: 'This coupon is not valid for your account' };
-      }
-
-      if (data.target_type === 'employee' && data.target_user_id !== employeeId) {
-        return { success: false, error: 'This coupon is not valid for your account' };
-      }
-
-      return { success: true, coupon: data };
-    } catch (error) {
-      console.error('Error validating coupon:', error);
-      return { success: false, error: 'Failed to validate coupon' };
-    }
-  };
-
-  const verifyMobileNumber = async (mobile: string, userType: 'customer' | 'employee') => {
-    try {
-      if (userType === 'customer') {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('id, name, mobile')
-          .eq('mobile', mobile)
-          .single();
-
-        if (error || !data) {
-          return { 
-            success: false, 
-            error: 'Customer not found with this mobile number' 
-          };
-        }
-
-        return { 
-          success: true, 
-          user: { 
-            id: data.id, 
-            name: data.name, 
-            mobile: data.mobile 
-          } 
-        };
-      } else {
-        const { data, error } = await supabase
-          .from('employees')
-          .select('id, name, phone')
-          .eq('phone', mobile)
-          .single();
-
-        if (error || !data) {
-          return { 
-            success: false, 
-            error: 'Employee not found with this mobile number' 
-          };
-        }
-
-        return { 
-          success: true, 
-          user: { 
-            id: data.id, 
-            name: data.name, 
-            mobile: data.phone 
-          } 
-        };
-      }
-    } catch (error) {
-      console.error('Error verifying mobile number:', error);
-      return { success: false, error: 'Failed to verify mobile number' };
-    }
-  };
-
-  const validateCouponForUser = async (code: string, userId: string, userType: 'customer' | 'employee') => {
-    try {
-      const { data, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('code', code)
-        .eq('is_active', true)
-        .gte('expiry_date', new Date().toISOString())
-        .single();
-
-      if (error || !data) {
-        return { success: false, error: 'Coupon not found or expired' };
-      }
-
-      // Check target restrictions
-      if (data.target_type === userType && data.target_user_id && data.target_user_id !== userId) {
-        return { success: false, error: 'This coupon is not valid for your account' };
-      }
-
-      if (data.target_type !== 'all' && data.target_type !== userType) {
-        return { success: false, error: 'This coupon is not valid for your user type' };
-      }
-
-      return { 
-        success: true, 
-        coupon: {
-          ...data,
-          discount_type: data.discount_type as 'percentage' | 'fixed',
-          target_type: data.target_type as 'all' | 'customer' | 'employee'
-        }
-      };
-    } catch (error) {
-      console.error('Error validating coupon for user:', error);
-      return { success: false, error: 'Failed to validate coupon' };
+      return { success: false, error: 'Failed to delete coupon' };
     }
   };
 
   useEffect(() => {
     fetchCoupons();
-  }, []);
+  }, [currentUser?.branch_id]);
 
   return {
     coupons,
@@ -324,9 +150,6 @@ export const useCoupons = () => {
     fetchCoupons,
     addCoupon,
     updateCoupon,
-    deleteCoupon,
-    validateCoupon,
-    verifyMobileNumber,
-    validateCouponForUser
+    deleteCoupon
   };
 };

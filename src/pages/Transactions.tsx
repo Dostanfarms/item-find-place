@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Receipt, Search, Calendar, Eye } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useEmployees } from '@/hooks/useEmployees';
 import { format } from 'date-fns';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
 import BranchFilter from '@/components/BranchFilter';
@@ -15,6 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 
 const Transactions = () => {
   const { transactions, loading, fetchTransactions } = useTransactions();
+  const { employees } = useEmployees();
   const { currentUser, selectedBranch } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -52,12 +54,25 @@ const Transactions = () => {
     }
   };
 
+  // Get employee's branch ID based on transaction branch_id or created_by email
+  const getTransactionBranchId = (transaction: any) => {
+    // If transaction has branch_id, use it
+    if (transaction.branch_id) return transaction.branch_id;
+    
+    // If not, try to find the employee who created it and get their branch
+    if (transaction.created_by) {
+      const employee = employees.find(emp => emp.email === transaction.created_by);
+      return employee?.branch_id || null;
+    }
+    
+    return null;
+  };
+
   // Apply branch filtering
   const filteredTransactions = transactions.filter(transaction => {
     // Branch filter for admin users
     if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
-      // Use the correct property name based on the actual transaction structure
-      const transactionBranchId = (transaction as any).branch_id;
+      const transactionBranchId = getTransactionBranchId(transaction);
       if (transactionBranchId !== selectedBranch) return false;
     }
     

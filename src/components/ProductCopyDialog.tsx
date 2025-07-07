@@ -30,6 +30,44 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
   const { toast } = useToast();
   const { selectedBranch, currentUser } = useAuth();
 
+  // Function to generate unique barcode for copied products
+  const generateUniqueBarcode = async (branchName?: string): Promise<string> => {
+    if (branchName) {
+      // Use the database function for branch-specific barcode generation
+      const { data, error } = await supabase.rpc('generate_branch_barcode', {
+        branch_name: branchName
+      });
+      
+      if (error) {
+        console.error('Error generating branch barcode:', error);
+        // Fallback to generic barcode generation
+      } else if (data) {
+        return data;
+      }
+    }
+    
+    // Fallback to generic barcode generation
+    let barcode: string;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      barcode = `CPY${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      
+      // Check if barcode exists in any product table
+      const [generalCheck, fashionCheck] = await Promise.all([
+        supabase.from('products').select('id').eq('barcode', barcode).single(),
+        supabase.from('fashion_products').select('id').eq('barcode', barcode).single()
+      ]);
+      
+      if (!generalCheck.data && !fashionCheck.data) {
+        isUnique = true;
+        return barcode;
+      }
+    }
+    
+    return barcode!;
+  };
+
   const handleCopy = async () => {
     if (!targetBranchId) {
       toast({
@@ -52,6 +90,10 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
     setLoading(true);
 
     try {
+      // Get target branch name for barcode generation
+      const targetBranch = branches.find(b => b.id === targetBranchId);
+      const targetBranchName = targetBranch?.branch_name;
+
       // Create product copy operation record
       const { data: copyOperation, error: copyError } = await supabase
         .from('product_copy_operations')
@@ -69,6 +111,9 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
 
       // Copy each product
       for (const product of selectedProducts) {
+        // Generate new barcode for copied product
+        const newBarcode = await generateUniqueBarcode(targetBranchName);
+        
         const productData = {
           name: product.name,
           category: product.category,
@@ -76,7 +121,8 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
           description: product.description,
           image_url: product.image_url,
           is_active: product.is_active,
-          branch_id: targetBranchId
+          branch_id: targetBranchId,
+          barcode: newBarcode
         };
 
         if (product.type === 'fashion') {
@@ -108,8 +154,7 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
           const generalProductData = {
             ...productData,
             quantity: product.quantity,
-            unit: product.unit,
-            barcode: null // Generate new barcode for copied product
+            unit: product.unit
           };
 
           const { error: productError } = await supabase
@@ -128,7 +173,7 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
 
       toast({
         title: "Success",
-        description: `Successfully copied ${selectedProducts.length} products to the target branch`,
+        description: `Successfully copied ${selectedProducts.length} products to the target branch with new barcodes`,
       });
 
       onSuccess();
@@ -194,7 +239,6 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product Name</TableHead>
-                      <TableHead>Category</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Status</TableHead>
@@ -211,7 +255,6 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
                             <span className="font-medium">{product.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{product.category}</TableCell>
                         <TableCell>
                           {product.type === 'fashion' ? (
                             <div>

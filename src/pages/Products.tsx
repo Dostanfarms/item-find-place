@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useBranches } from '@/hooks/useBranches';
 import { Search, Plus, Package, Edit, Printer, Shirt, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import GeneralProductForm from '@/components/GeneralProductForm';
@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 const Products = () => {
   const { toast } = useToast();
   const { hasPermission, selectedBranch, currentUser } = useAuth();
+  const { branches } = useBranches();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +38,13 @@ const Products = () => {
 
   console.log('Fashion products in Products page:', fashionProducts);
   console.log('Categories:', categories);
+
+  // Get branch name by ID
+  const getBranchName = (branchId: string | null) => {
+    if (!branchId) return 'All Branches';
+    const branch = branches.find(b => b.id === branchId);
+    return branch ? branch.branch_name : 'Unknown Branch';
+  };
 
   // Combine all products based on selected category and branch filter
   const getAllProducts = () => {
@@ -403,7 +411,7 @@ const Products = () => {
                         </TableHead>
                       )}
                       <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
-                      <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
+                      <TableHead className="min-w-[120px] font-semibold">Branch</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Stock</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Price/Unit</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Status</TableHead>
@@ -431,8 +439,8 @@ const Products = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="max-w-[100px] truncate" title={product.category}>
-                            {product.category}
+                          <div className="max-w-[120px] truncate" title={getBranchName(product.branch_id)}>
+                            {getBranchName(product.branch_id)}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
