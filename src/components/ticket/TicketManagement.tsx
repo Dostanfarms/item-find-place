@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,79 +12,77 @@ import EnhancedTicketDialog from './EnhancedTicketDialog';
 import CreateTicketDialog from './CreateTicketDialog';
 import { useBranchName } from '@/hooks/useBranchName';
 import { Ticket } from '@/hooks/useTickets';
-
 interface TicketManagementProps {
   tickets: Ticket[];
   onUpdateTicket: (ticketId: string, updatedData: any) => void;
   onAssignToBranch?: (ticketId: string, currentBranchId?: string | null) => void;
   loading: boolean;
 }
-
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'pending': return 'bg-yellow-100 text-yellow-800';
-    case 'in_progress': return 'bg-blue-100 text-blue-800';
-    case 'resolved': return 'bg-green-100 text-green-800';
-    case 'closed': return 'bg-gray-100 text-gray-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'in_progress':
+      return 'bg-blue-100 text-blue-800';
+    case 'resolved':
+      return 'bg-green-100 text-green-800';
+    case 'closed':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
   }
 };
-
 const getUserTypeColor = (userType: string) => {
   switch (userType) {
-    case 'customer': return 'bg-purple-100 text-purple-800';
-    case 'farmer': return 'bg-green-100 text-green-800';
-    case 'employee': return 'bg-blue-100 text-blue-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'customer':
+      return 'bg-purple-100 text-purple-800';
+    case 'farmer':
+      return 'bg-green-100 text-green-800';
+    case 'employee':
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
   }
 };
-
 const TicketManagement: React.FC<TicketManagementProps> = ({
   tickets,
   onUpdateTicket,
   onAssignToBranch,
   loading
 }) => {
-  const { getBranchName } = useBranchName();
+  const {
+    getBranchName
+  } = useBranchName();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
   const filteredTickets = useMemo(() => {
     return tickets.filter(ticket => {
-      const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           ticket.user_contact.includes(searchTerm) ||
-                           ticket.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || ticket.user_contact.includes(searchTerm) || ticket.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
       const matchesUserType = userTypeFilter === 'all' || ticket.user_type === userTypeFilter;
-      
       return matchesSearch && matchesStatus && matchesUserType;
     });
   }, [tickets, searchTerm, statusFilter, userTypeFilter]);
-
   const handleViewTicket = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setIsTicketDialogOpen(true);
   };
-
   const handleUpdateTicket = (updatedData: any) => {
     if (selectedTicket) {
       onUpdateTicket(selectedTicket.id, updatedData);
       setIsTicketDialogOpen(false);
     }
   };
-
   const handleAssignToBranch = (ticket: Ticket) => {
     if (onAssignToBranch) {
       onAssignToBranch(ticket.id, ticket.branch_id);
     }
   };
-
-  return (
-    <>
+  return <>
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -93,20 +90,13 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
               <TicketIcon className="h-6 w-6 text-blue-600" />
               <CardTitle className="text-2xl font-bold">Support Tickets</CardTitle>
             </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              Create New Ticket
-            </Button>
+            
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search tickets by name, contact, or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+              <Input placeholder="Search tickets by name, contact, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -137,16 +127,11 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
         </CardHeader>
         
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
+          {loading ? <div className="text-center py-8">
               <div className="text-muted-foreground">Loading tickets...</div>
-            </div>
-          ) : filteredTickets.length === 0 ? (
-            <div className="text-center py-8">
+            </div> : filteredTickets.length === 0 ? <div className="text-center py-8">
               <div className="text-muted-foreground">No tickets found</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> : <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -161,8 +146,7 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTickets.map((ticket) => (
-                    <TableRow key={ticket.id}>
+                  {filteredTickets.map(ticket => <TableRow key={ticket.id}>
                       <TableCell className="font-mono text-sm">
                         #{ticket.id.slice(-8)}
                       </TableCell>
@@ -196,39 +180,23 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            {onAssignToBranch && (
-                              <DropdownMenuItem onClick={() => handleAssignToBranch(ticket)}>
+                            {onAssignToBranch && <DropdownMenuItem onClick={() => handleAssignToBranch(ticket)}>
                                 <Building className="h-4 w-4 mr-2" />
                                 Assign to Branch
-                              </DropdownMenuItem>
-                            )}
+                              </DropdownMenuItem>}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
               </Table>
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
 
-      <EnhancedTicketDialog
-        ticket={selectedTicket}
-        isOpen={isTicketDialogOpen}
-        onClose={() => setIsTicketDialogOpen(false)}
-        onUpdateTicket={handleUpdateTicket}
-      />
+      <EnhancedTicketDialog ticket={selectedTicket} isOpen={isTicketDialogOpen} onClose={() => setIsTicketDialogOpen(false)} onUpdateTicket={handleUpdateTicket} />
 
-      <CreateTicketDialog
-        userType="admin"
-        userId="admin"
-        userName="Admin"
-        userContact="admin@example.com"
-      />
-    </>
-  );
+      <CreateTicketDialog userType="admin" userId="admin" userName="Admin" userContact="admin@example.com" />
+    </>;
 };
-
 export default TicketManagement;
