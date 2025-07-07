@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,16 @@ export interface Ticket {
   attachment_url: string | null;
   created_at: string;
   updated_at: string;
+  branch_id?: string | null;
+}
+
+export interface TicketReply {
+  id: string;
+  ticket_id: string;
+  replied_by: string;
+  reply_message: string;
+  attachment_url?: string | null;
+  created_at: string;
 }
 
 export const useTickets = () => {
@@ -79,7 +90,8 @@ export const useTickets = () => {
         status: String(ticketData.status || 'pending').trim(),
         assigned_to: ticketData.assigned_to ? String(ticketData.assigned_to).trim() : null,
         resolution: ticketData.resolution ? String(ticketData.resolution).trim() : null,
-        attachment_url: ticketData.attachment_url ? String(ticketData.attachment_url).trim() : null
+        attachment_url: ticketData.attachment_url ? String(ticketData.attachment_url).trim() : null,
+        branch_id: ticketData.branch_id || null
       };
 
       console.log('Clean insert data:', insertData);
@@ -117,6 +129,7 @@ export const useTickets = () => {
       if (ticketData.assigned_to !== undefined) updateData.assigned_to = ticketData.assigned_to;
       if (ticketData.resolution !== undefined) updateData.resolution = ticketData.resolution;
       if (ticketData.message !== undefined) updateData.message = ticketData.message;
+      if (ticketData.branch_id !== undefined) updateData.branch_id = ticketData.branch_id;
 
       const { data, error } = await supabase
         .from('tickets')
@@ -188,6 +201,48 @@ export const useTickets = () => {
     }
   };
 
+  // New function to fetch ticket replies
+  const fetchTicketReplies = async (ticketId: string): Promise<TicketReply[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('ticket_replies')
+        .select('*')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching ticket replies:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in fetchTicketReplies:', error);
+      return [];
+    }
+  };
+
+  // New function to add ticket reply
+  const addTicketReply = async (replyData: Omit<TicketReply, 'id' | 'created_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('ticket_replies')
+        .insert([replyData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding ticket reply:', error);
+        throw error;
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error in addTicketReply:', error);
+      return { success: false, error };
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
   }, []);
@@ -198,6 +253,8 @@ export const useTickets = () => {
     fetchTickets,
     addTicket,
     updateTicket,
-    deleteTicket
+    deleteTicket,
+    fetchTicketReplies,
+    addTicketReply
   };
 };

@@ -186,3 +186,13 @@ export interface Ticket {
   dateCreated?: Date;
   lastUpdated?: Date;
 }
+
+// New interface for ticket replies
+export interface TicketReply {
+  id: string;
+  ticket_id: string;
+  replied_by: string;
+  reply_message: string;
+  attachment_url?: string | null;
+  created_at: string;
+}

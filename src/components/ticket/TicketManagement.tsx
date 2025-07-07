@@ -1,31 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MessageSquare, Calendar, Clock, CheckCircle, AlertTriangle, MoreHorizontal, Eye, Building } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Eye, Search, Ticket as TicketIcon, UserCheck, Building } from 'lucide-react';
+import { Ticket } from '@/utils/types';
+import EnhancedTicketDialog from './EnhancedTicketDialog';
 import { format } from 'date-fns';
-import TicketDialog from './TicketDialog';
-
-interface Ticket {
-  id: string;
-  user_id: string;
-  user_name: string;
-  user_type: string;
-  user_contact: string;
-  message: string;
-  status: string;
-  assigned_to: string | null;
-  resolution: string | null;
-  attachment_url: string | null;
-  created_at: string;
-  updated_at: string;
-  branch_id?: string | null;
-}
 
 interface TicketManagementProps {
   tickets: Ticket[];
@@ -40,193 +24,262 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
   onAssignToBranch,
   loading = false
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [userTypeFilter, setUserTypeFilter] = useState('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showTicketDialog, setShowTicketDialog] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'resolved':
-        return 'bg-green-100 text-green-800';
-      case 'closed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return <Clock className="h-4 w-4" />;
-      case 'in_progress':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'resolved':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'closed':
-        return <CheckCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const handleTicketClick = (ticket: Ticket) => {
+  const handleViewTicket = (ticket: Ticket) => {
     setSelectedTicket(ticket);
-    setIsDialogOpen(true);
+    setShowTicketDialog(true);
   };
 
-  const handleTicketUpdate = (ticketId: string, updatedData: any) => {
-    onUpdateTicket(ticketId, updatedData);
-    setIsDialogOpen(false);
+  const handleCloseDialog = () => {
+    setShowTicketDialog(false);
     setSelectedTicket(null);
   };
 
-  const filteredTickets = tickets.filter(ticket => 
-    statusFilter === 'all' || ticket.status === statusFilter
-  );
+  // Filter tickets based on search and filters
+  const filteredTickets = tickets.filter(ticket => {
+    const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ticket.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ticket.user_contact.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+    const matchesUserType = userTypeFilter === 'all' || ticket.user_type === userTypeFilter;
+    
+    return matchesSearch && matchesStatus && matchesUserType;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'in-review':
+        return 'bg-blue-100 text-blue-800';
+      case 'closed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUserTypeColor = (userType: string) => {
+    return userType === 'farmer' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+  };
+
+  const getPriorityByStatus = (status: string) => {
+    switch (status) {
+      case 'pending': return 1;
+      case 'in-review': return 2;
+      case 'closed': return 3;
+      default: return 4;
+    }
+  };
+
+  // Sort tickets by priority (pending first, then in-review, then closed)
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    const priorityA = getPriorityByStatus(a.status);
+    const priorityB = getPriorityByStatus(b.status);
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // If same priority, sort by creation date (newest first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">Loading tickets...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading tickets...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with filter */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">Support Tickets</h2>
-          <Badge variant="outline">{filteredTickets.length}</Badge>
-        </div>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-2">
+        <TicketIcon className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold">Support Tickets</h1>
       </div>
 
-      {/* Tickets List */}
-      {filteredTickets.length === 0 ? (
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="text-center py-8">
-            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No tickets found</p>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{tickets.length}</div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4">
-          {filteredTickets.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">
-                        Ticket #{ticket.id.slice(-8)}
-                      </CardTitle>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {tickets.filter(t => t.status === 'pending').length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              In Review
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {tickets.filter(t => t.status === 'in-review').length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Closed
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {tickets.filter(t => t.status === 'closed').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tickets</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user name, message, or contact..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in-review">In Review</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="User Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="farmer">Farmers</SelectItem>
+                <SelectItem value="customer">Customers</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ticket ID</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedTickets.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-mono">
+                      #{ticket.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{ticket.user_name}</span>
+                        <Badge className={getUserTypeColor(ticket.user_type)}>
+                          {ticket.user_type}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>{ticket.user_contact}</TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate" title={ticket.message}>
+                        {ticket.message}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Badge className={getStatusColor(ticket.status)}>
-                        <span className="flex items-center gap-1">
-                          {getStatusIcon(ticket.status)}
-                          {ticket.status.replace('_', ' ').toUpperCase()}
-                        </span>
+                        {ticket.status.replace('-', ' ').toUpperCase()}
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
-                      </span>
-                      <span>{ticket.user_type}: {ticket.user_name}</span>
-                      <span>{ticket.user_contact}</span>
-                    </div>
-                  </div>
-                  
-                  {/* 3 Dots Menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleTicketClick(ticket)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      {onAssignToBranch && (
-                        <DropdownMenuItem onClick={() => onAssignToBranch(ticket.id, ticket.branch_id)}>
-                          <Building className="h-4 w-4 mr-2" />
-                          Assign to Branch
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      Message:
-                    </p>
-                    <p className="text-sm line-clamp-2">{ticket.message}</p>
-                  </div>
-                  
-                  {ticket.resolution && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">
-                        Resolution:
-                      </p>
-                      <p className="text-sm text-green-700 bg-green-50 p-2 rounded line-clamp-2">
-                        {ticket.resolution}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {ticket.assigned_to && (
-                    <div className="text-xs text-muted-foreground">
-                      Assigned to: {ticket.assigned_to}
-                    </div>
-                  )}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(ticket.created_at), 'MMM dd, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTicket(ticket)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {onAssignToBranch && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onAssignToBranch(ticket.id, (ticket as any).branch_id)}
+                            title="Assign to Branch"
+                          >
+                            <Building className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-                  {ticket.branch_id && (
-                    <div className="text-xs text-muted-foreground">
-                      Branch ID: {ticket.branch_id}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+          {sortedTickets.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No tickets found matching your criteria.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Ticket Detail Dialog */}
-      <TicketDialog
-        isOpen={isDialogOpen}
-        onClose={() => {
-          setIsDialogOpen(false);
-          setSelectedTicket(null);
-        }}
+      {/* Enhanced Ticket Dialog */}
+      <EnhancedTicketDialog
         ticket={selectedTicket}
-        onUpdateTicket={handleTicketUpdate}
+        isOpen={showTicketDialog}
+        onClose={handleCloseDialog}
+        onUpdateTicket={onUpdateTicket}
       />
     </div>
   );

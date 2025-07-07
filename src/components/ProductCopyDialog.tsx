@@ -1,21 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Package } from 'lucide-react';
+import { Copy, X, Shirt } from 'lucide-react';
 import { useBranches } from '@/hooks/useBranches';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
 interface ProductCopyDialogProps {
   open: boolean;
   onClose: () => void;
   selectedProducts: any[];
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
 const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
@@ -24,22 +24,11 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
   selectedProducts,
   onSuccess
 }) => {
-  const [targetBranchId, setTargetBranchId] = useState<string>('');
-  const [productsToProcess, setProductsToProcess] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [targetBranchId, setTargetBranchId] = useState('');
+  const [loading, setLoading] = useState(false);
   const { branches } = useBranches();
   const { toast } = useToast();
-  const { currentUser } = useAuth();
-
-  // Update productsToProcess when selectedProducts changes
-  useEffect(() => {
-    console.log('Selected products received:', selectedProducts);
-    setProductsToProcess(selectedProducts);
-  }, [selectedProducts]);
-
-  const removeProduct = (productId: string) => {
-    setProductsToProcess(prev => prev.filter(p => p.id !== productId));
-  };
+  const { selectedBranch, currentUser } = useAuth();
 
   const handleCopy = async () => {
     if (!targetBranchId) {
@@ -51,58 +40,58 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
       return;
     }
 
-    if (productsToProcess.length === 0) {
+    if (selectedProducts.length === 0) {
       toast({
         title: "Error",
-        description: "No products selected for copying",
+        description: "No products selected to copy",
         variant: "destructive"
       });
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
+
     try {
-      const targetBranch = branches.find(b => b.id === targetBranchId);
-      if (!targetBranch) {
-        throw new Error('Target branch not found');
-      }
+      // Create product copy operation record
+      const { data: copyOperation, error: copyError } = await supabase
+        .from('product_copy_operations')
+        .insert({
+          source_branch_id: selectedBranch,
+          target_branch_id: targetBranchId,
+          product_ids: selectedProducts.map(p => p.id),
+          created_by: currentUser?.email || 'Unknown',
+          status: 'in_progress'
+        })
+        .select()
+        .single();
+
+      if (copyError) throw copyError;
 
       // Copy each product
-      for (const product of productsToProcess) {
-        // Generate new barcode for target branch
-        const { data: barcodeData, error: barcodeError } = await supabase
-          .rpc('generate_branch_barcode', { branch_name: targetBranch.branch_name });
-
-        if (barcodeError) {
-          throw barcodeError;
-        }
-
-        const newBarcode = barcodeData;
+      for (const product of selectedProducts) {
+        const productData = {
+          name: product.name,
+          category: product.category,
+          price_per_unit: product.price_per_unit,
+          description: product.description,
+          image_url: product.image_url,
+          is_active: product.is_active,
+          branch_id: targetBranchId
+        };
 
         if (product.type === 'fashion') {
           // Copy fashion product
           const { data: newFashionProduct, error: fashionError } = await supabase
             .from('fashion_products')
-            .insert([{
-              name: product.name,
-              description: product.description,
-              price_per_unit: product.price_per_unit,
-              category: product.category,
-              barcode: newBarcode,
-              image_url: product.image_url,
-              is_active: product.is_active,
-              branch_id: targetBranchId
-            }])
+            .insert(productData)
             .select()
             .single();
 
-          if (fashionError) {
-            throw fashionError;
-          }
+          if (fashionError) throw fashionError;
 
-          // Copy sizes
+          // Copy fashion product sizes
           if (product.sizes && product.sizes.length > 0) {
-            const sizesToInsert = product.sizes.map((size: any) => ({
+            const sizesData = product.sizes.map((size: any) => ({
               fashion_product_id: newFashionProduct.id,
               size: size.size,
               pieces: size.pieces
@@ -110,81 +99,78 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
 
             const { error: sizesError } = await supabase
               .from('fashion_product_sizes')
-              .insert(sizesToInsert);
+              .insert(sizesData);
 
-            if (sizesError) {
-              throw sizesError;
-            }
+            if (sizesError) throw sizesError;
           }
         } else {
           // Copy general product
+          const generalProductData = {
+            ...productData,
+            quantity: product.quantity,
+            unit: product.unit,
+            barcode: null // Generate new barcode for copied product
+          };
+
           const { error: productError } = await supabase
             .from('products')
-            .insert([{
-              name: product.name,
-              description: product.description,
-              quantity: product.quantity,
-              unit: product.unit,
-              price_per_unit: product.price_per_unit,
-              category: product.category,
-              barcode: newBarcode,
-              image_url: product.image_url,
-              is_active: product.is_active,
-              branch_id: targetBranchId
-            }]);
+            .insert(generalProductData);
 
-          if (productError) {
-            throw productError;
-          }
+          if (productError) throw productError;
         }
       }
 
-      // Log the copy operation
+      // Update copy operation status
       await supabase
         .from('product_copy_operations')
-        .insert([{
-          source_branch_id: currentUser?.branch_id,
-          target_branch_id: targetBranchId,
-          product_ids: productsToProcess.map(p => p.id),
-          created_by: currentUser?.email || 'unknown',
-          status: 'completed'
-        }]);
+        .update({ status: 'completed' })
+        .eq('id', copyOperation.id);
 
       toast({
         title: "Success",
-        description: `${productsToProcess.length} products copied successfully with new barcodes`
+        description: `Successfully copied ${selectedProducts.length} products to the target branch`,
       });
 
-      onSuccess?.();
+      onSuccess();
       onClose();
     } catch (error) {
       console.error('Error copying products:', error);
       toast({
         title: "Error",
-        description: "Failed to copy products",
+        description: "Failed to copy products. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  // Filter out current branch from target options
+  const availableBranches = branches.filter(branch => 
+    branch.id !== selectedBranch && branch.is_active
+  );
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Copy Products to Branch</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Copy className="h-5 w-5" />
+            Copy Products to Another Branch
+          </DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
+
+        <div className="space-y-6">
           <div>
-            <label className="text-sm font-medium">Target Branch</label>
+            <label className="text-sm font-medium mb-2 block">
+              Target Branch <span className="text-red-500">*</span>
+            </label>
             <Select value={targetBranchId} onValueChange={setTargetBranchId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select branch to copy products to" />
+                <SelectValue placeholder="Select target branch" />
               </SelectTrigger>
               <SelectContent>
-                {branches.filter(branch => branch.is_active).map((branch) => (
+                {availableBranches.map((branch) => (
                   <SelectItem key={branch.id} value={branch.id}>
                     {branch.branch_name} - {branch.state}
                   </SelectItem>
@@ -195,72 +181,79 @@ const ProductCopyDialog: React.FC<ProductCopyDialogProps> = ({
 
           <div>
             <h3 className="text-lg font-medium mb-3">
-              Products to Copy ({productsToProcess.length})
+              Products to Copy ({selectedProducts.length})
             </h3>
-            {productsToProcess.length === 0 ? (
+            
+            {selectedProducts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No products selected for copying</p>
+                No products selected for copying
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                {productsToProcess.map((product) => (
-                  <Card key={product.id} className="relative">
-                    <CardContent className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{product.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {product.category}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              ₹{product.price_per_unit}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {product.type === 'fashion' ? (
-                              `${product.totalPieces || 0} pieces`
-                            ) : (
-                              `${product.quantity || 0} ${product.unit || 'pcs'}`
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {product.type === 'fashion' && (
+                              <Shirt className="h-4 w-4 text-purple-600" />
                             )}
+                            <span className="font-medium">{product.name}</span>
                           </div>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => removeProduct(product.id)}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        </TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell>
+                          {product.type === 'fashion' ? (
+                            <div>
+                              <span>{product.totalPieces || 0} pieces</span>
+                              {product.sizes && (
+                                <div className="text-xs text-muted-foreground">
+                                  {product.sizes.map((s: any) => `${s.size}: ${s.pieces}`).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span>{product.quantity} {product.unit}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>₹{product.price_per_unit}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.is_active !== false ? "default" : "secondary"}>
+                            {product.is_active !== false ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
 
-          <div className="bg-blue-50 p-3 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> New barcodes will be automatically generated for copied products 
-              based on the target branch name. Prices and quantities can be modified after copying.
-            </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCopy} 
+              disabled={loading || !targetBranchId || selectedProducts.length === 0}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {loading ? 'Copying...' : `Copy ${selectedProducts.length} Products`}
+            </Button>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleCopy} 
-            disabled={isLoading || !targetBranchId || productsToProcess.length === 0}
-          >
-            {isLoading ? 'Copying...' : `Copy ${productsToProcess.length} Products`}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

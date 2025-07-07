@@ -998,6 +998,41 @@ export type Database = {
           },
         ]
       }
+      ticket_replies: {
+        Row: {
+          attachment_url: string | null
+          created_at: string | null
+          id: string
+          replied_by: string
+          reply_message: string
+          ticket_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string | null
+          id?: string
+          replied_by: string
+          reply_message: string
+          ticket_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string | null
+          id?: string
+          replied_by?: string
+          reply_message?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           assigned_to: string | null
