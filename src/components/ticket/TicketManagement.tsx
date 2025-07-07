@@ -216,13 +216,16 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
 
       <EnhancedTicketDialog
         ticket={selectedTicket}
-        open={isTicketDialogOpen}
-        onOpenChange={setIsTicketDialogOpen}
+        isOpen={isTicketDialogOpen}
+        onClose={() => setIsTicketDialogOpen(false)}
         onUpdateTicket={handleUpdateTicket}
       />
 
       <CreateTicketDialog
-        onOpenChange={setIsCreateDialogOpen}
+        userType="admin"
+        userId="admin"
+        userName="Admin"
+        userContact="admin@example.com"
       />
     </>
   );
