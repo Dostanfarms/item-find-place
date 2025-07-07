@@ -35,15 +35,15 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     phone: employee?.phone || '',
     password: employee?.password || '',
     role: employee?.role || 'sales',
-    profilePhoto: employee?.profile_photo || '',
+    profilePhoto: employee?.profilePhoto || '',
     state: employee?.state || '',
     district: employee?.district || '',
     village: employee?.village || '',
-    accountHolderName: employee?.account_holder_name || '',
-    accountNumber: employee?.account_number || '',
-    bankName: employee?.bank_name || '',
-    ifscCode: employee?.ifsc_code || '',
-    branchId: employee?.branch_id || ''
+    accountHolderName: employee?.accountHolderName || '',
+    accountNumber: employee?.accountNumber || '',
+    bankName: employee?.bankName || '',
+    ifscCode: employee?.ifscCode || '',
+    branchId: employee?.branchId || employee?.branch_id || ''
   });
 
   // Filter branches based on user permissions
@@ -69,18 +69,17 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       phone: formData.phone,
       password: formData.password,
       role: formData.role as any,
-      profile_photo: formData.profilePhoto,
+      profilePhoto: formData.profilePhoto,
       state: formData.state,
       district: formData.district,
       village: formData.village,
-      account_holder_name: formData.accountHolderName,
-      account_number: formData.accountNumber,
-      bank_name: formData.bankName,
-      ifsc_code: formData.ifscCode,
+      accountHolderName: formData.accountHolderName,
+      accountNumber: formData.accountNumber,
+      bankName: formData.bankName,
+      ifscCode: formData.ifscCode,
+      branchId: formData.branchId,
       branch_id: formData.branchId,
-      is_active: true,
-      created_at: employee?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      is_active: true
     };
 
     onSubmit(submissionData);
