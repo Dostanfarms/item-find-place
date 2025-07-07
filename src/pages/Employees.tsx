@@ -92,9 +92,7 @@ const Employees = () => {
         ifscCode: employeeData.ifscCode,
         isActive: employeeData.isActive !== false,
         branchId: employeeData.branchId || employeeData.branch_id,
-        dateJoined: employeeData.dateJoined || new Date().toISOString(),
-        createdAt: '',
-        updatedAt: ''
+        branch_id: employeeData.branchId || employeeData.branch_id
       });
 
       if (result?.success) {
