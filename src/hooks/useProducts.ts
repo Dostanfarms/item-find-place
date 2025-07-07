@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -58,7 +59,22 @@ export const useProducts = () => {
     }
   };
 
-  const generateUniqueBarcode = async (): Promise<string> => {
+  const generateUniqueBarcode = async (branchName?: string): Promise<string> => {
+    if (branchName) {
+      // Use the database function for branch-specific barcode generation
+      const { data, error } = await supabase.rpc('generate_branch_barcode', {
+        branch_name: branchName
+      });
+      
+      if (error) {
+        console.error('Error generating branch barcode:', error);
+        // Fallback to generic barcode generation
+      } else if (data) {
+        return data;
+      }
+    }
+    
+    // Fallback to generic barcode generation
     let barcode: string;
     let isUnique = false;
     
@@ -84,7 +100,18 @@ export const useProducts = () => {
     try {
       console.log('Adding product:', productData);
       
-      const barcode = await generateUniqueBarcode();
+      // Get branch name for barcode generation
+      let branchName = null;
+      if (productData.branch_id) {
+        const { data: branchData } = await supabase
+          .from('branches')
+          .select('branch_name')
+          .eq('id', productData.branch_id)
+          .single();
+        branchName = branchData?.branch_name;
+      }
+      
+      const barcode = await generateUniqueBarcode(branchName);
       
       // Auto-assign current user's branch if not admin
       let branchId = productData.branch_id;

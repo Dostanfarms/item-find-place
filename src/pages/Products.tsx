@@ -1,30 +1,36 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { Search, Plus, Package, Edit, Printer, Shirt } from 'lucide-react';
+import { Search, Plus, Package, Edit, Printer, Shirt, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import GeneralProductForm from '@/components/GeneralProductForm';
 import FashionProductForm from '@/components/FashionProductForm';
 import ProtectedAction from '@/components/ProtectedAction';
+import BranchFilter from '@/components/BranchFilter';
+import ProductCopyDialog from '@/components/ProductCopyDialog';
 import { useAuth } from '@/context/AuthContext';
 
 const Products = () => {
   const { toast } = useToast();
-  const { hasPermission } = useAuth();
+  const { hasPermission, selectedBranch, currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
   const [selectedFashionProduct, setSelectedFashionProduct] = useState<any>(undefined);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
   
-  const { products, loading: productsLoading } = useProducts();
-  const { fashionProducts, loading: fashionLoading } = useFashionProducts();
+  const { products, loading: productsLoading, fetchProducts } = useProducts();
+  const { fashionProducts, loading: fashionLoading, fetchFashionProducts } = useFashionProducts();
   const { categories } = useCategories();
 
   const loading = productsLoading || fashionLoading;
@@ -32,21 +38,23 @@ const Products = () => {
   console.log('Fashion products in Products page:', fashionProducts);
   console.log('Categories:', categories);
 
-  // Combine all products based on selected category
+  // Combine all products based on selected category and branch filter
   const getAllProducts = () => {
+    let allProducts = [];
+    
     if (selectedCategory === 'all') {
-      return [
+      allProducts = [
         ...products.map(p => ({ ...p, type: 'general' as const })),
         ...fashionProducts.map(p => ({ 
           ...p, 
           type: 'fashion' as const, 
           totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
-          quantity: undefined, // Fashion products don't have quantity
-          unit: undefined // Fashion products don't have unit
+          quantity: undefined,
+          unit: undefined
         }))
       ];
     } else if (selectedCategory === 'Fashion') {
-      return fashionProducts.map(p => ({ 
+      allProducts = fashionProducts.map(p => ({ 
         ...p, 
         type: 'fashion' as const, 
         totalPieces: p.sizes?.reduce((sum, s) => sum + s.pieces, 0) || 0,
@@ -54,8 +62,15 @@ const Products = () => {
         unit: undefined
       }));
     } else {
-      return products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' as const }));
+      allProducts = products.filter(p => p.category === selectedCategory).map(p => ({ ...p, type: 'general' as const }));
     }
+
+    // Apply branch filter for admin users
+    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
+      allProducts = allProducts.filter(product => product.branch_id === selectedBranch);
+    }
+
+    return allProducts;
   };
 
   const allProducts = getAllProducts();
@@ -105,6 +120,40 @@ const Products = () => {
     setShowForm(false);
     setSelectedProduct(undefined);
     setSelectedFashionProduct(undefined);
+  };
+
+  const handleSelectProduct = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(filteredProducts.map(p => p.id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleCopyProducts = () => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select products to copy",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowCopyDialog(true);
+  };
+
+  const handleCopySuccess = () => {
+    setSelectedProducts([]);
+    fetchProducts();
+    fetchFashionProducts();
   };
 
   const printBarcode = (product: any) => {
@@ -244,6 +293,7 @@ const Products = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <BranchFilter />
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -253,12 +303,20 @@ const Products = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <ProtectedAction resource="products" action="create">
-                <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
-                  <Plus className="mr-2 h-4 w-4" /> 
-                  {selectedCategory === 'Fashion' ? 'Add Fashion Product' : 'Add Product'}
-                </Button>
-              </ProtectedAction>
+              <div className="flex gap-2">
+                {currentUser?.role?.toLowerCase() === 'admin' && selectedProducts.length > 0 && (
+                  <Button variant="outline" onClick={handleCopyProducts}>
+                    <Copy className="mr-2 h-4 w-4" /> 
+                    Copy ({selectedProducts.length})
+                  </Button>
+                )}
+                <ProtectedAction resource="products" action="create">
+                  <Button className="bg-agri-primary hover:bg-agri-secondary" onClick={handleCreateProduct}>
+                    <Plus className="mr-2 h-4 w-4" /> 
+                    {selectedCategory === 'Fashion' ? 'Add Fashion Product' : 'Add Product'}
+                  </Button>
+                </ProtectedAction>
+              </div>
             </div>
           </div>
           
@@ -336,6 +394,14 @@ const Products = () => {
                 <Table>
                   <TableHeader className="bg-gray-50">
                     <TableRow>
+                      {currentUser?.role?.toLowerCase() === 'admin' && (
+                        <TableHead className="w-12">
+                          <Checkbox 
+                            checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
+                      )}
                       <TableHead className="min-w-[150px] font-semibold">Product Name</TableHead>
                       <TableHead className="min-w-[100px] font-semibold">Category</TableHead>
                       <TableHead className="min-w-[80px] font-semibold">Stock</TableHead>
@@ -348,6 +414,14 @@ const Products = () => {
                   <TableBody>
                     {filteredProducts.map((product) => (
                       <TableRow key={product.id} className="hover:bg-gray-50 border-b">
+                        {currentUser?.role?.toLowerCase() === 'admin' && (
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {product.type === 'fashion' && <Shirt className="h-4 w-4 text-purple-600" />}
@@ -443,6 +517,14 @@ const Products = () => {
           </Card>
         )}
       </div>
+
+      {/* Product Copy Dialog */}
+      <ProductCopyDialog
+        open={showCopyDialog}
+        onClose={() => setShowCopyDialog(false)}
+        selectedProducts={filteredProducts.filter(p => selectedProducts.includes(p.id))}
+        onSuccess={handleCopySuccess}
+      />
     </div>
   );
 };

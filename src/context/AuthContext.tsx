@@ -11,6 +11,8 @@ interface AuthContextProps {
   logout: () => void;
   checkPermission: (resource: string, action: string) => boolean;
   hasPermission: (resource: string, action: string) => boolean;
+  selectedBranch: string | null;
+  setSelectedBranch: (branchId: string | null) => void;
 }
 
 interface User {
@@ -34,6 +36,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     return storedUser ? JSON.parse(storedUser) : null;
   });
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
   // Fetch role permissions from database with case-insensitive matching
   const fetchRolePermissions = async (roleName: string) => {
@@ -43,7 +46,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       const { data, error } = await supabase
         .from('roles')
         .select('permissions')
-        .ilike('name', roleName) // Use ilike for case-insensitive matching
+        .ilike('name', roleName)
         .eq('is_active', true)
         .single();
 
@@ -164,6 +167,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     console.log('=== LOGOUT ===');
     setUser(null);
+    setSelectedBranch(null);
     // Redirect to /app instead of login page
     window.location.href = '/app';
   };
@@ -177,21 +181,32 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('=== PERMISSION CHECK ===');
     console.log('Resource:', resource, 'Action:', action);
     console.log('User:', user.name, 'Role:', user.role);
+    
+    // Admin has all permissions
+    if (user.role.toLowerCase() === 'admin') {
+      console.log('Admin user - granting all permissions');
+      return true;
+    }
+    
     console.log('Available permissions:', rolePermissions);
     
-    // First check database permissions
+    // First check database permissions - strict enforcement
     if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
       const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
       console.log('Found resource permission from DB:', resourcePermission);
       
       if (resourcePermission && Array.isArray(resourcePermission.actions)) {
         const hasPermission = resourcePermission.actions.includes(action);
-        console.log('DB Permission result:', hasPermission);
+        console.log('DB Permission result (STRICT):', hasPermission);
         return hasPermission;
+      } else {
+        // If no specific permission found in database, deny access
+        console.log('No database permission found - denying access');
+        return false;
       }
     }
 
-    // Fallback to hardcoded permissions
+    // If no database permissions available, fallback to hardcoded (should not happen in production)
     console.log('Falling back to hardcoded permissions');
     const hasHardcodedPermission = checkRolePermission(user.role, resource, action);
     console.log('Hardcoded permission result:', hasHardcodedPermission);
@@ -209,6 +224,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     checkPermission,
     hasPermission,
+    selectedBranch,
+    setSelectedBranch,
   };
 
   return (

@@ -8,14 +8,30 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import ProtectedAction from '@/components/ProtectedAction';
+import BranchFilter from '@/components/BranchFilter';
+import BranchAssignmentDialog from '@/components/BranchAssignmentDialog';
 import { useAuth } from '@/context/AuthContext';
 
 const TicketsPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentUser, selectedBranch } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { tickets, updateTicket, loading } = useTickets();
+  const [assignmentDialog, setAssignmentDialog] = useState<{
+    open: boolean;
+    ticketId: string;
+    currentBranchId?: string | null;
+  }>({ open: false, ticketId: '' });
+  
+  const { tickets, updateTicket, loading, fetchTickets } = useTickets();
+
+  // Filter tickets based on selected branch for admin users
+  const filteredTickets = React.useMemo(() => {
+    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
+      return tickets.filter(ticket => ticket.branch_id === selectedBranch);
+    }
+    return tickets;
+  }, [tickets, selectedBranch, currentUser]);
 
   const handleUpdateTicket = async (ticketId: string, updatedData: any) => {
     if (!hasPermission('tickets', 'edit')) {
@@ -37,6 +53,19 @@ const TicketsPage: React.FC = () => {
         description: `Ticket #${ticketId} has been updated successfully.`,
       });
     }
+  };
+
+  const handleAssignToBranch = (ticketId: string, currentBranchId?: string | null) => {
+    setAssignmentDialog({
+      open: true,
+      ticketId,
+      currentBranchId
+    });
+  };
+
+  const handleAssignmentSuccess = () => {
+    fetchTickets();
+    setAssignmentDialog({ open: false, ticketId: '' });
   };
 
   // Check if user has permission to view tickets
@@ -70,6 +99,9 @@ const TicketsPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">Ticket Management</h1>
+        <div className="ml-auto">
+          <BranchFilter />
+        </div>
       </div>
       
       {/* Mobile sidebar */}
@@ -111,12 +143,23 @@ const TicketsPage: React.FC = () => {
       <ScrollArea className="flex-1 overflow-y-auto">
         <ProtectedAction resource="tickets" action="view">
           <TicketManagement 
-            tickets={tickets} 
+            tickets={filteredTickets} 
             onUpdateTicket={handleUpdateTicket}
+            onAssignToBranch={currentUser?.role?.toLowerCase() === 'admin' ? handleAssignToBranch : undefined}
             loading={loading}
           />
         </ProtectedAction>
       </ScrollArea>
+
+      {/* Branch Assignment Dialog */}
+      <BranchAssignmentDialog
+        open={assignmentDialog.open}
+        onClose={() => setAssignmentDialog({ open: false, ticketId: '' })}
+        itemId={assignmentDialog.ticketId}
+        itemType="ticket"
+        currentBranchId={assignmentDialog.currentBranchId}
+        onSuccess={handleAssignmentSuccess}
+      />
     </div>
   );
 };
