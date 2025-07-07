@@ -33,6 +33,8 @@ export const useFarmers = () => {
   const fetchFarmers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching farmers for user:', currentUser);
+      
       const { data, error } = await supabase
         .from('farmers')
         .select('*')
@@ -47,6 +49,9 @@ export const useFarmers = () => {
         });
         return;
       }
+
+      console.log('Raw farmers from database:', data?.length, 'items');
+      console.log('Sample farmers:', data?.slice(0, 2));
 
       const formattedFarmers = data?.map(farmer => ({
         id: farmer.id,
@@ -75,6 +80,7 @@ export const useFarmers = () => {
         currentUser?.branch_id || null
       );
 
+      console.log('Filtered farmers after branch restriction:', filteredFarmers.length, 'items');
       setFarmers(filteredFarmers);
     } catch (error) {
       console.error('Error in fetchFarmers:', error);
@@ -94,6 +100,7 @@ export const useFarmers = () => {
       let branchId = farmerData.branch_id;
       if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
         branchId = currentUser.branch_id;
+        console.log('Auto-assigning branch to farmer:', branchId);
       }
 
       const { data, error } = await supabase
@@ -232,14 +239,151 @@ export const useFarmers = () => {
 
   useEffect(() => {
     fetchFarmers();
-  }, []);
+  }, [currentUser?.branch_id]); // Re-fetch when user's branch changes
 
   return {
     farmers,
     loading,
     fetchFarmers,
-    addFarmer,
-    updateFarmer,
-    deleteFarmer
+    addFarmer: async (farmerData: Omit<Farmer, 'id' | 'date_joined' | 'products' | 'transactions'>) => {
+      try {
+        // Auto-assign current user's branch if not admin
+        let branchId = farmerData.branch_id;
+        if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+          branchId = currentUser.branch_id;
+          console.log('Auto-assigning branch to farmer:', branchId);
+        }
+
+        const { data, error } = await supabase
+          .from('farmers')
+          .insert([{
+            name: farmerData.name,
+            email: farmerData.email,
+            phone: farmerData.phone,
+            password: farmerData.password,
+            address: farmerData.address,
+            state: farmerData.state,
+            district: farmerData.district,
+            village: farmerData.village,
+            bank_name: farmerData.bank_name,
+            account_number: farmerData.account_number,
+            ifsc_code: farmerData.ifsc_code,
+            profile_photo: farmerData.profile_photo,
+            branch_id: branchId
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error adding farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to add farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: `${farmerData.name} was successfully added`
+        });
+        
+        return { success: true, data };
+      } catch (error) {
+        console.error('Error in addFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    },
+    updateFarmer: async (id: string, farmerData: Partial<Farmer>) => {
+      try {
+        const { data, error } = await supabase
+          .from('farmers')
+          .update({
+            name: farmerData.name,
+            email: farmerData.email,
+            phone: farmerData.phone,
+            password: farmerData.password,
+            address: farmerData.address,
+            state: farmerData.state,
+            district: farmerData.district,
+            village: farmerData.village,
+            bank_name: farmerData.bank_name,
+            account_number: farmerData.account_number,
+            ifsc_code: farmerData.ifsc_code,
+            profile_photo: farmerData.profile_photo,
+            branch_id: farmerData.branch_id
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to update farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: `${farmerData.name}'s information was successfully updated`
+        });
+        
+        return { success: true, data };
+      } catch (error) {
+        console.error('Error in updateFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    },
+    deleteFarmer: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('farmers')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to delete farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: "Farmer has been deleted successfully"
+        });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error in deleteFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    }
   };
 };

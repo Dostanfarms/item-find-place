@@ -46,6 +46,23 @@ export const rolePermissions: Record<string, Permission[]> = {
     { resource: 'tickets', actions: ['view', 'create'] },
     { resource: 'transactions', actions: ['view', 'create'] },
     { resource: 'fashion_products', actions: ['view'] }
+  ],
+  employee: [
+    { resource: 'dashboard', actions: ['view'] },
+    { resource: 'products', actions: ['view', 'create', 'edit'] },
+    { resource: 'orders', actions: ['view', 'create', 'edit'] },
+    { resource: 'customers', actions: ['view', 'create', 'edit'] },
+    { resource: 'farmers', actions: ['view', 'create', 'edit'] },
+    { resource: 'tickets', actions: ['view', 'create'] },
+    { resource: 'categories', actions: ['view', 'create', 'edit'] },
+    { resource: 'coupons', actions: ['view', 'create', 'edit'] },
+    { resource: 'banners', actions: ['view', 'edit'] },
+    { resource: 'branches', actions: ['view'] },
+    { resource: 'employees', actions: ['view'] },
+    { resource: 'roles', actions: ['view'] },
+    { resource: 'transactions', actions: ['view', 'create'] },
+    { resource: 'settlements', actions: ['view'] },
+    { resource: 'fashion_products', actions: ['view', 'create', 'edit'] }
   ]
 };
 
@@ -60,14 +77,21 @@ export const hasPermission = (userRole: string, resource: string, action: string
   return resourcePermission?.actions.includes(action as any) || false;
 };
 
-// Branch access restrictions
+// Branch access restrictions - Fixed logic
 export const canAccessBranch = (userRole: string, userBranchId: string | null, targetBranchId: string | null): boolean => {
+  console.log('Branch access check:', { userRole, userBranchId, targetBranchId });
+  
   // Admin can access all branches
   if (userRole.toLowerCase() === 'admin') {
     return true;
   }
   
-  // Other roles can only access their assigned branch or null branch items
+  // If user has no branch assigned, they can only access items with no branch
+  if (!userBranchId) {
+    return targetBranchId === null;
+  }
+  
+  // User can access their assigned branch and items with no branch assignment
   return userBranchId === targetBranchId || targetBranchId === null;
 };
 
@@ -76,13 +100,32 @@ export const getBranchRestrictedData = <T extends { branch_id?: string | null }>
   userRole: string, 
   userBranchId: string | null
 ): T[] => {
+  console.log('Filtering data:', { 
+    totalItems: data.length, 
+    userRole, 
+    userBranchId,
+    sampleItem: data[0] 
+  });
+  
+  // Admin can see all data
   if (userRole.toLowerCase() === 'admin') {
+    console.log('Admin user - returning all data');
     return data;
   }
   
-  return data.filter(item => 
-    item.branch_id === userBranchId || item.branch_id === null
-  );
+  // Filter data based on branch access
+  const filteredData = data.filter(item => {
+    const hasAccess = canAccessBranch(userRole, userBranchId, item.branch_id);
+    console.log('Item access check:', { 
+      itemId: (item as any).id, 
+      itemBranch: item.branch_id, 
+      hasAccess 
+    });
+    return hasAccess;
+  });
+  
+  console.log('Filtered data count:', filteredData.length);
+  return filteredData;
 };
 
 // Role-specific branch access restrictions

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { hasPermission as checkRolePermission } from '@/utils/employeeData';
 
 interface AuthContextProps {
   user: User | null;
@@ -178,26 +179,24 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('User:', user.name, 'Role:', user.role);
     console.log('Available permissions:', rolePermissions);
     
-    // Check database permissions
+    // First check database permissions
     if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
       const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
-      console.log('Found resource permission:', resourcePermission);
+      console.log('Found resource permission from DB:', resourcePermission);
       
       if (resourcePermission && Array.isArray(resourcePermission.actions)) {
         const hasPermission = resourcePermission.actions.includes(action);
-        console.log('Permission result:', hasPermission);
+        console.log('DB Permission result:', hasPermission);
         return hasPermission;
       }
     }
 
-    // Fallback: admin role gets all permissions (case-insensitive)
-    if (user.role.toLowerCase() === 'admin') {
-      console.log('Admin user - granting access');
-      return true;
-    }
-
-    console.log('Permission denied');
-    return false;
+    // Fallback to hardcoded permissions
+    console.log('Falling back to hardcoded permissions');
+    const hasHardcodedPermission = checkRolePermission(user.role, resource, action);
+    console.log('Hardcoded permission result:', hasHardcodedPermission);
+    
+    return hasHardcodedPermission;
   };
 
   // Add hasPermission as an alias for checkPermission

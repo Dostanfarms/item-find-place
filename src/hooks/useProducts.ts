@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -28,6 +27,8 @@ export const useProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      console.log('Fetching products for user:', currentUser);
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -38,6 +39,9 @@ export const useProducts = () => {
         return;
       }
 
+      console.log('Raw products from database:', data?.length, 'items');
+      console.log('Sample products:', data?.slice(0, 2));
+
       // Apply branch filtering
       const filteredProducts = getBranchRestrictedData(
         data || [], 
@@ -45,6 +49,7 @@ export const useProducts = () => {
         currentUser?.branch_id || null
       );
 
+      console.log('Filtered products after branch restriction:', filteredProducts.length, 'items');
       setProducts(filteredProducts);
     } catch (error) {
       console.error('Error in fetchProducts:', error);
@@ -85,6 +90,7 @@ export const useProducts = () => {
       let branchId = productData.branch_id;
       if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
         branchId = currentUser.branch_id;
+        console.log('Auto-assigning branch to product:', branchId);
       }
       
       // Ensure all fields are properly formatted
@@ -123,75 +129,71 @@ export const useProducts = () => {
     }
   };
 
-  const updateProduct = async (id: string, productData: Partial<Product>) => {
-    try {
-      console.log('Updating product:', id, productData);
-
-      // Prepare update data, ensuring proper formatting
-      const updateData: any = {};
-      if (productData.name !== undefined) updateData.name = productData.name.trim();
-      if (productData.description !== undefined) updateData.description = productData.description?.trim() || null;
-      if (productData.quantity !== undefined) updateData.quantity = Number(productData.quantity);
-      if (productData.unit !== undefined) updateData.unit = productData.unit.trim();
-      if (productData.price_per_unit !== undefined) updateData.price_per_unit = Number(productData.price_per_unit);
-      if (productData.category !== undefined) updateData.category = productData.category.trim();
-      if (productData.image_url !== undefined) updateData.image_url = productData.image_url || null;
-      if (productData.is_active !== undefined) updateData.is_active = Boolean(productData.is_active);
-      if (productData.branch_id !== undefined) updateData.branch_id = productData.branch_id || null;
-
-      console.log('Update data for product:', updateData);
-
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (productError) {
-        console.error('Error updating product:', productError);
-        return { success: false, error: productError.message };
-      }
-
-      console.log('Product updated successfully:', product);
-      await fetchProducts();
-      return { success: true, data: product };
-    } catch (error) {
-      console.error('Error in updateProduct:', error);
-      return { success: false, error: 'Failed to update product' };
-    }
-  };
-
-  const deleteProduct = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting product:', error);
-        return { success: false, error: error.message };
-      }
-
-      await fetchProducts();
-      return { success: true };
-    } catch (error) {
-      console.error('Error in deleteProduct:', error);
-      return { success: false, error: 'Failed to delete product' };
-    }
-  };
-
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentUser?.branch_id]); // Re-fetch when user's branch changes
 
   return {
     products,
     loading,
     fetchProducts,
     addProduct,
-    updateProduct,
-    deleteProduct
+    updateProduct: async (id: string, productData: Partial<Product>) => {
+      try {
+        console.log('Updating product:', id, productData);
+
+        // Prepare update data, ensuring proper formatting
+        const updateData: any = {};
+        if (productData.name !== undefined) updateData.name = productData.name.trim();
+        if (productData.description !== undefined) updateData.description = productData.description?.trim() || null;
+        if (productData.quantity !== undefined) updateData.quantity = Number(productData.quantity);
+        if (productData.unit !== undefined) updateData.unit = productData.unit.trim();
+        if (productData.price_per_unit !== undefined) updateData.price_per_unit = Number(productData.price_per_unit);
+        if (productData.category !== undefined) updateData.category = productData.category.trim();
+        if (productData.image_url !== undefined) updateData.image_url = productData.image_url || null;
+        if (productData.is_active !== undefined) updateData.is_active = Boolean(productData.is_active);
+        if (productData.branch_id !== undefined) updateData.branch_id = productData.branch_id || null;
+
+        console.log('Update data for product:', updateData);
+
+        const { data: product, error: productError } = await supabase
+          .from('products')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (productError) {
+          console.error('Error updating product:', productError);
+          return { success: false, error: productError.message };
+        }
+
+        console.log('Product updated successfully:', product);
+        await fetchProducts();
+        return { success: true, data: product };
+      } catch (error) {
+        console.error('Error in updateProduct:', error);
+        return { success: false, error: 'Failed to update product' };
+      }
+    },
+    deleteProduct: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting product:', error);
+          return { success: false, error: error.message };
+        }
+
+        await fetchProducts();
+        return { success: true };
+      } catch (error) {
+        console.error('Error in deleteProduct:', error);
+        return { success: false, error: 'Failed to delete product' };
+      }
+    }
   };
 };
