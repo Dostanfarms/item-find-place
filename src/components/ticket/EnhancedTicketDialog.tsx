@@ -49,7 +49,12 @@ const EnhancedTicketDialog: React.FC<EnhancedTicketDialogProps> = ({
     setLoading(true);
     try {
       // TODO: Handle file attachment upload if needed
-      const result = await addTicketReply(ticket.id, replyMessage.trim(), null);
+      const result = await addTicketReply({
+        ticket_id: ticket.id,
+        replied_by: 'Admin', // You might want to get this from auth context
+        reply_message: replyMessage.trim(),
+        attachment_url: null // TODO: Implement file upload
+      });
       
       if (result.success) {
         toast({
