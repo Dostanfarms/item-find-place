@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Receipt, Search, Calendar, Eye, Download } from 'lucide-react';
+import { Receipt, Search, Calendar, Eye } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useEmployees } from '@/hooks/useEmployees';
-import { useBranchName } from '@/hooks/useBranchName';
 import { format } from 'date-fns';
 import TransactionDetailsDialog from '@/components/TransactionDetailsDialog';
 import BranchFilter from '@/components/BranchFilter';
@@ -19,7 +18,6 @@ const Transactions = () => {
   const { transactions, loading, fetchTransactions } = useTransactions();
   const { employees } = useEmployees();
   const { currentUser, selectedBranch } = useAuth();
-  const { getBranchName } = useBranchName();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -119,47 +117,8 @@ const Transactions = () => {
     setShowDetailsDialog(true);
   };
 
-  const handleExportTransactions = () => {
-    if (filteredTransactions.length === 0) {
-      alert('No transactions to export');
-      return;
-    }
-
-    const csvData = filteredTransactions.map(transaction => {
-      const itemNames = Array.isArray(transaction.items) 
-        ? transaction.items.map(item => `${item.name} (${item.quantity})`).join('; ')
-        : '';
-      
-      return {
-        'Transaction ID': transaction.id,
-        'Date': format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm'),
-        'Customer Name': transaction.customer_name,
-        'Customer Mobile': transaction.customer_mobile,
-        'Branch': getBranchName(getTransactionBranchId(transaction)),
-        'Payment Method': transaction.payment_method,
-        'Status': transaction.status,
-        'Total Amount': `₹${transaction.total.toFixed(2)}`,
-        'Created By': transaction.created_by || 'System',
-        'Items Count': Array.isArray(transaction.items) ? transaction.items.length : 0,
-        'Items Details': itemNames
-      };
-    });
-
-    const csvContent = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).map(value => `"${value}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `transactions_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const totalAmount = filteredTransactions.reduce((sum, transaction) => sum + transaction.total, 0);
+  const totalTransactions = filteredTransactions.length;
 
   if (loading) {
     return (
@@ -171,15 +130,47 @@ const Transactions = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Receipt className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Transaction History</h1>
-        </div>
-        <Button onClick={handleExportTransactions} className="flex items-center gap-2">
-          <Download className="h-4 w-4" />
-          Export Data
-        </Button>
+      <div className="flex items-center gap-2">
+        <Receipt className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold">Transaction History</h1>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Transactions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalTransactions}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Amount
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Average Transaction
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{totalTransactions > 0 ? (totalAmount / totalTransactions).toFixed(2) : '0.00'}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -230,9 +221,11 @@ const Transactions = () => {
                   <TableHead>Transaction ID</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead>Branch</TableHead>
                   <TableHead>Items</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -252,15 +245,27 @@ const Transactions = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getBranchName(getTransactionBranchId(transaction))}
-                    </TableCell>
-                    <TableCell>
                       <div className="text-sm">
                         {Array.isArray(transaction.items) ? transaction.items.length : 0} items
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <Badge className={getPaymentMethodColor(transaction.payment_method)}>
+                        {transaction.payment_method.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(transaction.status)}>
+                        {transaction.status.toUpperCase()}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="font-medium">
                       ₹{transaction.total.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {transaction.created_by || 'System'}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Button
