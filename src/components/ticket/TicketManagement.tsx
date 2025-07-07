@@ -30,7 +30,7 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesSearch = ticket.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ticket.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ticket.id.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
@@ -133,18 +133,18 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-lg">#{ticket.id.slice(0, 8)}</CardTitle>
-                      <Badge className={getUserTypeColor(ticket.userType)}>
-                        {ticket.userType}
+                      <Badge className={getUserTypeColor(ticket.user_type)}>
+                        {ticket.user_type}
                       </Badge>
                       <Badge className={getStatusColor(ticket.status)}>
                         {getStatusText(ticket.status)}
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">{ticket.userName}</span> • {ticket.userContact}
+                      <span className="font-medium">{ticket.user_name}</span> • {ticket.user_contact}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Created: {new Date(ticket.dateCreated).toLocaleDateString()}
+                      Created: {new Date(ticket.created_at).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onAssignToBranch(ticket.id, (ticket as any).branch_id)}
+                        onClick={() => onAssignToBranch(ticket.id, ticket.branch_id)}
                       >
                         <Building className="h-4 w-4 mr-1" />
                         Assign Branch

@@ -1,3 +1,4 @@
+
 export interface Farmer {
   id: string;
   name: string;
@@ -162,18 +163,26 @@ export interface Employee {
   updatedAt?: string;
 }
 
-// Ticket system types
+// Updated Ticket system types to match database schema
 export interface Ticket {
   id: string;
-  userId: string;
-  userType: 'farmer' | 'customer';
-  userName: string;
-  userContact: string;
+  user_id: string;
+  user_name: string;
+  user_type: string;
+  user_contact: string;
   message: string;
-  status: 'pending' | 'in-review' | 'closed';
-  dateCreated: Date;
-  lastUpdated: Date;
-  attachmentUrl?: string;
-  resolution?: string;
-  assignedTo?: string;
+  status: string;
+  assigned_to: string | null;
+  resolution: string | null;
+  attachment_url: string | null;
+  created_at: string;
+  updated_at: string;
+  branch_id?: string | null;
+  // Legacy properties for backward compatibility
+  userId?: string;
+  userType?: string;
+  userName?: string;
+  userContact?: string;
+  dateCreated?: Date;
+  lastUpdated?: Date;
 }
