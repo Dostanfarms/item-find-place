@@ -13,6 +13,7 @@ import TransactionHistory from '@/components/TransactionHistory';
 import EditProfileDialog from '@/components/farmer/EditProfileDialog';
 import FarmerSettlements from '@/components/farmer/FarmerSettlements';
 import { format } from 'date-fns';
+import { Farmer } from '@/utils/types';
 
 const FarmerDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +21,15 @@ const FarmerDetails = () => {
   const { farmers, loading } = useFarmers();
   const { farmerProducts, loading: productsLoading } = useFarmerProducts(id || '');
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentFarmer, setCurrentFarmer] = useState<Farmer | null>(null);
 
   const farmer = farmers.find(f => f.id === id);
+
+  useEffect(() => {
+    if (farmer) {
+      setCurrentFarmer(farmer);
+    }
+  }, [farmer]);
 
   useEffect(() => {
     if (!loading && !farmer && id) {
@@ -31,6 +39,10 @@ const FarmerDetails = () => {
     }
   }, [farmer, loading, id, navigate]);
 
+  const handleProfileUpdate = (updatedFarmer: Farmer) => {
+    setCurrentFarmer(updatedFarmer);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -39,7 +51,7 @@ const FarmerDetails = () => {
     );
   }
 
-  if (!farmer) {
+  if (!currentFarmer) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -78,7 +90,7 @@ const FarmerDetails = () => {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{farmer.name}</h1>
+            <h1 className="text-2xl font-bold">{currentFarmer.name}</h1>
             <p className="text-muted-foreground">Farmer Profile & Activity</p>
           </div>
         </div>
@@ -154,7 +166,7 @@ const FarmerDetails = () => {
                 <Mail className="h-4 w-4" />
                 Email
               </div>
-              <div className="font-medium">{farmer.email}</div>
+              <div className="font-medium">{currentFarmer.email}</div>
             </div>
             
             <div className="space-y-2">
@@ -162,7 +174,7 @@ const FarmerDetails = () => {
                 <Phone className="h-4 w-4" />
                 Phone
               </div>
-              <div className="font-medium">{farmer.phone}</div>
+              <div className="font-medium">{currentFarmer.phone}</div>
             </div>
             
             <div className="space-y-2">
@@ -171,17 +183,17 @@ const FarmerDetails = () => {
                 Join Date
               </div>
               <div className="font-medium">
-                {format(new Date(farmer.date_joined), 'MMM dd, yyyy')}
+                {format(new Date(currentFarmer.date_joined), 'MMM dd, yyyy')}
               </div>
             </div>
             
-            {farmer.address && (
+            {currentFarmer.address && (
               <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   Address
                 </div>
-                <div className="font-medium">{farmer.address}</div>
+                <div className="font-medium">{currentFarmer.address}</div>
               </div>
             )}
             
@@ -191,34 +203,34 @@ const FarmerDetails = () => {
                 Location
               </div>
               <div className="font-medium space-y-1">
-                {farmer.village && <div>Village: {farmer.village}</div>}
-                {farmer.district && <div>District: {farmer.district}</div>}
-                {farmer.state && <div>State: {farmer.state}</div>}
+                {currentFarmer.village && <div>Village: {currentFarmer.village}</div>}
+                {currentFarmer.district && <div>District: {currentFarmer.district}</div>}
+                {currentFarmer.state && <div>State: {currentFarmer.state}</div>}
               </div>
             </div>
           </div>
           
           {/* Bank Details */}
-          {(farmer.bank_name || farmer.account_number || farmer.ifsc_code) && (
+          {(currentFarmer.bank_name || currentFarmer.account_number || currentFarmer.ifsc_code) && (
             <div className="mt-6 pt-6 border-t">
               <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {farmer.bank_name && (
+                {currentFarmer.bank_name && (
                   <div>
                     <div className="text-sm text-muted-foreground">Bank Name</div>
-                    <div className="font-medium">{farmer.bank_name}</div>
+                    <div className="font-medium">{currentFarmer.bank_name}</div>
                   </div>
                 )}
-                {farmer.account_number && (
+                {currentFarmer.account_number && (
                   <div>
                     <div className="text-sm text-muted-foreground">Account Number</div>
-                    <div className="font-medium">{farmer.account_number}</div>
+                    <div className="font-medium">{currentFarmer.account_number}</div>
                   </div>
                 )}
-                {farmer.ifsc_code && (
+                {currentFarmer.ifsc_code && (
                   <div>
                     <div className="text-sm text-muted-foreground">IFSC Code</div>
-                    <div className="font-medium">{farmer.ifsc_code}</div>
+                    <div className="font-medium">{currentFarmer.ifsc_code}</div>
                   </div>
                 )}
               </div>
@@ -257,7 +269,8 @@ const FarmerDetails = () => {
       <EditProfileDialog
         open={showEditDialog}
         onOpenChange={() => setShowEditDialog(false)}
-        farmer={farmer}
+        farmer={currentFarmer}
+        onProfileUpdate={handleProfileUpdate}
       />
     </div>
   );
