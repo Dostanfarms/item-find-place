@@ -79,7 +79,7 @@ const FarmerProductForm: React.FC<FarmerProductFormProps> = ({
         quantity: parseFloat(formData.quantity),
         unit: formData.unit,
         price_per_unit: parseFloat(formData.price_per_unit),
-        payment_status: 'unsettled',
+        payment_status: 'unsettled' as const,
         is_active: true
       };
 

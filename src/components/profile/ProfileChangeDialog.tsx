@@ -23,7 +23,7 @@ const ProfileChangeDialog: React.FC<ProfileChangeDialogProps> = ({
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(currentUser?.profile_photo || '');
+  const [profilePhoto, setProfilePhoto] = useState((currentUser as any)?.profile_photo || '');
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
@@ -139,7 +139,6 @@ const ProfileChangeDialog: React.FC<ProfileChangeDialogProps> = ({
               <PhotoUploadField
                 value={profilePhoto}
                 onChange={setProfilePhoto}
-                label="Profile Photo"
               />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={onClose}>
