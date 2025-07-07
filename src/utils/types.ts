@@ -1,4 +1,3 @@
-
 export interface Farmer {
   id: string;
   name: string;
@@ -41,6 +40,7 @@ export interface Transaction {
   farmerId: string;
   settled: boolean;
   paymentMode?: 'Cash' | 'Online';
+  branch_id?: string;
 }
 
 export interface DailyEarning {

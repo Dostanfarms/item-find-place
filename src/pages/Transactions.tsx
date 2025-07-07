@@ -56,7 +56,9 @@ const Transactions = () => {
   const filteredTransactions = transactions.filter(transaction => {
     // Branch filter for admin users
     if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
-      if (transaction.branch_id !== selectedBranch) return false;
+      // Use the correct property name based on the actual transaction structure
+      const transactionBranchId = (transaction as any).branch_id;
+      if (transactionBranchId !== selectedBranch) return false;
     }
     
     // Search filter
@@ -253,7 +255,7 @@ const Transactions = () => {
       <TransactionDetailsDialog
         transaction={selectedTransaction}
         open={showDetailsDialog}
-        onClose={() => setShowDetailsDialog(false)}
+        onOpenChange={setShowDetailsDialog}
       />
     </div>
   );
