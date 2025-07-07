@@ -7,9 +7,10 @@ import { useRoles } from '@/hooks/useRoles';
 interface ProtectedRouteProps {
   resource: string;
   action: string;
+  children?: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action, children }) => {
   const { currentUser } = useAuth();
   const { roles, loading: rolesLoading } = useRoles();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -118,7 +119,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ resource, action }) => 
   }
 
   console.log('Access granted, rendering protected content');
-  return <Outlet />;
+  return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;

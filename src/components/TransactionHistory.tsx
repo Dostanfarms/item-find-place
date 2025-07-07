@@ -15,7 +15,7 @@ import { useBranchName } from '@/hooks/useBranchName';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
-interface Transaction {
+interface TransactionItem {
   id: string;
   customer_name: string;
   customer_mobile: string;
@@ -33,7 +33,7 @@ interface Transaction {
 }
 
 interface TransactionHistoryProps {
-  transactions?: Transaction[];
+  transactions?: TransactionItem[];
   dailyEarnings?: any[];
   monthlyEarnings?: any[];
   products?: any[];
@@ -58,7 +58,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   const { getBranchName } = useBranchName();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionItem | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
@@ -78,7 +78,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     });
   }, [transactions, searchTerm, statusFilter, dateFilter]);
 
-  const handleViewTransaction = (transaction: Transaction) => {
+  const handleViewTransaction = (transaction: TransactionItem) => {
     setSelectedTransaction(transaction);
     setIsDetailsOpen(true);
   };
@@ -219,7 +219,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
       </Card>
 
       <TransactionDetailsDialog
-        transaction={selectedTransaction}
+        transaction={selectedTransaction as any}
         open={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
       />

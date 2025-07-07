@@ -46,7 +46,7 @@ const AdminHeader = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 h-auto p-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={currentUser.profile_photo || undefined} />
+                <AvatarImage src={(currentUser as any).profile_photo || undefined} />
                 <AvatarFallback className="bg-blue-100 text-blue-600">
                   {getInitials(currentUser.name)}
                 </AvatarFallback>
