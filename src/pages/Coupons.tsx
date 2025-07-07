@@ -125,10 +125,6 @@ const Coupons = () => {
     }
   };
 
-  const activeCoupons = branchFilteredCoupons.filter(c => c.is_active && new Date(c.expiry_date) > new Date());
-  const expiredCoupons = branchFilteredCoupons.filter(c => new Date(c.expiry_date) <= new Date());
-  const inactiveCoupons = branchFilteredCoupons.filter(c => !c.is_active);
-
   if (loading) {
     return (
       <div className="pt-16">
@@ -155,53 +151,6 @@ const Coupons = () => {
               Add Coupon
             </Button>
           )}
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Coupons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{branchFilteredCoupons.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Coupons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{activeCoupons.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Expired Coupons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{expiredCoupons.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Inactive Coupons
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{inactiveCoupons.length}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters and Table */}
@@ -252,6 +201,7 @@ const Coupons = () => {
                     <TableHead>Type</TableHead>
                     <TableHead>Value</TableHead>
                     <TableHead>Max Limit</TableHead>
+                    <TableHead>Min Purchase</TableHead>
                     <TableHead>Target</TableHead>
                     <TableHead>Expiry Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -277,6 +227,9 @@ const Coupons = () => {
                       </TableCell>
                       <TableCell>
                         {coupon.max_discount_limit ? `₹${coupon.max_discount_limit}` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {(coupon as any).min_purchase_amount ? `₹${(coupon as any).min_purchase_amount}` : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge className={getTargetColor(coupon.target_type)}>

@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { User, Settings, Key, LogOut, Camera } from 'lucide-react';
+import { User, Settings, Key, LogOut, Camera, Package } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface FixedHeaderProps {
@@ -21,7 +21,12 @@ const FixedHeader: React.FC<FixedHeaderProps> = ({ onChangePhoto, onChangePasswo
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-4 fixed top-0 right-0 left-0 z-50">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 fixed top-0 right-0 left-0 z-50 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Package className="h-6 w-6 text-primary" />
+        <h2 className="text-lg font-semibold">Dostan Mart</h2>
+      </div>
+      
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
