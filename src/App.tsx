@@ -64,26 +64,26 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Index />} />
+              <Route path="/app" element={<AppLanding />} />
               <Route path="/customer-login" element={<CustomerLogin />} />
               <Route path="/customer-register" element={<CustomerRegister />} />
               <Route path="/farmer-login" element={<FarmerLogin />} />
               <Route path="/employee-login" element={<EmployeeLogin />} />
               <Route path="/employee-register" element={<EmployeeRegister />} />
 
-              {/* Customer routes */}
-              <Route path="/customer" element={<CustomerProtectedRoute><AppLanding /></CustomerProtectedRoute>} />
-              <Route path="/customer-home" element={<CustomerProtectedRoute><CustomerHome /></CustomerProtectedRoute>} />
-              <Route path="/customer-products" element={<CustomerProtectedRoute><CustomerProducts /></CustomerProtectedRoute>} />
-              <Route path="/product/:id" element={<CustomerProtectedRoute><ProductDetails /></CustomerProtectedRoute>} />
-              <Route path="/cart" element={<CustomerProtectedRoute><CartPage /></CustomerProtectedRoute>} />
-              <Route path="/checkout" element={<CustomerProtectedRoute><Checkout /></CustomerProtectedRoute>} />
-              <Route path="/customer-payment" element={<CustomerProtectedRoute><CustomerPayment /></CustomerProtectedRoute>} />
-              <Route path="/payment" element={<CustomerProtectedRoute><PaymentPage /></CustomerProtectedRoute>} />
-              <Route path="/order-receipt/:orderId" element={<CustomerProtectedRoute><OrderReceiptPage /></CustomerProtectedRoute>} />
-              <Route path="/customer-orders" element={<CustomerProtectedRoute><CustomerOrderHistory /></CustomerProtectedRoute>} />
-              <Route path="/order-tracking/:orderId" element={<CustomerProtectedRoute><OrderTracking /></CustomerProtectedRoute>} />
-              <Route path="/customer-profile" element={<CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute>} />
-              <Route path="/customer-tickets" element={<CustomerProtectedRoute><CustomerTicketHistory /></CustomerProtectedRoute>} />
+              {/* Customer routes - no authentication required for these pages */}
+              <Route path="/customer-home" element={<CustomerHome />} />
+              <Route path="/customer-products" element={<CustomerProducts />} />
+              <Route path="/product/:id" element={<ProductDetails />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/customer-payment" element={<CustomerPayment />} />
+              <Route path="/payment" element={<PaymentPage />} />
+              <Route path="/order-receipt/:orderId" element={<OrderReceiptPage />} />
+              <Route path="/customer-orders" element={<CustomerOrderHistory />} />
+              <Route path="/order-tracking/:orderId" element={<OrderTracking />} />
+              <Route path="/customer-profile" element={<CustomerProfile />} />
+              <Route path="/customer-tickets" element={<CustomerTicketHistory />} />
 
               {/* Farmer routes */}
               <Route path="/farmer-dashboard" element={<ProtectedRoute resource="dashboard" action="view"><FarmerDashboard /></ProtectedRoute>} />

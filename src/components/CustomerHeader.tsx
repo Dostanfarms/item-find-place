@@ -23,8 +23,11 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = () => {
+    // Clear customer data from localStorage
     localStorage.removeItem('currentCustomer');
+    // Call the onLogout callback
     onLogout();
+    // Navigate to the app landing page
     navigate('/app');
   };
 
@@ -50,7 +53,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ customer, onLogout }) =
       <div className="flex items-center justify-between px-4 py-3">
         {/* Left side - Logo and login buttons */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/app')}>
             <Package className="h-6 w-6 text-green-600" />
             <span className="text-lg font-bold text-gray-900">Dostan Mart</span>
           </div>

@@ -17,6 +17,11 @@ const UserSection = () => {
 
   if (!currentUser) return null;
 
+  const handleLogout = () => {
+    console.log('Logout button clicked');
+    logout();
+  };
+
   return (
     <SidebarGroup className="mt-auto">
       <SidebarGroupContent>
@@ -35,7 +40,7 @@ const UserSection = () => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              onClick={logout} 
+              onClick={handleLogout} 
               className="flex items-center gap-3 p-3 text-red-600 hover:text-red-700 hover:bg-red-50"
               tooltip="Sign Out"
             >

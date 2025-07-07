@@ -87,7 +87,7 @@ const AppLanding = () => {
         {/* Shopping Section */}
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <Button onClick={() => navigate('/app')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+            <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
               Shop All Products
             </Button>
@@ -135,10 +135,19 @@ const AppLanding = () => {
                   Fashion Styles
                 </h1>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                  <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3">
+                  <Button 
+                    size="lg" 
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                    onClick={() => navigate('/customer-products')}
+                  >
                     Shop Now
                   </Button>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3">
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3"
+                    onClick={() => handleCategoryClick('Fashion')}
+                  >
                     Explore Fashion
                   </Button>
                 </div>
@@ -183,7 +192,7 @@ const AppLanding = () => {
                 </CardContent>
               </Card>
               
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full" onClick={() => navigate('/app')}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full" onClick={() => navigate('/customer-products')}>
                 <CardContent className="flex flex-col items-center p-8 text-center">
                   <ShoppingBag className="h-12 w-12 mb-4 text-purple-600" />
                   <h3 className="text-xl font-semibold mb-2">Shop Products</h3>
@@ -218,7 +227,11 @@ const AppLanding = () => {
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-4">New Customer?</h2>
             <p className="text-xl text-gray-600 mb-8">Join thousands of satisfied customers</p>
-            <Button size="lg" className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg" onClick={() => navigate('/customer-register')}>
+            <Button 
+              size="lg" 
+              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg" 
+              onClick={() => navigate('/customer-register')}
+            >
               Register Now
             </Button>
           </div>
