@@ -93,7 +93,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     
     try {
       const parsed = JSON.parse(product.image_url);
-      return Array.isArray(parsed) ? parsed : [product.image_url];
+      return Array.isArray(parsed) ? parsed.filter(url => url && url.trim() !== '') : [product.image_url];
     } catch {
       return [product.image_url];
     }
@@ -102,12 +102,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const images = getProductImages();
   const hasMultipleImages = images.length > 1;
 
-  const nextImage = () => {
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
-  const prevImage = () => {
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleIndicatorClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setCurrentImageIndex(index);
   };
 
   const getSizeButtonColor = (size: any) => {
@@ -157,7 +164,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         className={`w-2 h-2 rounded-full transition-colors ${
                           index === currentImageIndex ? 'bg-white' : 'bg-white/50'
                         }`}
-                        onClick={() => setCurrentImageIndex(index)}
+                        onClick={(e) => handleIndicatorClick(e, index)}
                       />
                     ))}
                   </div>

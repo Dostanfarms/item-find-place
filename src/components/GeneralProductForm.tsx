@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { canAccessBranch } from '@/utils/employeeData';
+import ProductImageUpload from './ProductImageUpload';
 
 interface GeneralProductFormProps {
   onCancel: () => void;
@@ -33,23 +33,22 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
   const [quantity, setQuantity] = useState(editProduct?.quantity?.toString() || '0');
   const [pricePerUnit, setPricePerUnit] = useState(editProduct?.price_per_unit.toString() || '');
   const [barcode, setBarcode] = useState(editProduct?.barcode || '');
-  const [imageUrl, setImageUrl] = useState(editProduct?.image_url || '');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(editProduct?.is_active ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [branchId, setBranchId] = useState(editProduct?.branch_id || '');
 
   useEffect(() => {
     if (editProduct) {
-      setName(editProduct.name || '');
-      setDescription(editProduct.description || '');
-      setCategory(editProduct.category || '');
-      setUnit(editProduct.unit || '');
-      setQuantity(editProduct.quantity?.toString() || '0');
-      setPricePerUnit(editProduct.price_per_unit.toString() || '');
-      setBarcode(editProduct.barcode || '');
-      setImageUrl(editProduct.image_url || '');
-      setIsActive(editProduct.is_active ?? true);
-      setBranchId(editProduct.branch_id || '');
+      // Parse existing image URLs
+      if (editProduct.image_url) {
+        try {
+          const parsed = JSON.parse(editProduct.image_url);
+          setImageUrls(Array.isArray(parsed) ? parsed : [editProduct.image_url]);
+        } catch {
+          setImageUrls([editProduct.image_url]);
+        }
+      }
     }
   }, [editProduct]);
 
@@ -86,7 +85,7 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
       quantity: parseInt(quantity) || 0,
       price_per_unit: parsedPrice,
       barcode: barcode.trim() || null,
-      image_url: imageUrl || null,
+      image_url: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
       is_active: isActive,
       branch_id: branchId || null
     };
@@ -184,13 +183,12 @@ const GeneralProductForm = ({ onCancel, editProduct }: GeneralProductFormProps) 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image-url">Image URL</Label>
-                <Input
-                  id="image-url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Enter image URL"
+                <Label>Product Images (Up to 4)</Label>
+                <ProductImageUpload
+                  value={imageUrls}
+                  onChange={setImageUrls}
                   disabled={isSubmitting}
+                  maxImages={4}
                 />
               </div>
               
