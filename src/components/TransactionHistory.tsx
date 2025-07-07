@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, Receipt, Eye, Building2, Calendar } from 'lucide-react';
+import { Search, MoreHorizontal, Receipt, Eye, Building2, Calendar, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import TransactionDetailsDialog from './TransactionDetailsDialog';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -38,15 +38,6 @@ interface TransactionHistoryProps {
   monthlyEarnings?: any[];
   products?: any[];
 }
-
-const getStatusColor = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'completed': return 'bg-green-100 text-green-800';
-    case 'pending': return 'bg-yellow-100 text-yellow-800';
-    case 'cancelled': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   transactions: propTransactions = [],
@@ -83,6 +74,47 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     setIsDetailsOpen(true);
   };
 
+  const handleExportTransactions = () => {
+    if (filteredTransactions.length === 0) {
+      alert('No transactions to export');
+      return;
+    }
+
+    const csvData = filteredTransactions.map(transaction => {
+      const itemNames = Array.isArray(transaction.items) 
+        ? transaction.items.map(item => `${item.name} (${item.quantity})`).join('; ')
+        : '';
+      
+      return {
+        'Transaction ID': transaction.id,
+        'Date': format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm'),
+        'Customer Name': transaction.customer_name,
+        'Customer Mobile': transaction.customer_mobile,
+        'Branch': getBranchName(transaction.branch_id),
+        'Payment Method': transaction.payment_method,
+        'Total Amount': `₹${Number(transaction.total).toFixed(2)}`,
+        'Created By': transaction.created_by || 'System',
+        'Items Count': Array.isArray(transaction.items) ? transaction.items.length : 0,
+        'Items Details': itemNames
+      };
+    });
+
+    const csvContent = [
+      Object.keys(csvData[0]).join(','),
+      ...csvData.map(row => Object.values(row).map(value => `"${value}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transactions_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
       <Card>
@@ -92,6 +124,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
               <Receipt className="h-6 w-6 text-blue-600" />
               <CardTitle className="text-2xl font-bold">Transaction History</CardTitle>
             </div>
+            <Button onClick={handleExportTransactions} className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export Data
+            </Button>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -167,7 +203,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                     <TableHead>Mobile</TableHead>
                     <TableHead>Branch</TableHead>
                     <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -185,11 +220,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       <TableCell>{getBranchName(transaction.branch_id)}</TableCell>
                       <TableCell className="font-medium">
                         ₹{Number(transaction.total).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(transaction.status)}>
-                          {transaction.status}
-                        </Badge>
                       </TableCell>
                       <TableCell>
                         {format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm')}

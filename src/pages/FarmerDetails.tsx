@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Edit, DollarSign, Package, Calendar, MapPin, Phone, Mail, User, Building2 } from 'lucide-react';
+import { ArrowLeft, DollarSign, Package, Calendar, MapPin, Phone, Mail, User, Building2, Plus, CreditCard } from 'lucide-react';
 import { useFarmers } from '@/hooks/useFarmers';
 import { useFarmerProducts } from '@/hooks/useFarmerProducts';
 import FarmerProductsTable from '@/components/FarmerProductsTable';
 import TransactionHistory from '@/components/TransactionHistory';
-import EditProfileDialog from '@/components/farmer/EditProfileDialog';
 import FarmerSettlements from '@/components/farmer/FarmerSettlements';
 import { format } from 'date-fns';
 import { Farmer } from '@/utils/types';
@@ -20,7 +19,6 @@ const FarmerDetails = () => {
   const navigate = useNavigate();
   const { farmers, loading } = useFarmers();
   const { farmerProducts, loading: productsLoading } = useFarmerProducts(id || '');
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [currentFarmer, setCurrentFarmer] = useState<Farmer | null>(null);
 
   const farmer = farmers.find(f => f.id === id);
@@ -38,10 +36,6 @@ const FarmerDetails = () => {
       navigate('/farmers');
     }
   }, [farmer, loading, id, navigate]);
-
-  const handleProfileUpdate = (updatedFarmer: Farmer) => {
-    setCurrentFarmer(updatedFarmer);
-  };
 
   if (loading) {
     return (
@@ -76,6 +70,16 @@ const FarmerDetails = () => {
     .filter(product => product.payment_status === 'unsettled')
     .reduce((sum, product) => sum + (product.quantity * product.price_per_unit), 0);
 
+  const handleAddProducts = () => {
+    // TODO: Navigate to add products page or open dialog
+    console.log('Add products clicked');
+  };
+
+  const handleSettlePayment = () => {
+    // TODO: Navigate to settlement page or open dialog
+    console.log('Settle payment clicked');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,10 +98,16 @@ const FarmerDetails = () => {
             <p className="text-muted-foreground">Farmer Profile & Activity</p>
           </div>
         </div>
-        <Button onClick={() => setShowEditDialog(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Profile
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleAddProducts}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Products
+          </Button>
+          <Button onClick={handleSettlePayment} variant="secondary">
+            <CreditCard className="h-4 w-4 mr-2" />
+            Settle Payment
+          </Button>
+        </div>
       </div>
 
       {/* Profile Summary Cards */}
@@ -264,14 +274,6 @@ const FarmerDetails = () => {
           <FarmerSettlements products={farmerProducts} loading={productsLoading} />
         </TabsContent>
       </Tabs>
-
-      {/* Edit Profile Dialog */}
-      <EditProfileDialog
-        open={showEditDialog}
-        onOpenChange={() => setShowEditDialog(false)}
-        farmer={currentFarmer}
-        onProfileUpdate={handleProfileUpdate}
-      />
     </div>
   );
 };
