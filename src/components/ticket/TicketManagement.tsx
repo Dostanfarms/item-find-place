@@ -12,22 +12,7 @@ import { format } from 'date-fns';
 import EnhancedTicketDialog from './EnhancedTicketDialog';
 import CreateTicketDialog from './CreateTicketDialog';
 import { useBranchName } from '@/hooks/useBranchName';
-
-export interface Ticket {
-  id: string;
-  user_id: string;
-  user_name: string;
-  user_type: 'customer' | 'farmer' | 'employee';
-  user_contact: string;
-  message: string;
-  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
-  assigned_to?: string;
-  resolution?: string;
-  attachment_url?: string;
-  branch_id?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Ticket } from '@/hooks/useTickets';
 
 interface TicketManagementProps {
   tickets: Ticket[];
@@ -237,7 +222,6 @@ const TicketManagement: React.FC<TicketManagementProps> = ({
       />
 
       <CreateTicketDialog
-        open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
     </>

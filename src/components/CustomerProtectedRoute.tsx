@@ -8,7 +8,7 @@ interface CustomerProtectedRouteProps {
 }
 
 const CustomerProtectedRoute: React.FC<CustomerProtectedRouteProps> = ({ children }) => {
-  const { currentUser, userType } = useAuth();
+  const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,8 +28,8 @@ const CustomerProtectedRoute: React.FC<CustomerProtectedRouteProps> = ({ childre
     );
   }
 
-  // If no user or not a customer, redirect to customer login
-  if (!currentUser || userType !== 'customer') {
+  // If no user, redirect to customer login
+  if (!currentUser) {
     return <Navigate to="/customer-login" replace />;
   }
 
