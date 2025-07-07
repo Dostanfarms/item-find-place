@@ -1094,6 +1094,7 @@ export type Database = {
           branch_id: string | null
           coupon_used: string | null
           created_at: string
+          created_by: string | null
           customer_mobile: string
           customer_name: string
           discount: number
@@ -1109,6 +1110,7 @@ export type Database = {
           branch_id?: string | null
           coupon_used?: string | null
           created_at?: string
+          created_by?: string | null
           customer_mobile: string
           customer_name: string
           discount?: number
@@ -1124,6 +1126,7 @@ export type Database = {
           branch_id?: string | null
           coupon_used?: string | null
           created_at?: string
+          created_by?: string | null
           customer_mobile?: string
           customer_name?: string
           discount?: number

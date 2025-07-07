@@ -54,26 +54,43 @@ const Transactions = () => {
     }
   };
 
-  // Get employee's branch ID based on transaction branch_id or created_by email
+  // Get employee's branch ID based on transaction created_by field
   const getTransactionBranchId = (transaction: any) => {
-    // If transaction has branch_id, use it
+    // If transaction has direct branch_id, use it
     if (transaction.branch_id) return transaction.branch_id;
     
-    // If not, try to find the employee who created it and get their branch
+    // If transaction has created_by, find the employee and get their branch
     if (transaction.created_by) {
       const employee = employees.find(emp => emp.email === transaction.created_by);
-      return employee?.branch_id || null;
+      return employee?.branch_id || employee?.branchId || null;
     }
     
     return null;
   };
 
-  // Apply branch filtering
+  // Apply branch filtering based on user role and selected branch
   const filteredTransactions = transactions.filter(transaction => {
-    // Branch filter for admin users
-    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
+    // Branch filter logic
+    if (currentUser?.role?.toLowerCase() === 'admin') {
+      // Admin can filter by selected branch or see all if no branch selected
+      if (selectedBranch) {
+        const transactionBranchId = getTransactionBranchId(transaction);
+        if (transactionBranchId !== selectedBranch) return false;
+      }
+    } else {
+      // Non-admin users can only see transactions from their assigned branch
       const transactionBranchId = getTransactionBranchId(transaction);
-      if (transactionBranchId !== selectedBranch) return false;
+      const userBranchId = currentUser?.branch_id;
+      
+      // If user has a branch assigned, only show transactions from that branch
+      if (userBranchId && transactionBranchId !== userBranchId) {
+        return false;
+      }
+      
+      // If user has no branch, only show transactions with no branch assignment
+      if (!userBranchId && transactionBranchId !== null) {
+        return false;
+      }
     }
     
     // Search filter
@@ -208,6 +225,7 @@ const Transactions = () => {
                   <TableHead>Payment Method</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -243,6 +261,11 @@ const Transactions = () => {
                     </TableCell>
                     <TableCell className="font-medium">
                       ₹{transaction.total.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {transaction.created_by || 'System'}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Button

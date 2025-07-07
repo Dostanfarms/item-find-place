@@ -1,100 +1,112 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Ticket, Edit, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Ticket, Search, Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { useCoupons } from '@/hooks/useCoupons';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import BranchFilter from '@/components/BranchFilter';
 import CouponEditDialog from '@/components/coupons/CouponEditDialog';
+import CouponCreateDialog from '@/components/coupons/CouponCreateDialog';
+import BranchFilter from '@/components/BranchFilter';
 import { useAuth } from '@/context/AuthContext';
 
 const Coupons = () => {
-  const { coupons, loading, fetchCoupons, deleteCoupon } = useCoupons();
-  const { currentUser, selectedBranch } = useAuth();
+  const { coupons, loading, deleteCoupon } = useCoupons();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
-
-  useEffect(() => {
-    fetchCoupons();
-  }, []);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const getStatusColor = (isActive: boolean, expiryDate: string) => {
-    if (!isActive) return 'bg-gray-100 text-gray-800';
-    if (new Date(expiryDate) < new Date()) return 'bg-red-100 text-red-800';
+    if (!isActive) return 'bg-red-100 text-red-800';
+    if (new Date(expiryDate) <= new Date()) return 'bg-orange-100 text-orange-800';
     return 'bg-green-100 text-green-800';
   };
 
   const getStatusText = (isActive: boolean, expiryDate: string) => {
-    if (!isActive) return 'Inactive';
-    if (new Date(expiryDate) < new Date()) return 'Expired';
-    return 'Active';
+    if (!isActive) return 'INACTIVE';
+    if (new Date(expiryDate) <= new Date()) return 'EXPIRED';
+    return 'ACTIVE';
   };
 
-  const handleEditCoupon = (coupon: any) => {
-    setSelectedCoupon(coupon);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteCoupon = async (couponId: string) => {
-    if (confirm('Are you sure you want to delete this coupon?')) {
-      const result = await deleteCoupon(couponId);
-      if (result.success) {
-        toast({
-          title: "Coupon deleted",
-          description: "The coupon has been successfully deleted.",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete coupon",
-          variant: "destructive",
-        });
-      }
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'percentage':
+        return 'bg-blue-100 text-blue-800';
+      case 'fixed':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleCloseEditDialog = () => {
-    setShowEditDialog(false);
-    setSelectedCoupon(null);
-    fetchCoupons();
+  const getTargetColor = (target: string) => {
+    switch (target) {
+      case 'all':
+        return 'bg-green-100 text-green-800';
+      case 'customer':
+        return 'bg-blue-100 text-blue-800';
+      case 'employee':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  // Apply branch filtering
   const filteredCoupons = coupons.filter(coupon => {
-    // Branch filter for admin users
-    if (currentUser?.role?.toLowerCase() === 'admin' && selectedBranch) {
-      if (coupon.branch_id !== selectedBranch) return false;
-    }
-    
-    // Search filter
     if (searchTerm && !coupon.code.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
-    // Status filter
     if (statusFilter !== 'all') {
-      const isActive = coupon.is_active && new Date(coupon.expiry_date) >= new Date();
-      if (statusFilter === 'active' && !isActive) return false;
-      if (statusFilter === 'inactive' && isActive) return false;
+      const isExpired = new Date(coupon.expiry_date) <= new Date();
+      if (statusFilter === 'active' && (!coupon.is_active || isExpired)) return false;
+      if (statusFilter === 'inactive' && coupon.is_active && !isExpired) return false;
+      if (statusFilter === 'expired' && !isExpired) return false;
     }
     
-    // Type filter
     if (typeFilter !== 'all' && coupon.discount_type !== typeFilter) {
       return false;
     }
     
     return true;
   });
+
+  const handleEdit = (coupon: any) => {
+    setSelectedCoupon(coupon);
+    setShowEditDialog(true);
+  };
+
+  const handleDelete = async (couponId: string) => {
+    if (window.confirm('Are you sure you want to delete this coupon?')) {
+      const result = await deleteCoupon(couponId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Coupon deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete coupon",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const activeCoupons = coupons.filter(c => c.is_active && new Date(c.expiry_date) > new Date());
+  const expiredCoupons = coupons.filter(c => new Date(c.expiry_date) <= new Date());
+  const inactiveCoupons = coupons.filter(c => !c.is_active);
 
   if (loading) {
     return (
@@ -111,12 +123,62 @@ const Coupons = () => {
           <Ticket className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Coupon Management</h1>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Coupon
-        </Button>
+        {hasPermission('coupons', 'create') && (
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Coupon
+          </Button>
+        )}
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Coupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{coupons.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Coupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{activeCoupons.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Expired Coupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{expiredCoupons.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Inactive Coupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{inactiveCoupons.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Table */}
       <Card>
         <CardHeader>
           <CardTitle>Coupons</CardTitle>
@@ -140,7 +202,8 @@ const Coupons = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive/Expired</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -161,7 +224,7 @@ const Coupons = () => {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Discount</TableHead>
+                  <TableHead>Value</TableHead>
                   <TableHead>Max Limit</TableHead>
                   <TableHead>Target</TableHead>
                   <TableHead>Expiry Date</TableHead>
@@ -176,25 +239,34 @@ const Coupons = () => {
                       {coupon.code}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {coupon.discount_type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
+                      <Badge className={getTypeColor(coupon.discount_type)}>
+                        {coupon.discount_type.toUpperCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {coupon.discount_type === 'percentage' 
                         ? `${coupon.discount_value}%` 
-                        : `₹${coupon.discount_value}`}
+                        : `₹${coupon.discount_value}`
+                      }
                     </TableCell>
                     <TableCell>
-                      {coupon.max_discount_limit ? `₹${coupon.max_discount_limit}` : 'No limit'}
+                      {coupon.max_discount_limit ? `₹${coupon.max_discount_limit}` : '-'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {coupon.target_type === 'all' ? 'All Users' : 'Specific User'}
+                      <Badge className={getTargetColor(coupon.target_type)}>
+                        {coupon.target_type.toUpperCase()}
                       </Badge>
+                      {coupon.target_user_id && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {coupon.target_user_id}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(coupon.expiry_date), 'MMM dd, yyyy')}
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(coupon.expiry_date), 'MMM dd, yyyy')}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(coupon.is_active, coupon.expiry_date)}>
@@ -203,21 +275,24 @@ const Coupons = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditCoupon(coupon)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteCoupon(coupon.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {hasPermission('coupons', 'edit') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(coupon)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {hasPermission('coupons', 'delete') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(coupon.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -234,9 +309,14 @@ const Coupons = () => {
         </CardContent>
       </Card>
 
+      <CouponCreateDialog
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+      />
+
       <CouponEditDialog
         open={showEditDialog}
-        onClose={handleCloseEditDialog}
+        onClose={() => setShowEditDialog(false)}
         coupon={selectedCoupon}
       />
     </div>

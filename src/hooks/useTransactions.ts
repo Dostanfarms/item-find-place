@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/context/AuthContext';
 
 // Use the database types directly
 type DatabaseTransaction = Database['public']['Tables']['transactions']['Row'];
@@ -28,11 +29,14 @@ export interface Transaction {
   status: string;
   created_at: string;
   updated_at: string;
+  created_by: string | null;
+  branch_id: string | null;
 }
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   const fetchTransactions = async () => {
     try {
@@ -64,6 +68,8 @@ export const useTransactions = () => {
         status: dbTransaction.status,
         created_at: dbTransaction.created_at,
         updated_at: dbTransaction.updated_at,
+        created_by: dbTransaction.created_by,
+        branch_id: dbTransaction.branch_id,
       }));
       
       setTransactions(transformedTransactions);
@@ -74,7 +80,7 @@ export const useTransactions = () => {
     }
   };
 
-  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at'>) => {
+  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'branch_id'>) => {
     try {
       console.log('Adding transaction:', transactionData);
       
@@ -89,6 +95,8 @@ export const useTransactions = () => {
         coupon_used: transactionData.coupon_used,
         payment_method: transactionData.payment_method,
         status: transactionData.status,
+        created_by: currentUser?.email || null,
+        branch_id: currentUser?.branch_id || null,
       };
 
       const { data, error } = await supabase
