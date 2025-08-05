@@ -14,8 +14,6 @@ interface FixedHeaderProps {
 const FixedHeader: React.FC<FixedHeaderProps> = ({ onChangePhoto, onChangePassword }) => {
   const { currentUser, logout } = useAuth();
 
-  if (!currentUser) return null;
-
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -23,42 +21,44 @@ const FixedHeader: React.FC<FixedHeaderProps> = ({ onChangePhoto, onChangePasswo
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 fixed top-0 right-0 left-0 z-50 shadow-sm">
       <div className="flex items-center gap-2">
-        <Package className="h-6 w-6 text-primary" />
-        <h2 className="text-lg font-semibold">Dostan Mart</h2>
+        <Package className="h-6 w-6 text-green-600" />
+        <h2 className="text-lg font-semibold text-gray-900">Dostan Mart</h2>
       </div>
       
       <div className="flex items-center gap-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-3 h-auto p-2">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={(currentUser as any).profile_photo || undefined} />
-                <AvatarFallback className="bg-blue-100 text-blue-600">
-                  {getInitials(currentUser.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-left">
-                <div className="text-sm font-medium">{currentUser.name}</div>
-                <div className="text-xs text-gray-500">{currentUser.role}</div>
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={onChangePhoto}>
-              <Camera className="h-4 w-4 mr-2" />
-              Change Photo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onChangePassword}>
-              <Key className="h-4 w-4 mr-2" />
-              Change Password
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-red-600">
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {currentUser ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-3 h-auto p-2">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={(currentUser as any).profile_photo || undefined} />
+                  <AvatarFallback className="bg-blue-100 text-blue-600">
+                    {getInitials(currentUser.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-left">
+                  <div className="text-sm font-medium">{currentUser.name}</div>
+                  <div className="text-xs text-gray-500">{currentUser.role}</div>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={onChangePhoto}>
+                <Camera className="h-4 w-4 mr-2" />
+                Change Photo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onChangePassword}>
+                <Key className="h-4 w-4 mr-2" />
+                Change Password
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-red-600">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </div>
     </header>
   );

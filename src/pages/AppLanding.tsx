@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Package, ShoppingBag, User, UserCog } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { ShoppingBag } from 'lucide-react';
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
@@ -13,7 +12,6 @@ import FixedHeader from '@/components/layout/FixedHeader';
 
 const AppLanding = () => {
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState<any>(null);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   
@@ -46,13 +44,6 @@ const AppLanding = () => {
   ];
 
   useEffect(() => {
-    const currentCustomer = localStorage.getItem('currentCustomer');
-    if (currentCustomer) {
-      setCustomer(JSON.parse(currentCustomer));
-    }
-  }, []);
-
-  useEffect(() => {
     if (banners && banners.length > 0) {
       const interval = setInterval(() => {
         setCurrentBanner(prev => (prev + 1) % banners.length);
@@ -75,11 +66,6 @@ const AppLanding = () => {
     });
   };
 
-  const handleLogout = () => {
-    setCustomer(null);
-    localStorage.removeItem('currentCustomer');
-  };
-
   const handleChangePhoto = () => {
     setShowProfileDialog(true);
   };
@@ -97,26 +83,19 @@ const AppLanding = () => {
         {/* Top Navigation Bar */}
         <div className="bg-white border-b border-gray-200 py-4">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="h-6 w-6 text-green-600" />
-                <span className="text-xl font-bold">Dostan Mart</span>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <Button onClick={() => navigate('/farmer-login')} variant="outline" size="sm">
-                  Farmer Login
-                </Button>
-                <Button onClick={() => navigate('/employee-login')} variant="outline" size="sm">
-                  Employee Login
-                </Button>
-                <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700">
-                  Login
-                </Button>
-                <Button onClick={() => navigate('/customer-register')} className="bg-green-600 hover:bg-green-700">
-                  Register
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-4">
+              <Button onClick={() => navigate('/farmer-login')} variant="outline" size="sm">
+                Farmer Login
+              </Button>
+              <Button onClick={() => navigate('/employee-login')} variant="outline" size="sm">
+                Employee Login
+              </Button>
+              <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700">
+                Login
+              </Button>
+              <Button onClick={() => navigate('/customer-register')} className="bg-green-600 hover:bg-green-700">
+                Register
+              </Button>
             </div>
           </div>
         </div>
@@ -160,16 +139,16 @@ const AppLanding = () => {
           </div>
         </div>
 
-        {/* Banner Section */}
+        {/* Banner Section - Increased height for better visibility */}
         <div className="max-w-7xl mx-auto px-4 mb-8">
           {bannersLoading ? (
-            <div className="relative overflow-hidden rounded-lg h-96 bg-gray-200 animate-pulse">
+            <div className="relative overflow-hidden rounded-lg h-[600px] bg-gray-200 animate-pulse">
               <div className="w-full h-full flex items-center justify-center">
                 <span className="text-gray-500">Loading banners...</span>
               </div>
             </div>
           ) : banners && banners.length > 0 ? (
-            <div className="relative overflow-hidden rounded-lg h-96">
+            <div className="relative overflow-hidden rounded-lg h-[600px]">
               <div className="flex transition-transform duration-500 ease-in-out" style={{
                 transform: `translateX(-${currentBanner * 100}%)`
               }}>
@@ -179,13 +158,13 @@ const AppLanding = () => {
                       <img 
                         src={banner.image_url} 
                         alt={banner.name} 
-                        className="w-full h-96 object-cover rounded-lg" 
+                        className="w-full h-[600px] object-cover rounded-lg" 
                       />
                     )}
                     {banner.video_url && !banner.image_url && (
                       <video 
                         src={banner.video_url} 
-                        className="w-full h-96 object-cover rounded-lg" 
+                        className="w-full h-[600px] object-cover rounded-lg" 
                         autoPlay 
                         muted 
                         loop 
@@ -208,7 +187,7 @@ const AppLanding = () => {
             </div>
           ) : (
             // Default banner when no banners are available
-            <div className="relative overflow-hidden rounded-lg h-96 bg-gradient-to-r from-amber-100 to-amber-200">
+            <div className="relative overflow-hidden rounded-lg h-[600px] bg-gradient-to-r from-amber-100 to-amber-200">
               <div className="absolute inset-0 bg-black/20"></div>
               <div className="relative h-full flex items-center justify-center">
                 <div className="text-center text-white">
@@ -248,48 +227,6 @@ const AppLanding = () => {
           )}
         </div>
 
-        {/* Quick Access Cards */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12">Get Started</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full" onClick={() => navigate('/farmer-login')}>
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <User className="h-12 w-12 mb-4 text-green-600" />
-                  <h3 className="text-xl font-semibold mb-2">Farmer Portal</h3>
-                  <p className="text-gray-600 mb-4">Manage your products and track earnings</p>
-                  <Button className="mt-auto bg-green-600 hover:bg-green-700">
-                    Access Portal
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full" onClick={() => navigate('/employee-login')}>
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <UserCog className="h-12 w-12 mb-4 text-blue-600" />
-                  <h3 className="text-xl font-semibold mb-2">Employee Access</h3>
-                  <p className="text-gray-600 mb-4">Admin dashboard and management tools</p>
-                  <Button className="mt-auto bg-blue-600 hover:bg-blue-700">
-                    Employee Login
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full" onClick={() => navigate('/customer-products')}>
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <ShoppingBag className="h-12 w-12 mb-4 text-purple-600" />
-                  <h3 className="text-xl font-semibold mb-2">Shop Products</h3>
-                  <p className="text-gray-600 mb-4">Browse and purchase fresh products</p>
-                  <Button className="mt-auto bg-purple-600 hover:bg-purple-700">
-                    Start Shopping
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
         {/* Products Section */}
         <div className="max-w-7xl mx-auto p-4 py-16">
           <div className="mb-8 text-center">
@@ -311,7 +248,7 @@ const AppLanding = () => {
         </div>
 
         {/* Customer Registration CTA */}
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-4">New Customer?</h2>
             <p className="text-xl text-gray-600 mb-8">Join thousands of satisfied customers</p>
