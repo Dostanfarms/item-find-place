@@ -2,18 +2,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Package } from 'lucide-react';
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useCart } from '@/contexts/CartContext';
 import ProductGrid from '@/components/ProductGrid';
-import FixedHeader from '@/components/layout/FixedHeader';
+import Cart from '@/components/Cart';
 
 const AppLanding = () => {
   const navigate = useNavigate();
   const [currentBanner, setCurrentBanner] = useState(0);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const { items, setIsCartOpen } = useCart();
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
   const {
     data: banners,
@@ -66,40 +68,82 @@ const AppLanding = () => {
     });
   };
 
-  const handleChangePhoto = () => {
-    setShowProfileDialog(true);
-  };
-
-  const handleChangePassword = () => {
-    setShowProfileDialog(true);
+  const handleCartClick = () => {
+    setIsCartOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-white">
-      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side - Logo and login buttons */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/app')}>
+                <Package className="h-6 w-6 text-green-600" />
+                <h1 className="text-2xl font-bold text-green-600">Dostan Mart</h1>
+              </div>
+              
+              {/* Farmer and Employee login buttons beside logo */}
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/farmer-login')}
+                  className="text-sm"
+                >
+                  Farmer Login
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/employee-login')}
+                  className="text-sm"
+                >
+                  Employee Login
+                </Button>
+              </div>
+            </div>
 
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-16">
-        {/* Top Navigation Bar */}
-        <div className="bg-white border-b border-gray-200 py-4">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-end gap-4">
-              <Button onClick={() => navigate('/farmer-login')} variant="outline" size="sm">
-                Farmer Login
+            {/* Right side - Cart and customer auth */}
+            <div className="flex items-center gap-3">
+              {/* Cart */}
+              <Button
+                variant="outline"
+                onClick={handleCartClick}
+                className="relative"
+              >
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Cart
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
               </Button>
-              <Button onClick={() => navigate('/employee-login')} variant="outline" size="sm">
-                Employee Login
-              </Button>
-              <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700">
+              
+              {/* Customer Login and Register */}
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/customer-login')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
                 Login
               </Button>
-              <Button onClick={() => navigate('/customer-register')} className="bg-green-600 hover:bg-green-700">
+              <Button 
+                onClick={() => navigate('/customer-register')}
+                className="bg-green-600 hover:bg-green-700"
+              >
                 Register
               </Button>
             </div>
           </div>
         </div>
+      </header>
 
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-20">
         {/* Shopping Section */}
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -139,32 +183,32 @@ const AppLanding = () => {
           </div>
         </div>
 
-        {/* Banner Section - Increased height for better visibility */}
+        {/* Banner Section - Fixed height for proper banner display */}
         <div className="max-w-7xl mx-auto px-4 mb-8">
           {bannersLoading ? (
-            <div className="relative overflow-hidden rounded-lg h-[600px] bg-gray-200 animate-pulse">
+            <div className="relative overflow-hidden rounded-lg h-[400px] bg-gray-200 animate-pulse">
               <div className="w-full h-full flex items-center justify-center">
                 <span className="text-gray-500">Loading banners...</span>
               </div>
             </div>
           ) : banners && banners.length > 0 ? (
-            <div className="relative overflow-hidden rounded-lg h-[600px]">
-              <div className="flex transition-transform duration-500 ease-in-out" style={{
+            <div className="relative overflow-hidden rounded-lg h-[400px]">
+              <div className="flex transition-transform duration-500 ease-in-out h-full" style={{
                 transform: `translateX(-${currentBanner * 100}%)`
               }}>
                 {banners.map((banner, index) => (
-                  <div key={banner.id} className="w-full flex-shrink-0 cursor-pointer relative" onClick={() => handleBannerClick(banner)}>
+                  <div key={banner.id} className="w-full flex-shrink-0 cursor-pointer relative h-full" onClick={() => handleBannerClick(banner)}>
                     {banner.image_url && (
                       <img 
                         src={banner.image_url} 
                         alt={banner.name} 
-                        className="w-full h-[600px] object-cover rounded-lg" 
+                        className="w-full h-full object-cover rounded-lg" 
                       />
                     )}
                     {banner.video_url && !banner.image_url && (
                       <video 
                         src={banner.video_url} 
-                        className="w-full h-[600px] object-cover rounded-lg" 
+                        className="w-full h-full object-cover rounded-lg" 
                         autoPlay 
                         muted 
                         loop 
@@ -187,7 +231,7 @@ const AppLanding = () => {
             </div>
           ) : (
             // Default banner when no banners are available
-            <div className="relative overflow-hidden rounded-lg h-[600px] bg-gradient-to-r from-amber-100 to-amber-200">
+            <div className="relative overflow-hidden rounded-lg h-[400px] bg-gradient-to-r from-amber-100 to-amber-200">
               <div className="absolute inset-0 bg-black/20"></div>
               <div className="relative h-full flex items-center justify-center">
                 <div className="text-center text-white">
@@ -262,6 +306,8 @@ const AppLanding = () => {
           </div>
         </section>
       </div>
+
+      <Cart />
     </div>
   );
 };
