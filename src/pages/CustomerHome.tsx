@@ -11,6 +11,7 @@ import { useCart } from '@/contexts/CartContext';
 import ProductGrid from '@/components/ProductGrid';
 import Cart from '@/components/Cart';
 import CustomerHeader from '@/components/CustomerHeader';
+import FixedHeader from '@/components/layout/FixedHeader';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
@@ -87,12 +88,20 @@ const CustomerHome = () => {
     setCustomer(null);
   };
 
+  const handleChangePhoto = () => {
+    // Placeholder for photo change functionality
+  };
+
+  const handleChangePassword = () => {
+    // Placeholder for password change functionality
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
-      <CustomerHeader customer={customer} onLogout={handleLogout} />
+      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
 
       {/* Content with top padding to account for fixed header */}
-      <div className="pt-20">
+      <div className="pt-16">
         {/* Shopping Section */}
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex flex-wrap items-center gap-3 mb-6">
