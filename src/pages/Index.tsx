@@ -1,209 +1,312 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Package, 
-  Users, 
-  ShoppingCart, 
-  BarChart3,
-  Leaf,
-  ArrowRight,
-  TrendingUp,
-  Star
-} from 'lucide-react';
-import FixedHeader from '@/components/layout/FixedHeader';
+import { ShoppingBag, ShoppingCart, Package } from 'lucide-react';
+import { useActiveBanners } from '@/hooks/useBanners';
+import { useProducts } from '@/hooks/useProducts';
+import { useFashionProducts } from '@/hooks/useFashionProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { useCart } from '@/contexts/CartContext';
+import ProductGrid from '@/components/ProductGrid';
+import Cart from '@/components/Cart';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const { items, setIsCartOpen } = useCart();
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  
+  const {
+    data: banners,
+    isLoading: bannersLoading
+  } = useActiveBanners();
+  
+  const {
+    products,
+    loading: productsLoading
+  } = useProducts();
+  
+  const {
+    fashionProducts,
+    loading: fashionLoading
+  } = useFashionProducts();
+  
+  const {
+    categories,
+    loading: categoriesLoading
+  } = useCategories();
 
-  const handleChangePhoto = () => {
-    // Placeholder for photo change functionality
-  };
+  const loading = productsLoading || fashionLoading;
 
-  const handleChangePassword = () => {
-    // Placeholder for password change functionality
-  };
+  // Combine all products for display
+  const allProducts = [
+    ...products.filter(p => p.quantity > 0 && p.is_active !== false).map(p => ({ ...p, type: 'general' })),
+    ...fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).map(p => ({ ...p, type: 'fashion' }))
+  ];
 
-  const features = [
-    {
-      icon: <Package className="h-8 w-8 text-green-600" />,
-      title: "Product Management",
-      description: "Manage your fresh produce inventory with ease",
-      action: () => navigate('/products')
-    },
-    {
-      icon: <Users className="h-8 w-8 text-blue-600" />,
-      title: "Customer Management", 
-      description: "Keep track of your valued customers",
-      action: () => navigate('/customers')
-    },
-    {
-      icon: <ShoppingCart className="h-8 w-8 text-purple-600" />,
-      title: "Sales Dashboard",
-      description: "Process sales and manage transactions",
-      action: () => navigate('/sales-dashboard')
-    },
-    {
-      icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
-      title: "Analytics",
-      description: "View sales reports and business insights",
-      action: () => navigate('/dashboard')
+  useEffect(() => {
+    if (banners && banners.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentBanner(prev => (prev + 1) % banners.length);
+      }, 4000);
+      return () => clearInterval(interval);
     }
-  ];
+  }, [banners]);
 
-  const stats = [
-    { label: "Fresh Products", value: "500+", icon: <Leaf className="h-5 w-5" /> },
-    { label: "Happy Customers", value: "1000+", icon: <Users className="h-5 w-5" /> },
-    { label: "Daily Sales", value: "₹50K+", icon: <TrendingUp className="h-5 w-5" /> },
-    { label: "Quality Rating", value: "4.9★", icon: <Star className="h-5 w-5" /> }
-  ];
+  const handleBannerClick = (banner: any) => {
+    if (banner.redirect_url) {
+      window.open(banner.redirect_url, '_blank');
+    }
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    navigate('/customer-products', {
+      state: {
+        selectedCategory: categoryName
+      }
+    });
+  };
+
+  const handleCartClick = () => {
+    setIsCartOpen(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
-      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
-      
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-16">
-        {/* Hero Section */}
-        <section className="py-20 px-4">
-          <div className="container mx-auto text-center">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-                Welcome to
-                <span className="text-green-600 block">DostanFarms</span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                Your complete farm management solution for fresh, organic produce. 
-                Manage inventory, track sales, and grow your business with ease.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+    <div className="min-h-screen bg-white">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side - Logo and login buttons */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+                <Package className="h-6 w-6 text-green-600" />
+                <h1 className="text-2xl font-bold text-green-600">Dostan Mart</h1>
+              </div>
+              
+              {/* Farmer and Employee login buttons beside logo */}
+              <div className="flex items-center gap-2">
                 <Button 
-                  size="lg" 
-                  onClick={() => navigate('/sales-dashboard')}
-                  className="bg-green-600 hover:bg-green-700 text-lg px-8 py-3"
-                >
-                  Start Selling
-                  <ShoppingCart className="h-5 w-5 ml-2" />
-                </Button>
-                <Button 
-                  size="lg" 
                   variant="outline" 
-                  onClick={() => navigate('/dashboard')}
-                  className="border-green-600 text-green-600 hover:bg-green-50 text-lg px-8 py-3"
+                  size="sm" 
+                  onClick={() => navigate('/farmer-login')}
+                  className="text-sm"
                 >
-                  View Dashboard
-                  <BarChart3 className="h-5 w-5 ml-2" />
+                  Farmer Login
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/employee-login')}
+                  className="text-sm"
+                >
+                  Employee Login
                 </Button>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* Stats Section */}
-        <section className="py-16 px-4 bg-white/50">
-          <div className="container mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {stats.map((stat, index) => (
-                <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-center mb-3 text-green-600">
-                      {stat.icon}
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</h3>
-                    <p className="text-gray-600 text-sm">{stat.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Right side - Cart and customer auth */}
+            <div className="flex items-center gap-3">
+              {/* Cart */}
+              <Button
+                variant="outline"
+                onClick={handleCartClick}
+                className="relative flex items-center gap-2"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Cart
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Button>
+              
+              {/* Customer Login and Register */}
+              <Button 
+                onClick={() => navigate('/customer-login')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Login
+              </Button>
+              <Button 
+                onClick={() => navigate('/customer-register')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Register
+              </Button>
             </div>
           </div>
-        </section>
+        </div>
+      </header>
 
-        {/* Features Section */}
-        <section className="py-20 px-4">
-          <div className="container mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Everything You Need to Manage Your Farm
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Streamline your operations with our comprehensive farm management tools
-              </p>
-            </div>
+      {/* Content with top padding to account for fixed header */}
+      <div className="pt-20">
+        {/* Shopping Section */}
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              Shop All Products
+            </Button>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature, index) => (
-                <Card 
-                  key={index} 
-                  className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-                  onClick={feature.action}
-                >
-                  <CardContent className="p-8 text-center">
-                    <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform">
-                      {feature.icon}
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                      {feature.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      {feature.description}
-                    </p>
-                    <div className="flex items-center justify-center text-green-600 group-hover:text-green-700">
-                      <span className="text-sm font-medium">Get Started</span>
-                      <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20 px-4 bg-gradient-to-r from-green-600 to-green-700 text-white">
-          <div className="container mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-4">Ready to Transform Your Farm?</h2>
-            <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-              Join thousands of farmers who trust DostanFarms to manage their operations efficiently
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Category Buttons */}
+            {!categoriesLoading && categories.length > 0 && (
+              <>
+                {categories.map(category => (
+                  <Button 
+                    key={category.id} 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleCategoryClick(category.name)} 
+                    className="text-xs hover:bg-green-50 hover:border-green-300"
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </>
+            )}
+            
+            {/* Fashion category button */}
+            {fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).length > 0 && (
               <Button 
-                size="lg" 
-                onClick={() => navigate('/dashboard')}
-                className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-3"
-              >
-                Access Dashboard
-              </Button>
-              <Button 
-                size="lg" 
                 variant="outline" 
-                onClick={() => navigate('/sales-dashboard')}
-                className="border-white text-white hover:bg-white/10 text-lg px-8 py-3"
+                size="sm" 
+                onClick={() => handleCategoryClick('Fashion')} 
+                className="text-xs hover:bg-green-50 hover:border-green-300"
               >
-                Start Your First Sale
+                Fashion
               </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Banner Section */}
+        <div className="max-w-7xl mx-auto px-4 mb-8">
+          {bannersLoading ? (
+            <div className="relative overflow-hidden rounded-lg h-[500px] bg-gray-200 animate-pulse">
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-gray-500">Loading banners...</span>
+              </div>
             </div>
+          ) : banners && banners.length > 0 ? (
+            <div className="relative overflow-hidden rounded-lg h-[500px]">
+              <div className="flex transition-transform duration-500 ease-in-out h-full" style={{
+                transform: `translateX(-${currentBanner * 100}%)`
+              }}>
+                {banners.map((banner, index) => (
+                  <div key={banner.id} className="w-full flex-shrink-0 cursor-pointer relative h-full" onClick={() => handleBannerClick(banner)}>
+                    {banner.image_url && (
+                      <img 
+                        src={banner.image_url} 
+                        alt={banner.name} 
+                        className="w-full h-full object-cover rounded-lg" 
+                      />
+                    )}
+                    {banner.video_url && !banner.image_url && (
+                      <video 
+                        src={banner.video_url} 
+                        className="w-full h-full object-cover rounded-lg" 
+                        autoPlay 
+                        muted 
+                        loop 
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Banner indicators */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {banners.map((_, index) => (
+                  <button 
+                    key={index} 
+                    className={`w-3 h-3 rounded-full transition-colors ${index === currentBanner ? 'bg-white' : 'bg-white/50'}`} 
+                    onClick={() => setCurrentBanner(index)} 
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Default banner when no banners are available
+            <div className="relative overflow-hidden rounded-lg h-[500px] bg-gradient-to-r from-amber-100 to-amber-200">
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="relative h-full flex items-center justify-center">
+                <div className="text-center text-white">
+                  <h1 className="text-5xl md:text-6xl font-bold mb-4">
+                    Explore the New
+                    <br />
+                    Fashion Styles
+                  </h1>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                      onClick={() => navigate('/customer-products')}
+                    >
+                      Shop Now
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3"
+                      onClick={() => handleCategoryClick('Fashion')}
+                    >
+                      Explore Fashion
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {/* Fashion models image overlay */}
+              <div className="absolute bottom-0 right-0 w-full h-full opacity-30">
+                <img 
+                  src="/lovable-uploads/7acba752-f632-43c1-9c01-bbbcb5d41c04.png" 
+                  alt="Fashion Models" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Products Section */}
+        <div className="max-w-7xl mx-auto p-4 py-16">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">All Available Products</h2>
+            <p className="text-gray-600">Fresh products available for you</p>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground text-lg">Loading products...</div>
+            </div>
+          ) : allProducts.length > 0 ? (
+            <ProductGrid products={allProducts} />
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground text-lg">No products available</div>
+            </div>
+          )}
+        </div>
+
+        {/* Customer Registration CTA */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">New Customer?</h2>
+            <p className="text-xl text-gray-600 mb-8">Join thousands of satisfied customers</p>
+            <Button 
+              size="lg" 
+              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg" 
+              onClick={() => navigate('/customer-register')}
+            >
+              Register Now
+            </Button>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer className="bg-gray-900 text-white py-12 px-4">
-          <div className="container mx-auto text-center">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <Leaf className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">DostanFarms</span>
-            </div>
-            <p className="text-gray-400 mb-6">
-              Empowering farmers with modern technology for sustainable agriculture
-            </p>
-            <div className="flex justify-center space-x-6 text-sm text-gray-400">
-              <span>© 2024 DostanFarms. All rights reserved.</span>
-            </div>
-          </div>
-        </footer>
       </div>
+
+      <Cart />
     </div>
   );
 };
