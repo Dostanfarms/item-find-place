@@ -1,312 +1,283 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ShoppingBag, ShoppingCart, Package } from 'lucide-react';
-import { useActiveBanners } from '@/hooks/useBanners';
+import React, { useState } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
-import { useCategories } from '@/hooks/useCategories';
-import { useCart } from '@/contexts/CartContext';
-import ProductGrid from '@/components/ProductGrid';
-import Cart from '@/components/Cart';
+import { useBanners } from '@/hooks/useBanners';
+import { useAuth } from '@/context/AuthContext';
+import { useCartContext } from '@/contexts/CartContext';
+import ProductCard from '@/components/ProductCard';
+import ProductDescriptionModal from '@/components/ProductDescriptionModal';
+import LoginPopup from '@/components/LoginPopup';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ShoppingCart, User, UserPlus, Package, Shirt, Apple, Wheat, Milk, Leaf } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const { products } = useProducts();
+  const { fashionProducts } = useFashionProducts();
+  const { banners } = useBanners();
+  const { currentUser, logout } = useAuth();
+  const { cartItems } = useCartContext();
   const navigate = useNavigate();
-  const [currentBanner, setCurrentBanner] = useState(0);
-  const { items, setIsCartOpen } = useCart();
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  
-  const {
-    data: banners,
-    isLoading: bannersLoading
-  } = useActiveBanners();
-  
-  const {
-    products,
-    loading: productsLoading
-  } = useProducts();
-  
-  const {
-    fashionProducts,
-    loading: fashionLoading
-  } = useFashionProducts();
-  
-  const {
-    categories,
-    loading: categoriesLoading
-  } = useCategories();
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
 
-  const loading = productsLoading || fashionLoading;
+  // Get all active banners
+  const activeBanners = banners.filter(banner => banner.is_active);
 
-  // Combine all products for display
-  const allProducts = [
-    ...products.filter(p => p.quantity > 0 && p.is_active !== false).map(p => ({ ...p, type: 'general' })),
-    ...fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).map(p => ({ ...p, type: 'fashion' }))
+  // Combine all products
+  const getAllProducts = () => {
+    if (selectedCategory === 'Fashion') {
+      return fashionProducts.filter(p => 
+        p.is_active && p.sizes && p.sizes.some(s => s.pieces > 0)
+      ).map(p => ({ ...p, type: 'fashion' }));
+    } else if (selectedCategory === 'all') {
+      const activeGeneralProducts = products.filter(p => 
+        p.is_active !== false && p.quantity > 0
+      ).map(p => ({ ...p, type: 'general' }));
+      
+      const activeFashionProducts = fashionProducts.filter(p => 
+        p.is_active && p.sizes && p.sizes.some(s => s.pieces > 0)
+      ).map(p => ({ ...p, type: 'fashion' }));
+      
+      return [...activeGeneralProducts, ...activeFashionProducts];
+    } else {
+      return products.filter(p => 
+        p.category === selectedCategory && 
+        p.is_active !== false && 
+        p.quantity > 0
+      ).map(p => ({ ...p, type: 'general' }));
+    }
+  };
+
+  const displayProducts = getAllProducts();
+
+  const categories = [
+    { id: 'all', name: 'All Products', icon: Package },
+    { id: 'Fashion', name: 'Fashion', icon: Shirt },
+    { id: 'Vegetables', name: 'Vegetables', icon: Leaf },
+    { id: 'Fruits', name: 'Fruits', icon: Apple },
+    { id: 'Grains', name: 'Grains', icon: Wheat },
+    { id: 'Dairy', name: 'Dairy', icon: Milk },
   ];
 
-  useEffect(() => {
-    if (banners && banners.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentBanner(prev => (prev + 1) % banners.length);
-      }, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [banners]);
-
-  const handleBannerClick = (banner: any) => {
-    if (banner.redirect_url) {
-      window.open(banner.redirect_url, '_blank');
-    }
+  const handleProductView = (product: any) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
-  const handleCategoryClick = (categoryName: string) => {
-    navigate('/customer-products', {
-      state: {
-        selectedCategory: categoryName
-      }
-    });
-  };
-
-  const handleCartClick = () => {
-    setIsCartOpen(true);
-  };
+  const totalCartItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left side - Logo and login buttons */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                <Package className="h-6 w-6 text-green-600" />
-                <h1 className="text-2xl font-bold text-green-600">Dostan Mart</h1>
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Logo and Auth Buttons */}
+            <div className="flex items-center space-x-6">
+              <div 
+                className="text-2xl font-bold text-green-600 cursor-pointer"
+                onClick={() => navigate('/')}
+              >
+                Dostan Mart
               </div>
-              
-              {/* Farmer and Employee login buttons beside logo */}
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <div className="hidden md:flex items-center space-x-3">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => navigate('/farmer-login')}
-                  className="text-sm"
+                  className="text-green-600 border-green-600 hover:bg-green-50"
                 >
                   Farmer Login
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => navigate('/employee-login')}
-                  className="text-sm"
+                  className="text-green-600 border-green-600 hover:bg-green-50"
                 >
                   Employee Login
                 </Button>
               </div>
             </div>
 
-            {/* Right side - Cart and customer auth */}
-            <div className="flex items-center gap-3">
-              {/* Cart */}
+            {/* Right: Customer Auth and Cart */}
+            <div className="flex items-center space-x-4">
+              {currentUser ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate('/customer/profile')}
+                    className="flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Profile</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={logout}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowLoginPopup(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/customer-register')}
+                    className="flex items-center space-x-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Register</span>
+                  </Button>
+                </>
+              )}
+              
               <Button
                 variant="outline"
-                onClick={handleCartClick}
-                className="relative flex items-center gap-2"
+                onClick={() => navigate('/cart')}
+                className="relative flex items-center space-x-2"
               >
-                <ShoppingCart className="w-4 h-4" />
-                Cart
-                {totalItems > 0 && (
+                <ShoppingCart className="h-4 w-4" />
+                {totalCartItems > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {totalItems}
+                    {totalCartItems}
                   </span>
                 )}
-              </Button>
-              
-              {/* Customer Login and Register */}
-              <Button 
-                onClick={() => navigate('/customer-login')}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/customer-register')}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Register
+                <span className="hidden sm:inline">Cart</span>
               </Button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Content with top padding to account for fixed header */}
-      <div className="pt-20">
-        {/* Shopping Section */}
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <Button onClick={() => navigate('/customer-products')} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              Shop All Products
-            </Button>
-            
-            {/* Category Buttons */}
-            {!categoriesLoading && categories.length > 0 && (
-              <>
-                {categories.map(category => (
-                  <Button 
-                    key={category.id} 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleCategoryClick(category.name)} 
-                    className="text-xs hover:bg-green-50 hover:border-green-300"
+      {/* Main Content with top padding */}
+      <div className="pt-16">
+        {/* Banners Section */}
+        {activeBanners.length > 0 && (
+          <section className="mb-8">
+            <div className="relative w-full h-[500px] overflow-hidden">
+              {activeBanners.map((banner) => (
+                <div 
+                  key={banner.id} 
+                  className="w-full h-full"
+                >
+                  {banner.image_url ? (
+                    <img
+                      src={banner.image_url}
+                      alt={banner.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : banner.video_url ? (
+                    <video
+                      src={banner.video_url}
+                      className="w-full h-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center">
+                      <h2 className="text-4xl font-bold text-white">{banner.name}</h2>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Categories Section */}
+        <section className="mb-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Shop by Category</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {categories.map((category) => {
+                const IconComponent = category.icon;
+                return (
+                  <Card 
+                    key={category.id}
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                      selectedCategory === category.id 
+                        ? 'ring-2 ring-green-500 bg-green-50' 
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => setSelectedCategory(category.id)}
                   >
-                    {category.name}
-                  </Button>
-                ))}
-              </>
-            )}
-            
-            {/* Fashion category button */}
-            {fashionProducts.filter(p => p.is_active && p.sizes?.some(s => s.pieces > 0)).length > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleCategoryClick('Fashion')} 
-                className="text-xs hover:bg-green-50 hover:border-green-300"
-              >
-                Fashion
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Banner Section */}
-        <div className="max-w-7xl mx-auto px-4 mb-8">
-          {bannersLoading ? (
-            <div className="relative overflow-hidden rounded-lg h-[500px] bg-gray-200 animate-pulse">
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-gray-500">Loading banners...</span>
-              </div>
+                    <CardContent className="p-4 text-center">
+                      <IconComponent className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                      <p className="text-sm font-medium text-gray-900">{category.name}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          ) : banners && banners.length > 0 ? (
-            <div className="relative overflow-hidden rounded-lg h-[500px]">
-              <div className="flex transition-transform duration-500 ease-in-out h-full" style={{
-                transform: `translateX(-${currentBanner * 100}%)`
-              }}>
-                {banners.map((banner, index) => (
-                  <div key={banner.id} className="w-full flex-shrink-0 cursor-pointer relative h-full" onClick={() => handleBannerClick(banner)}>
-                    {banner.image_url && (
-                      <img 
-                        src={banner.image_url} 
-                        alt={banner.name} 
-                        className="w-full h-full object-cover rounded-lg" 
-                      />
-                    )}
-                    {banner.video_url && !banner.image_url && (
-                      <video 
-                        src={banner.video_url} 
-                        className="w-full h-full object-cover rounded-lg" 
-                        autoPlay 
-                        muted 
-                        loop 
-                      />
-                    )}
-                  </div>
-                ))}
+          </div>
+        </section>
+
+        {/* Products Section */}
+        <section className="px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {selectedCategory === 'all' ? 'All Products' : `${selectedCategory} Products`}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {displayProducts.length} products found
+              </p>
+            </div>
+
+            {displayProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No products available</h3>
+                <p className="text-gray-600">
+                  {selectedCategory === 'all' 
+                    ? 'No products are currently available.' 
+                    : `No products are currently available in the ${selectedCategory} category.`}
+                </p>
               </div>
-              
-              {/* Banner indicators */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {banners.map((_, index) => (
-                  <button 
-                    key={index} 
-                    className={`w-3 h-3 rounded-full transition-colors ${index === currentBanner ? 'bg-white' : 'bg-white/50'}`} 
-                    onClick={() => setCurrentBanner(index)} 
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {displayProducts.map((product) => (
+                  <ProductCard 
+                    key={`${product.type}-${product.id}`} 
+                    product={product}
+                    onViewClick={() => handleProductView(product)}
                   />
                 ))}
               </div>
-            </div>
-          ) : (
-            // Default banner when no banners are available
-            <div className="relative overflow-hidden rounded-lg h-[500px] bg-gradient-to-r from-amber-100 to-amber-200">
-              <div className="absolute inset-0 bg-black/20"></div>
-              <div className="relative h-full flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h1 className="text-5xl md:text-6xl font-bold mb-4">
-                    Explore the New
-                    <br />
-                    Fashion Styles
-                  </h1>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-                    <Button 
-                      size="lg" 
-                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
-                      onClick={() => navigate('/customer-products')}
-                    >
-                      Shop Now
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      variant="outline" 
-                      className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3"
-                      onClick={() => handleCategoryClick('Fashion')}
-                    >
-                      Explore Fashion
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              {/* Fashion models image overlay */}
-              <div className="absolute bottom-0 right-0 w-full h-full opacity-30">
-                <img 
-                  src="/lovable-uploads/7acba752-f632-43c1-9c01-bbbcb5d41c04.png" 
-                  alt="Fashion Models" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Products Section */}
-        <div className="max-w-7xl mx-auto p-4 py-16">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">All Available Products</h2>
-            <p className="text-gray-600">Fresh products available for you</p>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="text-muted-foreground text-lg">Loading products...</div>
-            </div>
-          ) : allProducts.length > 0 ? (
-            <ProductGrid products={allProducts} />
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-muted-foreground text-lg">No products available</div>
-            </div>
-          )}
-        </div>
-
-        {/* Customer Registration CTA */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-4">New Customer?</h2>
-            <p className="text-xl text-gray-600 mb-8">Join thousands of satisfied customers</p>
-            <Button 
-              size="lg" 
-              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg" 
-              onClick={() => navigate('/customer-register')}
-            >
-              Register Now
-            </Button>
+            )}
           </div>
         </section>
       </div>
 
-      <Cart />
+      {/* Login Popup */}
+      {showLoginPopup && (
+        <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
+
+      {/* Product Description Modal */}
+      {selectedProduct && (
+        <ProductDescriptionModal
+          isOpen={showProductModal}
+          onClose={() => setShowProductModal(false)}
+          product={selectedProduct}
+          images={selectedProduct.image_url ? [selectedProduct.image_url] : []}
+        />
+      )}
     </div>
   );
 };

@@ -24,8 +24,8 @@ export interface Employee {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  branchId?: string;
-  branch_id?: string;
+  branchIds?: string[];
+  branches?: Array<{id: string; branch_name: string}>;
 }
 
 export const useEmployees = () => {
@@ -37,13 +37,24 @@ export const useEmployees = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch employees with their branch assignments
+      const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('*')
+        .select(`
+          *,
+          employee_branches (
+            branch_id,
+            branches (
+              id,
+              branch_name
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching employees:', error);
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
         toast({
           title: "Error",
           description: "Failed to load employees",
@@ -52,8 +63,8 @@ export const useEmployees = () => {
         return;
       }
 
-      // Map database fields to component expected fields
-      const formattedEmployees = data?.map(emp => ({
+      // Format employees data
+      const formattedEmployees = employeesData?.map(emp => ({
         id: emp.id,
         name: emp.name,
         email: emp.email,
@@ -72,16 +83,22 @@ export const useEmployees = () => {
         isActive: emp.is_active,
         createdAt: emp.created_at,
         updatedAt: emp.updated_at,
-        branchId: emp.branch_id,
-        branch_id: emp.branch_id
+        branchIds: emp.employee_branches?.map((eb: any) => eb.branch_id) || [],
+        branches: emp.employee_branches?.map((eb: any) => ({
+          id: eb.branches.id,
+          branch_name: eb.branches.branch_name
+        })) || []
       })) || [];
 
-      // Apply branch filtering
-      const filteredEmployees = getBranchRestrictedData(
-        formattedEmployees, 
-        currentUser?.role || '', 
-        currentUser?.branch_id || null
-      );
+      // Apply branch filtering based on current user's permissions
+      const filteredEmployees = currentUser?.role?.toLowerCase() === 'admin' 
+        ? formattedEmployees 
+        : formattedEmployees.filter(emp => {
+            // Show employees that share at least one branch with current user
+            const userBranchId = currentUser?.branch_id;
+            if (!userBranchId) return emp.branchIds?.length === 0;
+            return emp.branchIds?.includes(userBranchId) || emp.branchIds?.length === 0;
+          });
 
       setEmployees(filteredEmployees);
     } catch (error) {
@@ -98,13 +115,7 @@ export const useEmployees = () => {
 
   const addEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Auto-assign current user's branch if not admin
-      let branchId = employeeData.branchId;
-      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
-        branchId = currentUser.branch_id;
-      }
-
-      const { data, error } = await supabase
+      const { data: newEmployee, error: employeeError } = await supabase
         .from('employees')
         .insert([{
           name: employeeData.name,
@@ -120,20 +131,36 @@ export const useEmployees = () => {
           account_number: employeeData.accountNumber,
           bank_name: employeeData.bankName,
           ifsc_code: employeeData.ifscCode,
-          is_active: employeeData.isActive,
-          branch_id: branchId
+          is_active: employeeData.isActive
         }])
         .select()
         .single();
 
-      if (error) {
-        console.error('Error adding employee:', error);
+      if (employeeError) {
+        console.error('Error adding employee:', employeeError);
         toast({
           title: "Error",
           description: "Failed to add employee",
           variant: "destructive"
         });
-        return { success: false, error };
+        return { success: false, error: employeeError };
+      }
+
+      // Handle branch assignments
+      if (employeeData.branchIds && employeeData.branchIds.length > 0) {
+        const branchAssignments = employeeData.branchIds.map(branchId => ({
+          employee_id: newEmployee.id,
+          branch_id: branchId
+        }));
+
+        const { error: branchError } = await supabase
+          .from('employee_branches')
+          .insert(branchAssignments);
+
+        if (branchError) {
+          console.error('Error assigning branches:', branchError);
+          // Don't fail the whole operation, just log the error
+        }
       }
 
       await fetchEmployees();
@@ -142,7 +169,7 @@ export const useEmployees = () => {
         description: `${employeeData.name} was successfully added as ${employeeData.role}`
       });
       
-      return { success: true, data };
+      return { success: true, data: newEmployee };
     } catch (error) {
       console.error('Error in addEmployee:', error);
       toast({
@@ -172,7 +199,6 @@ export const useEmployees = () => {
       if (employeeData.bankName !== undefined) updateData.bank_name = employeeData.bankName;
       if (employeeData.ifscCode !== undefined) updateData.ifsc_code = employeeData.ifscCode;
       if (employeeData.isActive !== undefined) updateData.is_active = employeeData.isActive;
-      if (employeeData.branchId !== undefined) updateData.branch_id = employeeData.branchId;
 
       const { data, error } = await supabase
         .from('employees')
@@ -189,6 +215,31 @@ export const useEmployees = () => {
           variant: "destructive"
         });
         return { success: false, error };
+      }
+
+      // Handle branch assignments update
+      if (employeeData.branchIds !== undefined) {
+        // Delete existing assignments
+        await supabase
+          .from('employee_branches')
+          .delete()
+          .eq('employee_id', id);
+
+        // Add new assignments
+        if (employeeData.branchIds.length > 0) {
+          const branchAssignments = employeeData.branchIds.map(branchId => ({
+            employee_id: id,
+            branch_id: branchId
+          }));
+
+          const { error: branchError } = await supabase
+            .from('employee_branches')
+            .insert(branchAssignments);
+
+          if (branchError) {
+            console.error('Error updating branch assignments:', branchError);
+          }
+        }
       }
 
       await fetchEmployees();
@@ -211,6 +262,13 @@ export const useEmployees = () => {
 
   const deleteEmployee = async (id: string) => {
     try {
+      // Delete branch assignments first
+      await supabase
+        .from('employee_branches')
+        .delete()
+        .eq('employee_id', id);
+
+      // Delete employee
       const { error } = await supabase
         .from('employees')
         .delete()
@@ -246,7 +304,7 @@ export const useEmployees = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [currentUser]);
 
   return {
     employees,

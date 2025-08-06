@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import PhotoUploadField from '@/components/PhotoUploadField';
 import { Employee } from '@/utils/types';
 import { useBranches } from '@/hooks/useBranches';
@@ -43,16 +44,26 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     accountNumber: employee?.accountNumber || '',
     bankName: employee?.bankName || '',
     ifscCode: employee?.ifscCode || '',
-    branchId: employee?.branchId || employee?.branch_id || ''
+    branchIds: (employee as any)?.branchIds || []
   });
 
   // Filter branches based on user permissions
-  const accessibleBranches = branches.filter(branch => 
-    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
-  );
+  const accessibleBranches = branches.filter(branch => {
+    if (currentUser?.role?.toLowerCase() === 'admin') return true;
+    return canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id);
+  });
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchToggle = (branchId: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      branchIds: checked 
+        ? [...prev.branchIds, branchId]
+        : prev.branchIds.filter(id => id !== branchId)
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -77,8 +88,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       accountNumber: formData.accountNumber,
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
-      branchId: formData.branchId || null,
-      branch_id: formData.branchId || null,
+      branchIds: formData.branchIds,
       isActive: true
     };
 
@@ -147,8 +157,8 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
           />
         </div>
 
-        {/* Role and Branch */}
-        <div className="space-y-2">
+        {/* Role Selection */}
+        <div className="space-y-2 md:col-span-2">
           <Label htmlFor="role">Role *</Label>
           <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
             <SelectTrigger>
@@ -164,24 +174,33 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="branch">Branch</Label>
-          <Select 
-            value={formData.branchId || 'no-branch'} 
-            onValueChange={(value) => handleInputChange('branchId', value === 'no-branch' ? '' : value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select branch" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no-branch">No Branch</SelectItem>
-              {accessibleBranches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.branch_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Branch Selection */}
+        <div className="space-y-2 md:col-span-2">
+          <Label>Branch Assignment</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 border rounded-md bg-gray-50">
+            {accessibleBranches.length === 0 ? (
+              <p className="text-sm text-gray-600 col-span-full">No branches available for assignment</p>
+            ) : (
+              accessibleBranches.map((branch) => (
+                <div key={branch.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`branch-${branch.id}`}
+                    checked={formData.branchIds.includes(branch.id)}
+                    onCheckedChange={(checked) => handleBranchToggle(branch.id, checked as boolean)}
+                  />
+                  <Label 
+                    htmlFor={`branch-${branch.id}`}
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    {branch.branch_name}
+                  </Label>
+                </div>
+              ))
+            )}
+            <div className="col-span-full text-xs text-gray-500 mt-2">
+              Select multiple branches for this employee to access
+            </div>
+          </div>
         </div>
 
         {/* Location Information */}
