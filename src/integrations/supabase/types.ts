@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -250,12 +250,47 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_branches: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          employee_id: string
+          id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          employee_id: string
+          id?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_branches_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_branches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           account_holder_name: string | null
           account_number: string | null
           bank_name: string | null
-          branch_id: string | null
           created_at: string
           date_joined: string
           district: string | null
@@ -276,7 +311,6 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
-          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -297,7 +331,6 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
-          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -314,15 +347,7 @@ export type Database = {
           updated_at?: string
           village?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "employees_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       farmer_products: {
         Row: {
@@ -529,96 +554,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      fruit_products: {
-        Row: {
-          barcode: string | null
-          category: string
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean
-          name: string
-          price_per_unit: number
-          quantity: number
-          unit: string
-          updated_at: string
-        }
-        Insert: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name: string
-          price_per_unit: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Update: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name?: string
-          price_per_unit?: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      grain_products: {
-        Row: {
-          barcode: string | null
-          category: string
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean
-          name: string
-          price_per_unit: number
-          quantity: number
-          unit: string
-          updated_at: string
-        }
-        Insert: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name: string
-          price_per_unit: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Update: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name?: string
-          price_per_unit?: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       order_items: {
         Row: {
@@ -1147,51 +1082,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      vegetable_products: {
-        Row: {
-          barcode: string | null
-          category: string
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean
-          name: string
-          price_per_unit: number
-          quantity: number
-          unit: string
-          updated_at: string
-        }
-        Insert: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name: string
-          price_per_unit: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Update: {
-          barcode?: string | null
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          name?: string
-          price_per_unit?: number
-          quantity?: number
-          unit?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {

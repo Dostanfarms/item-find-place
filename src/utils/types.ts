@@ -158,6 +158,7 @@ export interface Employee {
   ifscCode?: string;
   branchId?: string;
   branch_id?: string;
+  branchIds?: string[]; // For multi-branch support
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

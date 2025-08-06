@@ -3,14 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhotoUploadField from '@/components/PhotoUploadField';
+import MultiBranchSelector from './MultiBranchSelector';
 import { Employee } from '@/utils/types';
-import { useBranches } from '@/hooks/useBranches';
 import { useRoles } from '@/hooks/useRoles';
-import { useAuth } from '@/context/AuthContext';
-import { canAccessBranch } from '@/utils/employeeData';
 
 interface EmployeeFormBaseProps {
   employee?: Employee;
@@ -25,9 +22,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   onCancel,
   isLoading = false
 }) => {
-  const { branches } = useBranches();
   const { roles } = useRoles();
-  const { currentUser } = useAuth();
   
   const [formData, setFormData] = useState({
     name: employee?.name || '',
@@ -43,16 +38,15 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     accountNumber: employee?.accountNumber || '',
     bankName: employee?.bankName || '',
     ifscCode: employee?.ifscCode || '',
-    branchId: employee?.branchId || employee?.branch_id || ''
+    branchIds: [] as string[]
   });
-
-  // Filter branches based on user permissions
-  const accessibleBranches = branches.filter(branch => 
-    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
-  );
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (branchIds: string[]) => {
+    setFormData(prev => ({ ...prev, branchIds }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -77,9 +71,12 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       accountNumber: formData.accountNumber,
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
-      branchId: formData.branchId || null,
-      branch_id: formData.branchId || null,
-      isActive: true
+      branchId: formData.branchIds[0] || null, // For backward compatibility
+      branch_id: formData.branchIds[0] || null,
+      branchIds: formData.branchIds, // New multi-branch support
+      isActive: true,
+      createdAt: employee?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     onSubmit(submissionData);
@@ -87,9 +84,9 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
 
   return (
     <div className="p-6">
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
         {/* Photo Upload */}
-        <div className="md:col-span-2 flex justify-center">
+        <div className="flex justify-center">
           <PhotoUploadField
             value={formData.profilePhoto}
             onChange={(photoUrl) => handleInputChange('profilePhoto', photoUrl)}
@@ -98,173 +95,169 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
         </div>
 
         {/* Basic Information */}
-        <div className="space-y-2">
-          <Label htmlFor="name">Full Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="Enter full name"
-            required
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter full name"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="Enter email address"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              placeholder="Enter phone number"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              placeholder="Enter password"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Role Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="role">Role *</Label>
+            <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                    {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Branch Assignment */}
+        <div className="space-y-4">
+          <MultiBranchSelector
+            employeeId={employee?.id}
+            selectedBranchIds={formData.branchIds}
+            onBranchChange={handleBranchChange}
             disabled={isLoading}
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            placeholder="Enter email address"
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="Enter phone number"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="password">Password *</Label>
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            placeholder="Enter password"
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Role and Branch */}
-        <div className="space-y-2">
-          <Label htmlFor="role">Role *</Label>
-          <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.name.toLowerCase()}>
-                  {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="branch">Branch</Label>
-          <Select 
-            value={formData.branchId || 'no-branch'} 
-            onValueChange={(value) => handleInputChange('branchId', value === 'no-branch' ? '' : value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select branch" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no-branch">No Branch</SelectItem>
-              {accessibleBranches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.branch_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Location Information */}
-        <div className="space-y-2">
-          <Label htmlFor="state">State</Label>
-          <Input
-            id="state"
-            value={formData.state}
-            onChange={(e) => handleInputChange('state', e.target.value)}
-            placeholder="Enter state"
-            disabled={isLoading}
-          />
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="state">State</Label>
+            <Input
+              id="state"
+              value={formData.state}
+              onChange={(e) => handleInputChange('state', e.target.value)}
+              placeholder="Enter state"
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="district">District</Label>
-          <Input
-            id="district"
-            value={formData.district}
-            onChange={(e) => handleInputChange('district', e.target.value)}
-            placeholder="Enter district"
-            disabled={isLoading}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="district">District</Label>
+            <Input
+              id="district"
+              value={formData.district}
+              onChange={(e) => handleInputChange('district', e.target.value)}
+              placeholder="Enter district"
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="village">Village</Label>
-          <Input
-            id="village"
-            value={formData.village}
-            onChange={(e) => handleInputChange('village', e.target.value)}
-            placeholder="Enter village"
-            disabled={isLoading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="village">Village</Label>
+            <Input
+              id="village"
+              value={formData.village}
+              onChange={(e) => handleInputChange('village', e.target.value)}
+              placeholder="Enter village"
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
         {/* Bank Information */}
-        <div className="space-y-2">
-          <Label htmlFor="accountHolderName">Account Holder Name</Label>
-          <Input
-            id="accountHolderName"
-            value={formData.accountHolderName}
-            onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
-            placeholder="Enter account holder name"
-            disabled={isLoading}
-          />
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="accountHolderName">Account Holder Name</Label>
+            <Input
+              id="accountHolderName"
+              value={formData.accountHolderName}
+              onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
+              placeholder="Enter account holder name"
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="accountNumber">Account Number</Label>
-          <Input
-            id="accountNumber"
-            value={formData.accountNumber}
-            onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-            placeholder="Enter account number"
-            disabled={isLoading}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="accountNumber">Account Number</Label>
+            <Input
+              id="accountNumber"
+              value={formData.accountNumber}
+              onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+              placeholder="Enter account number"
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="bankName">Bank Name</Label>
-          <Input
-            id="bankName"
-            value={formData.bankName}
-            onChange={(e) => handleInputChange('bankName', e.target.value)}
-            placeholder="Enter bank name"
-            disabled={isLoading}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankName">Bank Name</Label>
+            <Input
+              id="bankName"
+              value={formData.bankName}
+              onChange={(e) => handleInputChange('bankName', e.target.value)}
+              placeholder="Enter bank name"
+              disabled={isLoading}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="ifscCode">IFSC Code</Label>
-          <Input
-            id="ifscCode"
-            value={formData.ifscCode}
-            onChange={(e) => handleInputChange('ifscCode', e.target.value)}
-            placeholder="Enter IFSC code"
-            disabled={isLoading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="ifscCode">IFSC Code</Label>
+            <Input
+              id="ifscCode"
+              value={formData.ifscCode}
+              onChange={(e) => handleInputChange('ifscCode', e.target.value)}
+              placeholder="Enter IFSC code"
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="md:col-span-2 flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>

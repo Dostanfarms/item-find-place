@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useEmployeeBranches } from '@/hooks/useEmployeeBranches';
 import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Employee {
@@ -26,6 +26,7 @@ export interface Employee {
   updatedAt: string;
   branchId?: string;
   branch_id?: string;
+  branchIds?: string[]; // For multi-branch support
 }
 
 export const useEmployees = () => {
@@ -33,17 +34,20 @@ export const useEmployees = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { assignEmployeeToBranches, getEmployeeBranches } = useEmployeeBranches();
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch employees with their branch assignments
+      const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching employees:', error);
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
         toast({
           title: "Error",
           description: "Failed to load employees",
@@ -52,33 +56,40 @@ export const useEmployees = () => {
         return;
       }
 
-      // Map database fields to component expected fields
-      const formattedEmployees = data?.map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        email: emp.email,
-        phone: emp.phone || '',
-        password: emp.password,
-        role: emp.role,
-        profilePhoto: emp.profile_photo,
-        dateJoined: emp.date_joined,
-        state: emp.state,
-        district: emp.district,
-        village: emp.village,
-        accountHolderName: emp.account_holder_name,
-        accountNumber: emp.account_number,
-        bankName: emp.bank_name,
-        ifscCode: emp.ifsc_code,
-        isActive: emp.is_active,
-        createdAt: emp.created_at,
-        updatedAt: emp.updated_at,
-        branchId: emp.branch_id,
-        branch_id: emp.branch_id
-      })) || [];
+      // Get branch assignments for each employee
+      const employeesWithBranches = await Promise.all(
+        (employeesData || []).map(async (emp) => {
+          const branchIds = await getEmployeeBranches(emp.id);
+          
+          return {
+            id: emp.id,
+            name: emp.name,
+            email: emp.email,
+            phone: emp.phone || '',
+            password: emp.password,
+            role: emp.role,
+            profilePhoto: emp.profile_photo,
+            dateJoined: emp.date_joined,
+            state: emp.state,
+            district: emp.district,
+            village: emp.village,
+            accountHolderName: emp.account_holder_name,
+            accountNumber: emp.account_number,
+            bankName: emp.bank_name,
+            ifscCode: emp.ifsc_code,
+            isActive: emp.is_active,
+            createdAt: emp.created_at,
+            updatedAt: emp.updated_at,
+            branchId: emp.branch_id,
+            branch_id: emp.branch_id,
+            branchIds: branchIds
+          };
+        })
+      );
 
-      // Apply branch filtering
+      // Apply branch filtering (for now, keep existing logic for single branch)
       const filteredEmployees = getBranchRestrictedData(
-        formattedEmployees, 
+        employeesWithBranches, 
         currentUser?.role || '', 
         currentUser?.branch_id || null
       );
@@ -136,6 +147,11 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
+      // Assign employee to multiple branches if provided
+      if (employeeData.branchIds && employeeData.branchIds.length > 0) {
+        await assignEmployeeToBranches(data.id, employeeData.branchIds);
+      }
+
       await fetchEmployees();
       toast({
         title: "Success",
@@ -191,6 +207,11 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
+      // Update branch assignments if provided
+      if (employeeData.branchIds !== undefined) {
+        await assignEmployeeToBranches(id, employeeData.branchIds);
+      }
+
       await fetchEmployees();
       toast({
         title: "Success",
@@ -211,6 +232,7 @@ export const useEmployees = () => {
 
   const deleteEmployee = async (id: string) => {
     try {
+      // Delete employee branch assignments first (cascade should handle this)
       const { error } = await supabase
         .from('employees')
         .delete()
