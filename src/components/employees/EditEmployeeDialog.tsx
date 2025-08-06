@@ -17,6 +17,8 @@ interface EditEmployeeDialogProps {
   setIsOpen: (open: boolean) => void;
   employee: Employee;
   onUpdateEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
+  onSubmit: (id: string, employee: Partial<Employee>) => void;
+  onClose: () => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -26,12 +28,20 @@ const EditEmployeeDialog: React.FC<EditEmployeeDialogProps> = ({
   setIsOpen,
   employee,
   onUpdateEmployee,
+  onSubmit,
+  onClose,
   onCancel,
   isLoading = false
 }) => {
   const handleCancel = () => {
     onCancel();
+    onClose();
     setIsOpen(false);
+  };
+
+  const handleSubmit = (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+    onSubmit(employee.id, employeeData);
+    onUpdateEmployee(employeeData);
   };
 
   return (
@@ -57,7 +67,7 @@ const EditEmployeeDialog: React.FC<EditEmployeeDialogProps> = ({
         
         <EmployeeFormBase
           employee={employee}
-          onSubmit={onUpdateEmployee}
+          onSubmit={handleSubmit}
           onCancel={handleCancel}
           isLoading={isLoading}
         />

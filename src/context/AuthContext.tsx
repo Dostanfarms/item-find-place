@@ -2,12 +2,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/utils/types';
+import { hasPermission as checkPermission } from '@/utils/employeeData';
 
 interface AuthContextType {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   loading: boolean;
+  selectedBranch: string | null;
+  setSelectedBranch: (branchId: string | null) => void;
+  hasPermission: (resource: string, action: string) => boolean;
+  checkPermission: (resource: string, action: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +32,12 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+
+  const hasPermissionCheck = (resource: string, action: string): boolean => {
+    if (!currentUser) return false;
+    return checkPermission(currentUser.role, resource, action);
+  };
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -99,11 +110,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setCurrentUser(null);
+    setSelectedBranch(null);
     localStorage.removeItem('currentUser');
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      currentUser, 
+      login, 
+      logout, 
+      loading, 
+      selectedBranch, 
+      setSelectedBranch,
+      hasPermission: hasPermissionCheck,
+      checkPermission: hasPermissionCheck
+    }}>
       {children}
     </AuthContext.Provider>
   );

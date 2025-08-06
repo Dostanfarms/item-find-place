@@ -178,7 +178,7 @@ const Transactions = () => {
       {selectedTransaction && (
         <TransactionDetailsDialog
           transaction={selectedTransaction}
-          isOpen={!!selectedTransaction}
+          open={!!selectedTransaction}
           onClose={() => setSelectedTransaction(null)}
         />
       )}

@@ -30,7 +30,7 @@ const ProtectedBranchAction: React.FC<ProtectedBranchActionProps> = ({
 
   const hasAccess = canAccessBranch(
     currentUser?.role || '', 
-    currentUser?.branch_id || null, 
+    currentUser?.branchIds || null, 
     targetBranchId
   );
 
