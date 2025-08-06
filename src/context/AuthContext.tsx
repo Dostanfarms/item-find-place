@@ -20,7 +20,7 @@ interface User {
   name: string;
   email: string;
   role: string;
-  branch_id: string | null;
+  branchIds?: string[];
   permissions?: any[];
 }
 
@@ -100,11 +100,20 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('Password:', password);
     
     try {
-      // Check credentials against employees table
-      console.log('Querying employees table...');
+      // Check credentials against employees table with branch assignments
+      console.log('Querying employees table with branch assignments...');
       const { data: employee, error } = await supabase
         .from('employees')
-        .select('*')
+        .select(`
+          *,
+          employee_branches (
+            branch_id,
+            branches (
+              id,
+              branch_name
+            )
+          )
+        `)
         .eq('email', email)
         .eq('password', password)
         .single();
@@ -143,13 +152,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Employee is active, creating user session');
       
-      // Create user object with branch_id
+      // Create user object with branchIds
       const authenticatedUser: User = {
         id: employee.id,
         name: employee.name,
         email: employee.email,
         role: employee.role,
-        branch_id: employee.branch_id
+        branchIds: employee.employee_branches?.map((eb: any) => eb.branch_id) || []
       };
       
       console.log('Setting authenticated user:', authenticatedUser);

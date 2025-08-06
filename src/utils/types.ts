@@ -144,11 +144,11 @@ export interface Employee {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
-  role: Role;
+  role: string;
   profilePhoto?: string;
-  dateJoined: Date;
+  dateJoined: string;
   state?: string;
   district?: string;
   village?: string;
@@ -156,11 +156,9 @@ export interface Employee {
   accountNumber?: string;
   bankName?: string;
   ifscCode?: string;
-  branchId?: string;
-  branch_id?: string;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  isActive: boolean;
+  branchIds?: string[];
+  branches?: Array<{id: string; branch_name: string}>;
 }
 
 // Updated Ticket system types to match database schema

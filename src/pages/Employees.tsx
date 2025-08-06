@@ -1,283 +1,284 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useEmployees } from '@/hooks/useEmployees';
-import { Search, Plus, Users, UserCheck, UserX, Menu } from 'lucide-react';
-import AddEmployeeDialog from '@/components/employees/AddEmployeeDialog';
-import EditEmployeeDialog from '@/components/employees/EditEmployeeDialog';
-import EmployeeTable from '@/components/employees/EmployeeTable';
-import ProtectedAction from '@/components/ProtectedAction';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { useEmployees, Employee } from '@/hooks/useEmployees';
+import EmployeeFormBase from '@/components/employees/EmployeeFormBase';
 import { useAuth } from '@/context/AuthContext';
-import { Employee } from '@/utils/types';
+import { canAccess } from '@/utils/employeeData';
+
+interface EmployeeFormProps {
+  employee?: Employee;
+  onClose: () => void;
+  onSubmit: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
+}
 
 const Employees = () => {
+  const navigate = useNavigate();
+  const { employees, loading, deleteEmployee } = useEmployees();
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
-  const { hasPermission } = useAuth();
-  const { employees, loading, deleteEmployee, updateEmployee, addEmployee } = useEmployees();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { checkPermission } = useAuth();
 
-  const filteredEmployees = employees.filter(employee =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employee.phone && employee.phone.includes(searchTerm))
+  const handleAddEmployee = () => {
+    setShowAddDialog(true);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowConfirmDialog(true);
+  };
+
+  const confirmDeleteEmployee = async () => {
+    if (selectedEmployee) {
+      const { success, error } = await deleteEmployee(selectedEmployee.id);
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Employee deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to delete employee: ${error}`,
+          variant: "destructive",
+        });
+      }
+      setShowConfirmDialog(false);
+      setSelectedEmployee(null);
+    }
+  };
+
+  const handleEmployeeAdded = () => {
+    setShowAddDialog(false);
+  };
+
+  const handleEmployeeUpdated = () => {
+    setShowEditDialog(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleCloseAddDialog = () => {
+    setShowAddDialog(false);
+  };
+
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setSelectedEmployee(null);
+  };
+
+  const renderEmployeeRow = (employee: Employee) => (
+    <TableRow key={employee.id}>
+      <TableCell>
+        <div className="flex items-center space-x-2">
+          <Avatar>
+            <AvatarImage src={employee.profilePhoto} />
+            <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <span>{employee.name}</span>
+        </div>
+      </TableCell>
+      <TableCell>{employee.email}</TableCell>
+      <TableCell>{employee.phone}</TableCell>
+      <TableCell>{employee.role}</TableCell>
+      <TableCell>{employee.isActive ? 'Active' : 'Inactive'}</TableCell>
+      <TableCell className="flex justify-end gap-4">
+        {checkPermission('employee', 'update') && (
+          <Button size="sm" onClick={() => handleEditEmployee(employee)}>
+            Edit
+          </Button>
+        )}
+        {checkPermission('employee', 'delete') && (
+          <Button size="sm" variant="destructive" onClick={() => handleDeleteEmployee(employee)}>
+            Delete
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   );
 
-  const handleEdit = (employee: any) => {
-    if (!hasPermission('employees', 'edit')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit employees",
-        variant: "destructive"
-      });
-      return;
-    }
+  const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onClose, onSubmit }) => {
+    const handleSubmit = (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
+      onSubmit(employeeData);
+      onClose();
+    };
 
-    setEditingEmployee(employee);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!hasPermission('employees', 'delete')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to delete employees",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (window.confirm('Are you sure you want to delete this employee?')) {
-      const result = await deleteEmployee(id);
-      if (result?.success) {
-        toast({
-          title: "Employee deleted",
-          description: "Employee has been deleted successfully."
-        });
-      }
-    }
-  };
-
-  const handleAddEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
-    if (!hasPermission('employees', 'create')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to create employees",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await addEmployee({
-        name: employeeData.name,
-        email: employeeData.email,
-        phone: employeeData.phone || '',
-        password: employeeData.password,
-        role: employeeData.role,
-        profilePhoto: employeeData.profilePhoto,
-        state: employeeData.state,
-        district: employeeData.district,
-        village: employeeData.village,
-        accountHolderName: employeeData.accountHolderName,
-        accountNumber: employeeData.accountNumber,
-        bankName: employeeData.bankName,
-        ifscCode: employeeData.ifscCode,
-        isActive: employeeData.isActive !== false,
-        branchId: employeeData.branchId || employeeData.branch_id,
-        branch_id: employeeData.branchId || employeeData.branch_id
-      });
-
-      if (result?.success) {
-        setIsAddDialogOpen(false);
-        toast({
-          title: "Employee added",
-          description: "Employee has been created successfully."
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
-    if (!editingEmployee) return;
-
-    if (!hasPermission('employees', 'edit')) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit employees",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const updateData = {
-        name: employeeData.name,
-        email: employeeData.email,
-        phone: employeeData.phone || '',
-        role: employeeData.role,
-        profilePhoto: employeeData.profilePhoto,
-        state: employeeData.state,
-        district: employeeData.district,
-        village: employeeData.village,
-        accountHolderName: employeeData.accountHolderName,
-        accountNumber: employeeData.accountNumber,
-        bankName: employeeData.bankName,
-        ifscCode: employeeData.ifscCode,
-        isActive: employeeData.isActive !== false,
-        branchId: employeeData.branchId || employeeData.branch_id,
-        password: employeeData.password || undefined,
-        dateJoined: editingEmployee.dateJoined,
-        createdAt: editingEmployee.createdAt,
-        updatedAt: editingEmployee.updatedAt
-      };
-
-      const result = await updateEmployee(editingEmployee.id, updateData);
-      if (result?.success) {
-        setEditingEmployee(null);
-        toast({
-          title: "Employee updated",
-          description: "Employee has been updated successfully."
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsAddDialogOpen(false);
-    setEditingEmployee(null);
-  };
-
-  const getActiveEmployees = () => employees.filter(emp => emp.isActive !== false).length;
-
-  if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-muted-foreground text-lg">Loading employees...</div>
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <EmployeeFormBase
+            employee={employee}
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+          />
+        </div>
       </div>
     );
-  }
+  };
+
+  const mockEmployee: Employee = {
+    id: 'new',
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'sales',
+    profilePhoto: '',
+    dateJoined: new Date().toISOString(),
+    state: '',
+    district: '',
+    village: '',
+    accountHolderName: '',
+    accountNumber: '',
+    bankName: '',
+    ifscCode: '',
+    isActive: true,
+    branchIds: []
+  };
 
   return (
-    <div className="flex-1 flex flex-col p-6">
-      <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </SidebarTrigger>
-          <div>
-            <h1 className="text-3xl font-bold">Employee Management</h1>
-            <p className="text-muted-foreground">Manage your team members and their roles</p>
-          </div>
-        </div>
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, role, or mobile..."
-              className="pl-8 w-full md:w-[250px]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <ProtectedAction resource="employees" action="create">
-            <Button 
-              className="bg-agri-primary hover:bg-agri-secondary"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Employee
-            </Button>
-          </ProtectedAction>
-        </div>
-      </div>
-
-      <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{employees.length}</div>
-            <p className="text-xs text-green-600">All employees</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{getActiveEmployees()}</div>
-            <p className="text-xs text-green-600">Currently active</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Employees</CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{employees.length - getActiveEmployees()}</div>
-            <p className="text-xs text-red-600">Inactive accounts</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        {filteredEmployees.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">No employees found</h3>
-            <p className="text-muted-foreground text-center">
-              {searchTerm ? 'No employees match your search criteria.' : 'Get started by adding your first employee.'}
-            </p>
-          </div>
-        ) : (
-          <EmployeeTable 
-            employees={filteredEmployees}
-            onEditClick={handleEdit}
-            onDeleteEmployee={handleDelete}
-            canEdit={hasPermission('employees', 'edit')}
-            canDelete={hasPermission('employees', 'delete')}
-          />
+    <div className="container mx-auto py-10">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-semibold">Employees</h1>
+        {checkPermission('employee', 'create') && (
+          <Button onClick={handleAddEmployee}>Add Employee</Button>
         )}
       </div>
 
-      {hasPermission('employees', 'create') && (
-        <AddEmployeeDialog 
-          isOpen={isAddDialogOpen}
-          setIsOpen={setIsAddDialogOpen}
-          onAddEmployee={handleAddEmployee}
-          onCancel={handleCancel}
-          isLoading={isLoading}
+      {loading ? (
+        <p>Loading employees...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableCaption>A list of your employees.</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {employees.map(renderEmployeeRow)}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {showAddDialog && (
+        <EmployeeForm
+          onClose={handleCloseAddDialog}
+          onSubmit={async (employeeData) => {
+            // Call the addEmployee function from the useEmployees hook
+            // and handle success/error messages
+            // For example:
+            /*
+            const { success, error } = await addEmployee(employeeData);
+            if (success) {
+              toast({
+                title: "Success",
+                description: "Employee added successfully",
+              });
+              handleEmployeeAdded();
+            } else {
+              toast({
+                title: "Error",
+                description: `Failed to add employee: ${error}`,
+                variant: "destructive",
+              });
+            }
+            */
+            navigate('/add-employee');
+          }}
         />
       )}
 
-      {editingEmployee && hasPermission('employees', 'edit') && (
-        <EditEmployeeDialog 
-          isOpen={!!editingEmployee}
-          setIsOpen={(open) => !open && setEditingEmployee(null)}
-          employee={editingEmployee}
-          onUpdateEmployee={handleUpdateEmployee}
-          onCancel={handleCancel}
-          isLoading={isLoading}
+      {showEditDialog && selectedEmployee && (
+        <EmployeeForm
+          employee={selectedEmployee}
+          onClose={handleCloseEditDialog}
+          onSubmit={async (employeeData) => {
+            // Call the updateEmployee function from the useEmployees hook
+            // and handle success/error messages
+            // For example:
+            /*
+            const { success, error } = await updateEmployee(selectedEmployee.id, employeeData);
+            if (success) {
+              toast({
+                title: "Success",
+                description: "Employee updated successfully",
+              });
+              handleEmployeeUpdated();
+            } else {
+              toast({
+                title: "Error",
+                description: `Failed to update employee: ${error}`,
+                variant: "destructive",
+              });
+            }
+            */
+            navigate(`/edit-employee/${selectedEmployee.id}`);
+          }}
         />
       )}
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" size="sm">
+            Delete Employee
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete {selectedEmployee?.name}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEmployee}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
