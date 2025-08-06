@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -95,7 +96,7 @@ export const useTransactions = () => {
         payment_method: transactionData.payment_method,
         status: transactionData.status,
         created_by: currentUser?.email || null,
-        branch_id: currentUser?.branchIds && currentUser.branchIds.length > 0 ? currentUser.branchIds[0] : null,
+        branch_id: currentUser?.branch_id || null,
       };
 
       const { data, error } = await supabase

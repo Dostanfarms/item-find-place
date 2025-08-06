@@ -15,8 +15,6 @@ interface AddEmployeeDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   onAddEmployee: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
-  onSubmit: (employee: Omit<Employee, 'id' | 'dateJoined'>) => void;
-  onClose: () => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -25,20 +23,12 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
   isOpen,
   setIsOpen,
   onAddEmployee,
-  onSubmit,
-  onClose,
   onCancel,
   isLoading = false
 }) => {
   const handleCancel = () => {
     onCancel();
-    onClose();
     setIsOpen(false);
-  };
-
-  const handleSubmit = (employeeData: Omit<Employee, 'id' | 'dateJoined'>) => {
-    onSubmit(employeeData);
-    onAddEmployee(employeeData);
   };
 
   return (
@@ -52,7 +42,7 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
         </DialogHeader>
         
         <EmployeeFormBase
-          onSubmit={handleSubmit}
+          onSubmit={onAddEmployee}
           onCancel={handleCancel}
           isLoading={isLoading}
         />

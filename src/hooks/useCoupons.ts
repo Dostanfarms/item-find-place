@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -44,7 +45,7 @@ export const useCoupons = () => {
       const filteredCoupons = getBranchRestrictedData(
         data || [], 
         currentUser?.role || '', 
-        currentUser?.branchIds || null
+        currentUser?.branch_id || null
       );
 
       console.log('Filtered coupons after branch restriction:', filteredCoupons.length, 'items');
@@ -62,8 +63,8 @@ export const useCoupons = () => {
       
       // Auto-assign current user's branch if not admin
       let branchId = couponData.branch_id;
-      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branchIds && currentUser?.branchIds.length > 0) {
-        branchId = currentUser.branchIds[0];
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
         console.log('Auto-assigning branch to coupon:', branchId);
       }
       
@@ -178,7 +179,7 @@ export const useCoupons = () => {
 
   useEffect(() => {
     fetchCoupons();
-  }, [currentUser?.branchIds]);
+  }, [currentUser?.branch_id]);
 
   return {
     coupons,
