@@ -17,9 +17,9 @@ import { useNavigate } from 'react-router-dom';
 const Index = () => {
   const navigate = useNavigate();
   const { totalItems, setIsCartOpen } = useCart();
-  const { data: productsData } = useProducts();
-  const { data: bannersData } = useBanners();
-  const { data: categoriesData } = useCategories();
+  const { products } = useProducts();
+  const { banners } = useBanners();
+  const { categories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
@@ -28,9 +28,9 @@ const Index = () => {
     navigate('/');
   };
 
-  const allProducts = productsData || [];
-  const banners = bannersData || [];
-  const categories = ['All', ...(categoriesData?.map(cat => cat.name) || [])];
+  const allProducts = products || [];
+  const availableBanners = banners || [];
+  const categoryNames = ['All', ...(categories?.map(cat => cat.name) || [])];
 
   const filteredProducts = selectedCategory === 'All' 
     ? allProducts 
@@ -160,19 +160,19 @@ const Index = () => {
       <div className="pt-16">
         {/* Hero Banner Section */}
         <div className="h-[500px] bg-gradient-to-r from-green-600 to-blue-600 relative overflow-hidden">
-          {banners.length > 0 ? (
+          {availableBanners.length > 0 ? (
             <div className="relative h-full">
-              {banners[0].image_url && (
+              {availableBanners[0].image_url && (
                 <img 
-                  src={banners[0].image_url} 
-                  alt={banners[0].name}
+                  src={availableBanners[0].image_url} 
+                  alt={availableBanners[0].name}
                   className="w-full h-full object-cover"
                 />
               )}
               <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                 <div className="text-center text-white">
                   <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                    {banners[0].name}
+                    {availableBanners[0].name}
                   </h1>
                   <p className="text-xl md:text-2xl opacity-90">
                     Fresh products from local farmers
@@ -198,7 +198,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <h2 className="text-2xl font-bold mb-6">Shop by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-            {categories.map((category) => (
+            {categoryNames.map((category) => (
               <Card
                 key={category}
                 className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${

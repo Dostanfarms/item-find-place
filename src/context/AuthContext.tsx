@@ -1,255 +1,110 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { hasPermission as checkRolePermission } from '@/utils/employeeData';
+import { User } from '@/utils/types';
 
-interface AuthContextProps {
-  user: User | null;
+interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
-  checkPermission: (resource: string, action: string) => boolean;
-  hasPermission: (resource: string, action: string) => boolean;
-  selectedBranch: string | null;
-  setSelectedBranch: (branchId: string | null) => void;
+  loading: boolean;
 }
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  branchIds?: string[];
-  permissions?: any[];
-}
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
-  const [rolePermissions, setRolePermissions] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
-
-  // Fetch role permissions from database with case-insensitive matching
-  const fetchRolePermissions = async (roleName: string) => {
-    try {
-      console.log('Fetching permissions for role:', roleName);
-      
-      const { data, error } = await supabase
-        .from('roles')
-        .select('permissions')
-        .ilike('name', roleName)
-        .eq('is_active', true)
-        .single();
-
-      if (error) {
-        console.error('Error fetching role permissions:', error);
-        return [];
-      }
-
-      console.log('Fetched role permissions from database:', data);
-      
-      let permissions = data?.permissions || [];
-      
-      if (typeof permissions === 'string') {
-        try {
-          permissions = JSON.parse(permissions);
-        } catch (e) {
-          console.error('Error parsing permissions:', e);
-          permissions = [];
-        }
-      } else if (!Array.isArray(permissions)) {
-        permissions = [];
-      }
-      
-      return Array.isArray(permissions) ? permissions : [];
-    } catch (error) {
-      console.error('Error in fetchRolePermissions:', error);
-      return [];
-    }
-  };
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      console.log('User logged in, storing in localStorage:', user);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Fetch role permissions
-      fetchRolePermissions(user.role).then(permissions => {
-        console.log('Setting role permissions:', permissions);
-        setRolePermissions(permissions);
-      });
-    } else {
-      console.log('No user, removing from localStorage');
-      localStorage.removeItem('user');
-      setRolePermissions([]);
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('currentUser');
+      }
     }
-  }, [user]);
+    setLoading(false);
+  }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    console.log('=== LOGIN ATTEMPT ===');
-    console.log('Email:', email);
-    console.log('Password:', password);
-    
+  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
-      // Check credentials against employees table with branch assignments
-      console.log('Querying employees table with branch assignments...');
-      const { data: employee, error } = await supabase
+      console.log('Attempting login for:', email);
+      
+      // Query employees table with branch assignments
+      const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
         .select(`
           *,
           employee_branches (
-            branch_id,
-            branches (
-              id,
-              branch_name
-            )
+            branch_id
           )
         `)
-        .eq('email', email)
+        .eq('email', email.toLowerCase().trim())
         .eq('password', password)
+        .eq('is_active', true)
         .single();
 
-      console.log('Employee query result:', { employee, error });
-
-      if (error) {
-        console.error('Employee not found or password incorrect:', error);
-        
-        // Check if employee exists with different password
-        const { data: existingEmployee } = await supabase
-          .from('employees')
-          .select('email, is_active')
-          .eq('email', email)
-          .single();
-        
-        console.log('Existing employee check:', existingEmployee);
-        
-        if (existingEmployee) {
-          return { success: false, message: 'Invalid password' };
+      if (employeeError) {
+        console.error('Employee login error:', employeeError);
+        if (employeeError.code === 'PGRST116') {
+          return { success: false, error: 'Invalid email or password' };
         }
-        
-        return { success: false, message: 'Invalid email or password' };
+        return { success: false, error: 'Login failed. Please try again.' };
       }
 
-      console.log('Employee found:', employee);
-
-      // Check if employee is active
-      if (!employee.is_active) {
-        console.log('Employee account is inactive');
-        return { 
-          success: false, 
-          message: 'Your account has been deactivated. Please contact your administrator for assistance.' 
-        };
+      if (!employeeData) {
+        console.log('No employee found with provided credentials');
+        return { success: false, error: 'Invalid email or password' };
       }
 
-      console.log('Employee is active, creating user session');
-      
-      // Create user object with branchIds
-      const authenticatedUser: User = {
-        id: employee.id,
-        name: employee.name,
-        email: employee.email,
-        role: employee.role,
-        branchIds: employee.employee_branches?.map((eb: any) => eb.branch_id) || []
+      console.log('Employee login successful:', employeeData);
+
+      // Extract branch IDs from the junction table
+      const branchIds = employeeData.employee_branches?.map((eb: any) => eb.branch_id) || [];
+
+      const user: User = {
+        id: employeeData.id,
+        name: employeeData.name,
+        email: employeeData.email,
+        role: employeeData.role,
+        branchIds: branchIds
       };
-      
-      console.log('Setting authenticated user:', authenticatedUser);
-      setUser(authenticatedUser);
-      
-      console.log('=== LOGIN SUCCESS ===');
-      return { success: true };
-      
+
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+
+      return { success: true, user };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, message: 'An error occurred during login. Please try again.' };
+      return { success: false, error: 'Network error. Please try again.' };
     }
   };
 
   const logout = () => {
-    console.log('=== LOGOUT ===');
-    setUser(null);
-    setSelectedBranch(null);
-    // Redirect to /app instead of login page
-    window.location.href = '/app';
-  };
-
-  const checkPermission = (resource: string, action: string): boolean => {
-    if (!user) {
-      console.log('No user logged in for permission check');
-      return false;
-    }
-    
-    console.log('=== PERMISSION CHECK ===');
-    console.log('Resource:', resource, 'Action:', action);
-    console.log('User:', user.name, 'Role:', user.role);
-    
-    // Admin has all permissions
-    if (user.role.toLowerCase() === 'admin') {
-      console.log('Admin user - granting all permissions');
-      return true;
-    }
-    
-    console.log('Available permissions:', rolePermissions);
-    
-    // First check database permissions - strict enforcement
-    if (Array.isArray(rolePermissions) && rolePermissions.length > 0) {
-      const resourcePermission = rolePermissions.find((p: any) => p.resource === resource);
-      console.log('Found resource permission from DB:', resourcePermission);
-      
-      if (resourcePermission && Array.isArray(resourcePermission.actions)) {
-        const hasPermission = resourcePermission.actions.includes(action);
-        console.log('DB Permission result (STRICT):', hasPermission);
-        return hasPermission;
-      } else {
-        // If no specific permission found in database, deny access
-        console.log('No database permission found - denying access');
-        return false;
-      }
-    }
-
-    // If no database permissions available, fallback to hardcoded (should not happen in production)
-    console.log('Falling back to hardcoded permissions');
-    const hasHardcodedPermission = checkRolePermission(user.role, resource, action);
-    console.log('Hardcoded permission result:', hasHardcodedPermission);
-    
-    return hasHardcodedPermission;
-  };
-
-  // Add hasPermission as an alias for checkPermission
-  const hasPermission = checkPermission;
-
-  const value: AuthContextProps = {
-    user,
-    currentUser: user,
-    login,
-    logout,
-    checkPermission,
-    hasPermission,
-    selectedBranch,
-    setSelectedBranch,
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ currentUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
-
-export { AuthProvider, useAuth };
