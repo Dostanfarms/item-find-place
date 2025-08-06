@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +49,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   // Filter branches based on user permissions
   const accessibleBranches = branches.filter(branch => {
     if (currentUser?.role?.toLowerCase() === 'admin') return true;
-    return canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id);
+    return canAccessBranch(currentUser?.role || '', currentUser?.branchIds || null, branch.id);
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -89,7 +88,9 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
       branchIds: formData.branchIds,
-      isActive: true
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     onSubmit(submissionData);

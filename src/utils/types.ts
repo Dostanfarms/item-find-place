@@ -125,13 +125,19 @@ export interface Transaction {
   branch_id: string | null;
 }
 
-// Ticket interface
+// Ticket interface - matching the database schema from useTickets
 export interface Ticket {
   id: string;
-  title: string;
-  description: string;
+  user_id: string;
+  user_name: string;
+  user_type: string;
+  user_contact: string;
+  message: string;
   status: string;
-  priority: string;
+  assigned_to: string | null;
+  resolution: string | null;
+  attachment_url: string | null;
   created_at: string;
   updated_at: string;
+  branch_id?: string | null;
 }

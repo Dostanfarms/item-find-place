@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +43,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
 
   // Filter branches based on user permissions
   const accessibleBranches = branches.filter(branch => 
-    canAccessBranch(currentUser?.role || '', currentUser?.branch_id || null, branch.id)
+    canAccessBranch(currentUser?.role || '', currentUser?.branchIds || null, branch.id)
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
