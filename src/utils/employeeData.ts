@@ -137,6 +137,23 @@ export const getBranchRestrictedData = <T extends { branch_id?: string | null }>
   return filteredData;
 };
 
+// New function to get user's accessible branches for multi-branch employees
+export const getUserAccessibleBranches = (userRole: string, userBranchIds: string[] | string | null): string[] => {
+  // Admin can access all branches - return empty array to indicate "all"
+  if (userRole.toLowerCase() === 'admin') {
+    return [];
+  }
+  
+  // Convert to array format
+  if (Array.isArray(userBranchIds)) {
+    return userBranchIds;
+  } else if (userBranchIds) {
+    return [userBranchIds];
+  }
+  
+  return [];
+};
+
 // Role-specific branch access restrictions
 export const canManageRoles = (userRole: string): boolean => {
   return userRole.toLowerCase() === 'admin';

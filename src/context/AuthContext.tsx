@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +21,7 @@ interface User {
   email: string;
   role: string;
   branch_id: string | null;
+  branchIds?: string[]; // For multi-branch support
   permissions?: any[];
 }
 
@@ -36,6 +38,26 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   });
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+
+  // Fetch employee branch assignments
+  const fetchEmployeeBranches = async (employeeId: string): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('employee_branches')
+        .select('branch_id')
+        .eq('employee_id', employeeId);
+
+      if (error) {
+        console.error('Error fetching employee branches:', error);
+        return [];
+      }
+
+      return data?.map(item => item.branch_id) || [];
+    } catch (error) {
+      console.error('Error in fetchEmployeeBranches:', error);
+      return [];
+    }
+  };
 
   // Fetch role permissions from database with case-insensitive matching
   const fetchRolePermissions = async (roleName: string) => {
@@ -86,6 +108,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('Setting role permissions:', permissions);
         setRolePermissions(permissions);
       });
+
+      // Fetch employee branch assignments if not admin
+      if (user.role.toLowerCase() !== 'admin') {
+        fetchEmployeeBranches(user.id).then(branchIds => {
+          if (branchIds.length > 0) {
+            setUser(prev => prev ? { ...prev, branchIds } : null);
+          }
+        });
+      }
     } else {
       console.log('No user, removing from localStorage');
       localStorage.removeItem('user');
@@ -96,7 +127,6 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     console.log('=== LOGIN ATTEMPT ===');
     console.log('Email:', email);
-    console.log('Password:', password);
     
     try {
       // Check credentials against employees table
@@ -142,7 +172,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Employee is active, creating user session');
       
-      // Create user object with branch_id
+      // Create user object with branch_id and fetch branch assignments
       const authenticatedUser: User = {
         id: employee.id,
         name: employee.name,
@@ -150,6 +180,14 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         role: employee.role,
         branch_id: employee.branch_id || null
       };
+
+      // Fetch multi-branch assignments for non-admin users
+      if (employee.role.toLowerCase() !== 'admin') {
+        const branchIds = await fetchEmployeeBranches(employee.id);
+        if (branchIds.length > 0) {
+          authenticatedUser.branchIds = branchIds;
+        }
+      }
       
       console.log('Setting authenticated user:', authenticatedUser);
       setUser(authenticatedUser);

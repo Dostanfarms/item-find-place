@@ -1,9 +1,29 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingBag, Package, TrendingUp, Star, ArrowRight } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  Package, 
+  TrendingUp, 
+  Star, 
+  ArrowRight, 
+  User, 
+  UserCircle, 
+  History, 
+  Ticket, 
+  LogOut,
+  ShoppingCart
+} from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useActiveBanners } from '@/hooks/useBanners';
 import { useProducts } from '@/hooks/useProducts';
 import { useFashionProducts } from '@/hooks/useFashionProducts';
@@ -11,16 +31,12 @@ import { useCategories } from '@/hooks/useCategories';
 import { useCart } from '@/contexts/CartContext';
 import ProductGrid from '@/components/ProductGrid';
 import Cart from '@/components/Cart';
-import FixedHeader from '@/components/layout/FixedHeader';
-import ProfileChangeDialog from '@/components/profile/ProfileChangeDialog';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<any>(null);
   const [currentBanner, setCurrentBanner] = useState(0);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [profileMode, setProfileMode] = useState<'photo' | 'password'>('photo');
-  const { items } = useCart();
+  const { items, setIsCartOpen } = useCart();
   
   const {
     data: banners,
@@ -77,17 +93,23 @@ const CustomerHome = () => {
   const handleLogout = () => {
     setCustomer(null);
     localStorage.removeItem('currentCustomer');
-    navigate('/customer-products');
+    navigate('/');
   };
 
-  const handleChangePhoto = () => {
-    setProfileMode('photo');
-    setShowProfileDialog(true);
+  const handleProfileClick = () => {
+    navigate('/customer-profile');
   };
 
-  const handleChangePassword = () => {
-    setProfileMode('password');
-    setShowProfileDialog(true);
+  const handleOrdersClick = () => {
+    navigate('/customer-orders');
+  };
+
+  const handleTicketsClick = () => {
+    navigate('/customer-tickets');
+  };
+
+  const handleCartClick = () => {
+    setIsCartOpen(true);
   };
 
   // Filter active products
@@ -105,7 +127,94 @@ const CustomerHome = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 border-b">
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Left side - Logo */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+            <Package className="h-6 w-6 text-green-600" />
+            <span className="text-lg font-bold text-gray-900">Dostan Mart</span>
+          </div>
+
+          {/* Right side - Cart and Customer Profile */}
+          <div className="flex items-center gap-3">
+            {/* Cart */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCartClick}
+              className="relative p-2"
+            >
+              <ShoppingCart className="h-6 w-6 text-gray-600" />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalCartItems}
+                </span>
+              )}
+            </Button>
+            
+            {/* Customer Profile or Auth buttons */}
+            {!customer ? (
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/customer-login')}
+                  className="text-xs"
+                >
+                  Login
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => navigate('/customer-register')}
+                  className="text-xs bg-green-600 hover:bg-green-700"
+                >
+                  Register
+                </Button>
+              </div>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    {customer.profile_photo ? (
+                      <img 
+                        src={customer.profile_photo} 
+                        alt="Profile" 
+                        className="h-6 w-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-6 w-6 text-gray-600" />
+                    )}
+                    <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                      {customer.name}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleProfileClick}>
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleOrdersClick}>
+                    <History className="h-4 w-4 mr-2" />
+                    My Orders
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleTicketsClick}>
+                    <Ticket className="h-4 w-4 mr-2" />
+                    Support Tickets
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* Content with top padding to account for fixed header */}
       <div className="pt-16">
@@ -291,13 +400,6 @@ const CustomerHome = () => {
           )}
         </div>
       </div>
-
-      {/* Modals */}
-      <ProfileChangeDialog
-        open={showProfileDialog}
-        onClose={() => setShowProfileDialog(false)}
-        mode={profileMode}
-      />
 
       <Cart />
     </div>

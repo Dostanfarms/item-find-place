@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useEmployeeBranches } from '@/hooks/useEmployeeBranches';
-import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Employee {
   id: string;
@@ -87,11 +86,11 @@ export const useEmployees = () => {
         })
       );
 
-      // Apply branch filtering - only show employees from user's branch unless admin
+      // Apply branch filtering - admins see all, others see only their branch employees
       let filteredEmployees = employeesWithBranches;
       if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
         filteredEmployees = employeesWithBranches.filter(emp => 
-          emp.branch_id === currentUser.branch_id
+          emp.branchIds?.includes(currentUser.branch_id!) || emp.branch_id === currentUser.branch_id
         );
       }
 
@@ -110,10 +109,12 @@ export const useEmployees = () => {
 
   const addEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Auto-assign current user's branch if not admin
-      let branchId = employeeData.branchId;
-      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
-        branchId = currentUser.branch_id;
+      // Use the primary branch from branchIds
+      let primaryBranchId = employeeData.branchIds?.[0];
+      
+      // If not admin and no branch specified, use current user's branch
+      if (currentUser?.role?.toLowerCase() !== 'admin' && !primaryBranchId && currentUser?.branch_id) {
+        primaryBranchId = currentUser.branch_id;
       }
 
       const { data, error } = await supabase
@@ -133,7 +134,7 @@ export const useEmployees = () => {
           bank_name: employeeData.bankName,
           ifsc_code: employeeData.ifscCode,
           is_active: employeeData.isActive,
-          branch_id: branchId || null
+          branch_id: primaryBranchId || null
         }])
         .select()
         .single();
@@ -148,7 +149,7 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
-      // Assign employee to multiple branches if provided
+      // Assign employee to multiple branches
       if (employeeData.branchIds && employeeData.branchIds.length > 0) {
         await assignEmployeeToBranches(data.id, employeeData.branchIds);
       }
@@ -189,7 +190,11 @@ export const useEmployees = () => {
       if (employeeData.bankName !== undefined) updateData.bank_name = employeeData.bankName;
       if (employeeData.ifscCode !== undefined) updateData.ifsc_code = employeeData.ifscCode;
       if (employeeData.isActive !== undefined) updateData.is_active = employeeData.isActive;
-      if (employeeData.branchId !== undefined) updateData.branch_id = employeeData.branchId;
+
+      // Update primary branch
+      if (employeeData.branchIds && employeeData.branchIds.length > 0) {
+        updateData.branch_id = employeeData.branchIds[0];
+      }
 
       const { data, error } = await supabase
         .from('employees')

@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhotoUploadField from '@/components/PhotoUploadField';
+import MultiBranchSelector from '@/components/employees/MultiBranchSelector';
 import { Employee } from '@/utils/types';
 import { useRoles } from '@/hooks/useRoles';
-import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/context/AuthContext';
 
 interface EmployeeFormBaseProps {
@@ -24,7 +24,6 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   isLoading = false
 }) => {
   const { roles } = useRoles();
-  const { branches } = useBranches();
   const { currentUser } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -40,17 +39,19 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     accountHolderName: employee?.accountHolderName || '',
     accountNumber: employee?.accountNumber || '',
     bankName: employee?.bankName || '',
-    ifscCode: employee?.ifscCode || '',
-    branchId: employee?.branchId || employee?.branch_id || ''
+    ifscCode: employee?.ifscCode || ''
   });
 
-  // Filter branches based on user role
-  const availableBranches = currentUser?.role?.toLowerCase() === 'admin' 
-    ? branches 
-    : branches.filter(branch => branch.id === currentUser?.branch_id);
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(
+    employee?.branchIds || []
+  );
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (branchIds: string[]) => {
+    setSelectedBranchIds(branchIds);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,10 +62,9 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       return;
     }
 
-    // If not admin, auto-assign current user's branch
-    let finalBranchId = formData.branchId;
-    if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
-      finalBranchId = currentUser.branch_id;
+    if (selectedBranchIds.length === 0) {
+      alert('Please assign at least one branch');
+      return;
     }
 
     const submissionData: Omit<Employee, 'id' | 'dateJoined'> = {
@@ -81,9 +81,9 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       accountNumber: formData.accountNumber,
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
-      branchId: finalBranchId,
-      branch_id: finalBranchId,
-      branchIds: finalBranchId ? [finalBranchId] : [],
+      branchId: selectedBranchIds[0], // Primary branch
+      branch_id: selectedBranchIds[0],
+      branchIds: selectedBranchIds, // All assigned branches
       isActive: true,
       createdAt: employee?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -171,26 +171,16 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Branch Assignment */}
-          <div className="space-y-2">
-            <Label htmlFor="branchId">Branch *</Label>
-            <Select 
-              value={formData.branchId} 
-              onValueChange={(value) => handleInputChange('branchId', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableBranches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.branch_name} - {branch.state}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Multi-Branch Assignment */}
+        <div className="space-y-2">
+          <MultiBranchSelector
+            employeeId={employee?.id}
+            selectedBranchIds={selectedBranchIds}
+            onBranchChange={handleBranchChange}
+            disabled={isLoading}
+          />
         </div>
 
         {/* Location Information */}
