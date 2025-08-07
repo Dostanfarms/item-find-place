@@ -181,10 +181,12 @@ const CustomerHome = () => {
                       <img 
                         src={customer.profile_photo} 
                         alt="Profile" 
-                        className="h-6 w-6 rounded-full object-cover"
+                        className="h-8 w-8 rounded-full object-cover border-2 border-green-200"
                       />
                     ) : (
-                      <User className="h-6 w-6 text-gray-600" />
+                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-green-600" />
+                      </div>
                     )}
                     <span className="text-sm font-medium text-gray-700 hidden sm:block">
                       {customer.name}
@@ -218,16 +220,16 @@ const CustomerHome = () => {
 
       {/* Content with top padding to account for fixed header */}
       <div className="pt-16">
-        {/* Banner Section */}
+        {/* Banner Section - Increased height for better display */}
         <div className="max-w-7xl mx-auto px-4 py-6">
           {bannersLoading ? (
-            <div className="relative overflow-hidden rounded-lg h-96 bg-gray-200 animate-pulse">
+            <div className="relative overflow-hidden rounded-xl h-80 md:h-96 lg:h-[500px] bg-gray-200 animate-pulse">
               <div className="w-full h-full flex items-center justify-center">
                 <span className="text-gray-500">Loading banners...</span>
               </div>
             </div>
           ) : banners && banners.length > 0 ? (
-            <div className="relative overflow-hidden rounded-lg h-96 shadow-lg">
+            <div className="relative overflow-hidden rounded-xl h-80 md:h-96 lg:h-[500px] shadow-lg">
               <div className="flex transition-transform duration-500 ease-in-out" style={{
                 transform: `translateX(-${currentBanner * 100}%)`
               }}>
@@ -237,13 +239,13 @@ const CustomerHome = () => {
                       <img 
                         src={banner.image_url} 
                         alt={banner.name} 
-                        className="w-full h-96 object-cover rounded-lg" 
+                        className="w-full h-80 md:h-96 lg:h-[500px] object-cover rounded-xl" 
                       />
                     )}
                     {banner.video_url && !banner.image_url && (
                       <video 
                         src={banner.video_url} 
-                        className="w-full h-96 object-cover rounded-lg" 
+                        className="w-full h-80 md:h-96 lg:h-[500px] object-cover rounded-xl" 
                         autoPlay 
                         muted 
                         loop 
@@ -266,7 +268,7 @@ const CustomerHome = () => {
             </div>
           ) : (
             // Default banner when no banners are available
-            <div className="relative overflow-hidden rounded-lg h-96 bg-gradient-to-r from-green-400 to-green-600 shadow-lg">
+            <div className="relative overflow-hidden rounded-xl h-80 md:h-96 lg:h-[500px] bg-gradient-to-r from-green-400 to-green-600 shadow-lg">
               <div className="absolute inset-0 bg-black/20"></div>
               <div className="relative h-full flex items-center justify-center">
                 <div className="text-center text-white">
@@ -286,47 +288,6 @@ const CustomerHome = () => {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Quick Stats */}
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <Package className="h-4 w-4" />
-                  Available Products
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{allProducts.length}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <ShoppingBag className="h-4 w-4" />
-                  Cart Items
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{totalCartItems}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                  <TrendingUp className="h-4 w-4" />
-                  Categories
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{categories.length + (activeFashionProducts.length > 0 ? 1 : 0)}</div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Category Navigation */}

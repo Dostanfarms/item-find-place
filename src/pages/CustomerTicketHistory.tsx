@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,7 +142,7 @@ const CustomerTicketHistory = () => {
       
       <div className="pt-20 p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
+          {/* Header with Raise Ticket Button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" onClick={() => navigate('/customer-home')}>
@@ -164,7 +165,12 @@ const CustomerTicketHistory = () => {
               userName={customer?.name}
               userContact={customer?.mobile}
               onSubmit={handleTicketCreated}
-              buttonText="Raise a Ticket"
+              buttonText={
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Raise a Ticket
+                </div>
+              }
             />
           </div>
 
@@ -187,7 +193,12 @@ const CustomerTicketHistory = () => {
                   userName={customer?.name}
                   userContact={customer?.mobile}
                   onSubmit={handleTicketCreated}
-                  buttonText="Raise Your First Ticket"
+                  buttonText={
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Raise Your First Ticket
+                    </div>
+                  }
                 />
               </CardContent>
             </Card>
