@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Plus, MessageSquare } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useToast } from '@/hooks/use-toast';
-
 interface CreateTicketDialogProps {
   userType: string;
   userId: string;
@@ -16,7 +14,6 @@ interface CreateTicketDialogProps {
   onSubmit?: () => void;
   buttonText?: React.ReactNode | string;
 }
-
 const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
   userType,
   userId,
@@ -28,12 +25,14 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const { addTicket } = useTickets();
-  const { toast } = useToast();
-
+  const {
+    addTicket
+  } = useTickets();
+  const {
+    toast
+  } = useToast();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!message.trim()) {
       toast({
         title: "Error",
@@ -42,7 +41,6 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
       });
       return;
     }
-
     setLoading(true);
     try {
       const result = await addTicket({
@@ -56,7 +54,6 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
         resolution: null,
         attachment_url: null
       });
-
       if (result.success) {
         toast({
           title: "Success",
@@ -81,13 +78,9 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
       setLoading(false);
     }
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+  return <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-green-600 hover:bg-green-700">
-          {buttonText}
-        </Button>
+        
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -109,14 +102,7 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
 
           <div>
             <Label htmlFor="message">Message *</Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Describe your issue or question..."
-              required
-              className="min-h-[100px]"
-            />
+            <Textarea id="message" value={message} onChange={e => setMessage(e.target.value)} placeholder="Describe your issue or question..." required className="min-h-[100px]" />
           </div>
 
           <div className="flex gap-2 justify-end">
@@ -129,8 +115,6 @@ const CreateTicketDialog: React.FC<CreateTicketDialogProps> = ({
           </div>
         </form>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
-
 export default CreateTicketDialog;
