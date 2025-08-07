@@ -81,8 +81,8 @@ export const useEmployees = () => {
             isActive: emp.is_active,
             createdAt: emp.created_at,
             updatedAt: emp.updated_at,
-            branchId: emp.branch_id || undefined,
-            branch_id: emp.branch_id || undefined,
+            branchId: (emp as any).branch_id || undefined,
+            branch_id: (emp as any).branch_id || undefined,
             branchIds: branchIds
           };
         })
@@ -133,7 +133,7 @@ export const useEmployees = () => {
           bank_name: employeeData.bankName,
           ifsc_code: employeeData.ifscCode,
           is_active: employeeData.isActive,
-          branch_id: branchId
+          ...(branchId && { branch_id: branchId })
         }])
         .select()
         .single();

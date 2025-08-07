@@ -143,13 +143,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Employee is active, creating user session');
       
-      // Create user object with branch_id (now properly typed)
+      // Create user object with branch_id (handle missing property)
       const authenticatedUser: User = {
         id: employee.id,
         name: employee.name,
         email: employee.email,
         role: employee.role,
-        branch_id: employee.branch_id || null
+        branch_id: (employee as any).branch_id || null
       };
       
       console.log('Setting authenticated user:', authenticatedUser);
