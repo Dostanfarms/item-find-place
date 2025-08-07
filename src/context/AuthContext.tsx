@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -143,13 +142,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
       console.log('Employee is active, creating user session');
       
-      // Create user object with branch_id (handle missing property)
+      // Create user object with branch_id
       const authenticatedUser: User = {
         id: employee.id,
         name: employee.name,
         email: employee.email,
         role: employee.role,
-        branch_id: (employee as any).branch_id || null
+        branch_id: employee.branch_id || null
       };
       
       console.log('Setting authenticated user:', authenticatedUser);

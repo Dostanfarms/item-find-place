@@ -291,6 +291,7 @@ export type Database = {
           account_holder_name: string | null
           account_number: string | null
           bank_name: string | null
+          branch_id: string | null
           created_at: string
           date_joined: string
           district: string | null
@@ -311,6 +312,7 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -331,6 +333,7 @@ export type Database = {
           account_holder_name?: string | null
           account_number?: string | null
           bank_name?: string | null
+          branch_id?: string | null
           created_at?: string
           date_joined?: string
           district?: string | null
@@ -347,7 +350,15 @@ export type Database = {
           updated_at?: string
           village?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       farmer_products: {
         Row: {

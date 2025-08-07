@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PhotoUploadField from '@/components/PhotoUploadField';
-import MultiBranchSelector from './MultiBranchSelector';
 import { Employee } from '@/utils/types';
 import { useRoles } from '@/hooks/useRoles';
+import { useBranches } from '@/hooks/useBranches';
+import { useAuth } from '@/context/AuthContext';
 
 interface EmployeeFormBaseProps {
   employee?: Employee;
@@ -23,6 +24,8 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
   isLoading = false
 }) => {
   const { roles } = useRoles();
+  const { branches } = useBranches();
+  const { currentUser } = useAuth();
   
   const [formData, setFormData] = useState({
     name: employee?.name || '',
@@ -38,15 +41,16 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     accountNumber: employee?.accountNumber || '',
     bankName: employee?.bankName || '',
     ifscCode: employee?.ifscCode || '',
-    branchIds: [] as string[]
+    branchId: employee?.branchId || employee?.branch_id || ''
   });
+
+  // Filter branches based on user role
+  const availableBranches = currentUser?.role?.toLowerCase() === 'admin' 
+    ? branches 
+    : branches.filter(branch => branch.id === currentUser?.branch_id);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleBranchChange = (branchIds: string[]) => {
-    setFormData(prev => ({ ...prev, branchIds }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,6 +59,12 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
     if (!formData.name || !formData.email || !formData.password) {
       alert('Please fill in all required fields');
       return;
+    }
+
+    // If not admin, auto-assign current user's branch
+    let finalBranchId = formData.branchId;
+    if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+      finalBranchId = currentUser.branch_id;
     }
 
     const submissionData: Omit<Employee, 'id' | 'dateJoined'> = {
@@ -71,9 +81,9 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
       accountNumber: formData.accountNumber,
       bankName: formData.bankName,
       ifscCode: formData.ifscCode,
-      branchId: formData.branchIds[0] || null, // For backward compatibility
-      branch_id: formData.branchIds[0] || null,
-      branchIds: formData.branchIds, // New multi-branch support
+      branchId: finalBranchId,
+      branch_id: finalBranchId,
+      branchIds: finalBranchId ? [finalBranchId] : [],
       isActive: true,
       createdAt: employee?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -140,7 +150,7 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="Enter password"
-              required
+              required={!employee}
               disabled={isLoading}
             />
           </div>
@@ -161,16 +171,26 @@ const EmployeeFormBase: React.FC<EmployeeFormBaseProps> = ({
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* Branch Assignment */}
-        <div className="space-y-4">
-          <MultiBranchSelector
-            employeeId={employee?.id}
-            selectedBranchIds={formData.branchIds}
-            onBranchChange={handleBranchChange}
-            disabled={isLoading}
-          />
+          {/* Branch Assignment */}
+          <div className="space-y-2">
+            <Label htmlFor="branchId">Branch *</Label>
+            <Select 
+              value={formData.branchId} 
+              onValueChange={(value) => handleInputChange('branchId', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableBranches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.branch_name} - {branch.state}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Location Information */}

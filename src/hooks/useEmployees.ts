@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -81,19 +80,20 @@ export const useEmployees = () => {
             isActive: emp.is_active,
             createdAt: emp.created_at,
             updatedAt: emp.updated_at,
-            branchId: (emp as any).branch_id || undefined,
-            branch_id: (emp as any).branch_id || undefined,
+            branchId: emp.branch_id || undefined,
+            branch_id: emp.branch_id || undefined,
             branchIds: branchIds
           };
         })
       );
 
-      // Apply branch filtering (for now, keep existing logic for single branch)
-      const filteredEmployees = getBranchRestrictedData(
-        employeesWithBranches, 
-        currentUser?.role || '', 
-        currentUser?.branch_id || null
-      );
+      // Apply branch filtering - only show employees from user's branch unless admin
+      let filteredEmployees = employeesWithBranches;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        filteredEmployees = employeesWithBranches.filter(emp => 
+          emp.branch_id === currentUser.branch_id
+        );
+      }
 
       setEmployees(filteredEmployees);
     } catch (error) {
@@ -133,7 +133,7 @@ export const useEmployees = () => {
           bank_name: employeeData.bankName,
           ifsc_code: employeeData.ifscCode,
           is_active: employeeData.isActive,
-          ...(branchId && { branch_id: branchId })
+          branch_id: branchId || null
         }])
         .select()
         .single();
