@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -80,8 +81,8 @@ export const useEmployees = () => {
             isActive: emp.is_active,
             createdAt: emp.created_at,
             updatedAt: emp.updated_at,
-            branchId: emp.branch_id,
-            branch_id: emp.branch_id,
+            branchId: emp.branch_id || undefined,
+            branch_id: emp.branch_id || undefined,
             branchIds: branchIds
           };
         })
