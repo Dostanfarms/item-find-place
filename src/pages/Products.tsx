@@ -27,7 +27,6 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -57,15 +56,11 @@ const Products = () => {
       if (statusFilter === 'active' && !product.is_active) return false;
       if (statusFilter === 'inactive' && product.is_active) return false;
     }
-    if (typeFilter !== 'all' && product.type !== typeFilter) {
-      return false;
-    }
     return true;
   });
 
-  // Get unique categories and types from products
+  // Get unique categories from products
   const categories = [...new Set(products.map(p => p.category))].filter(Boolean);
-  const types = [...new Set(products.map(p => p.type))].filter(Boolean);
 
   const handleEdit = (product: any) => {
     setSelectedProduct(product);
@@ -217,19 +212,6 @@ const Products = () => {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="overflow-x-auto">
@@ -238,7 +220,6 @@ const Products = () => {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Type</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Branch</TableHead>
@@ -252,9 +233,9 @@ const Products = () => {
                     <TableRow key={product.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {product.images && product.images.length > 0 ? (
+                          {product.image_url ? (
                             <img 
-                              src={product.images[0]} 
+                              src={product.image_url} 
                               alt={product.name}
                               className="w-10 h-10 rounded-md object-cover"
                             />
@@ -265,20 +246,17 @@ const Products = () => {
                           )}
                           <div>
                             <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-gray-500">SKU: {product.sku || 'N/A'}</p>
+                            <p className="text-sm text-gray-500">Barcode: {product.barcode || 'N/A'}</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{product.category}</Badge>
                       </TableCell>
+                      <TableCell>₹{product.price_per_unit}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{product.type}</Badge>
-                      </TableCell>
-                      <TableCell>₹{product.price}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.stock_quantity > 10 ? "default" : "destructive"}>
-                          {product.stock_quantity} units
+                        <Badge variant={product.quantity > 10 ? "default" : "destructive"}>
+                          {product.quantity} {product.unit}
                         </Badge>
                       </TableCell>
                       <TableCell>{getBranchName(product.branch_id)}</TableCell>
@@ -342,7 +320,7 @@ const Products = () => {
 
         {showAddDialog && (
           <ProductForm
-            open={showAddDialog}
+            isOpen={showAddDialog}
             onClose={() => setShowAddDialog(false)}
             onSubmit={handleAddProduct}
           />
@@ -350,7 +328,7 @@ const Products = () => {
 
         {showEditDialog && selectedProduct && (
           <ProductForm
-            open={showEditDialog}
+            isOpen={showEditDialog}
             onClose={() => {
               setShowEditDialog(false);
               setSelectedProduct(null);
@@ -362,12 +340,12 @@ const Products = () => {
 
         {showCopyDialog && selectedProduct && (
           <ProductCopyDialog
-            open={showCopyDialog}
+            isOpen={showCopyDialog}
             onClose={() => {
               setShowCopyDialog(false);
               setSelectedProduct(null);
             }}
-            product={selectedProduct}
+            sourceProduct={selectedProduct}
             onSubmit={handleCopyProduct}
           />
         )}

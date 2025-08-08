@@ -16,10 +16,11 @@ import { useAuth } from '@/context/AuthContext';
 import FixedHeader from '@/components/layout/FixedHeader';
 import ProfileChangeDialog from '@/components/profile/ProfileChangeDialog';
 
-interface Customer {
+// Local interface that matches the Customer from useCustomers hook
+interface LocalCustomer {
   id: string;
   name: string;
-  mobile_number: string;
+  mobile: string; // Changed from mobile_number to mobile
   email?: string;
 }
 
@@ -31,7 +32,7 @@ const Checkout = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<LocalCustomer | null>(null);
   const [mobile, setMobile] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
@@ -62,9 +63,15 @@ const Checkout = () => {
       return;
     }
 
-    const foundCustomer = customers.find(c => c.mobile_number === mobile);
+    const foundCustomer = customers.find(c => c.mobile === mobile);
     if (foundCustomer) {
-      setCustomer(foundCustomer);
+      const localCustomer: LocalCustomer = {
+        id: foundCustomer.id,
+        name: foundCustomer.name,
+        mobile: foundCustomer.mobile,
+        email: foundCustomer.email
+      };
+      setCustomer(localCustomer);
       setShowCreateCustomer(false);
       toast({
         title: "Customer Found",
@@ -95,24 +102,20 @@ const Checkout = () => {
     try {
       const customerData = {
         name: customerName,
-        mobile_number: mobile,
+        mobile: mobile, // Changed from mobile_number to mobile
         email: '',
         address: '',
-        city: '',
-        state: '',
         pincode: '',
-        date_of_birth: null,
-        gender: 'other',
-        branch_id: currentUser?.branch_id || null,
-        is_active: true
+        password: 'defaultPassword123',
+        profile_photo: null
       };
 
       const result = await addCustomer(customerData);
       if (result.success && result.data) {
-        const newCustomer = {
+        const newCustomer: LocalCustomer = {
           id: result.data.id,
           name: result.data.name,
-          mobile_number: result.data.mobile_number,
+          mobile: result.data.mobile,
           email: result.data.email
         };
         
@@ -164,23 +167,20 @@ const Checkout = () => {
 
     try {
       const transactionData = {
-        customer_id: customer.id,
-        employee_id: currentUser?.id || '',
-        branch_id: currentUser?.branch_id || '',
-        transaction_type: 'sale' as const,
-        total_amount: getTotalPrice(),
+        customer_name: customer.name,
+        customer_mobile: customer.mobile,
+        subtotal: getTotalPrice(),
+        discount: 0,
+        total: getTotalPrice(),
+        coupon_used: null,
         payment_method: paymentMethod,
-        items: items.map(item => ({
-          product_id: item.id,
-          product_name: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.price * item.quantity,
-          category: item.category || '',
-          sub_category: item.subCategory || ''
-        })),
         status: 'completed',
-        payment_status: 'paid'
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.pricePerUnit, // Use pricePerUnit from CartItem
+          quantity: item.quantity
+        }))
       };
 
       const result = await addTransaction(transactionData);
@@ -267,7 +267,7 @@ const Checkout = () => {
               {customer && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="font-medium">{customer.name}</p>
-                  <p className="text-sm text-gray-600">{customer.mobile_number}</p>
+                  <p className="text-sm text-gray-600">{customer.mobile}</p>
                   {customer.email && (
                     <p className="text-sm text-gray-600">{customer.email}</p>
                   )}
@@ -306,15 +306,14 @@ const Checkout = () => {
             <CardContent>
               <div className="space-y-3">
                 {items.map((item) => (
-                  <div key={`${item.id}-${item.selectedSize || 'no-size'}`} className="flex justify-between items-center py-2 border-b">
+                  <div key={item.id} className="flex justify-between items-center py-2 border-b">
                     <div>
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-gray-600">
-                        Qty: {item.quantity} × ₹{item.price}
-                        {item.selectedSize && ` (${item.selectedSize})`}
+                        Qty: {item.quantity} × ₹{item.pricePerUnit}
                       </p>
                     </div>
-                    <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -358,8 +357,8 @@ const Checkout = () => {
         </div>
 
         <TransactionReceipt
-          isOpen={showReceipt}
-          onClose={() => {
+          open={showReceipt}
+          onOpenChange={() => {
             setShowReceipt(false);
             navigate('/sales');
           }}

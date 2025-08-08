@@ -38,7 +38,7 @@ const Farmers = () => {
 
   const filteredFarmers = farmers.filter(farmer =>
     farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    farmer.mobile_number.includes(searchTerm) ||
+    farmer.phone.includes(searchTerm) ||
     (farmer.village && farmer.village.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -156,9 +156,9 @@ const Farmers = () => {
                     <TableRow key={farmer.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {farmer.profile_photo_url ? (
+                          {farmer.profile_photo ? (
                             <img 
-                              src={farmer.profile_photo_url} 
+                              src={farmer.profile_photo} 
                               alt={farmer.name}
                               className="w-8 h-8 rounded-full object-cover"
                             />
@@ -176,7 +176,7 @@ const Farmers = () => {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Phone className="h-3 w-3" />
-                          {farmer.mobile_number}
+                          {farmer.phone}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -191,29 +191,29 @@ const Farmers = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {farmer.farmer_products?.length || 0} products
+                          {farmer.products?.length || 0} products
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        ₹{farmer.farmer_products?.reduce((sum: number, product: any) => 
+                        ₹{farmer.products?.reduce((sum: number, product: any) => 
                           sum + (product.quantity * product.price_per_unit), 0
                         ).toFixed(2) || '0.00'}
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={farmer.farmer_products?.some((p: any) => p.payment_status === 'unsettled') 
+                          variant={farmer.products?.some((p: any) => p.payment_status === 'unsettled') 
                             ? "destructive" : "default"}
                         >
-                          {farmer.farmer_products?.some((p: any) => p.payment_status === 'unsettled')
+                          {farmer.products?.some((p: any) => p.payment_status === 'unsettled')
                             ? 'Pending' : 'Settled'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(farmer.created_at), 'MMM dd, yyyy')}
+                        {format(new Date(farmer.date_joined), 'MMM dd, yyyy')}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={farmer.is_active ? "default" : "secondary"}>
-                          {farmer.is_active ? 'Active' : 'Inactive'}
+                        <Badge variant="default">
+                          Active
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -252,7 +252,7 @@ const Farmers = () => {
 
         {showDialog && (
           <FarmerForm
-            isOpen={showDialog}
+            open={showDialog}
             onClose={handleCancel}
             farmer={editingFarmer}
             onSubmit={handleSubmit}
