@@ -1,155 +1,149 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { useProducts } from '@/hooks/useProducts';
-import { useCustomers } from '@/hooks/useCustomers';
-import { useCoupons } from '@/hooks/useCoupons';
-import { useTickets } from '@/hooks/useTickets';
-import { useTransactions } from '@/hooks/useTransactions';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, Package, ShoppingCart, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import {
-  TrendingUp,
-  Users,
-  Package,
-  IndianRupee,
-  ShoppingCart,
-  Tag,
-  Ticket
-} from 'lucide-react';
 import FixedHeader from '@/components/layout/FixedHeader';
-import ProfileChangeDialog from '@/components/profile/ProfileChangeDialog';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { products } = useProducts();
-  const { customers } = useCustomers();
-  const { coupons } = useCoupons();
-  const { tickets } = useTickets();
-  const { transactions } = useTransactions();
-  const [showProfileDialog, setShowProfileDialog] = React.useState(false);
-  const [profileMode, setProfileMode] = React.useState<'photo' | 'password'>('photo');
 
-  const handleChangePhoto = () => {
-    setProfileMode('photo');
-    setShowProfileDialog(true);
-  };
-
-  const handleChangePassword = () => {
-    setProfileMode('password');
-    setShowProfileDialog(true);
-  };
-
-  // Filter coupons by branch for non-admin users
-  const filteredCoupons = currentUser?.role?.toLowerCase() === 'admin' 
-    ? coupons 
-    : coupons.filter(coupon => 
-        !coupon.branch_id || coupon.branch_id === currentUser?.branch_id
-      );
-
-  // Calculate total value of products
-  const totalProductValue = products.reduce((total, product) => {
-    return total + product.price_per_unit * product.quantity;
-  }, 0);
-
-  // Calculate total sales from transactions
-  const totalSales = transactions.reduce((total, transaction) => {
-    return total + Number(transaction.total);
-  }, 0);
-
-  // Calculate today's sales
-  const today = new Date().toDateString();
-  const todaySales = transactions.filter(transaction => new Date(transaction.created_at).toDateString() === today).reduce((total, transaction) => total + Number(transaction.total), 0);
-
-  const actionButtons = [
+  // Mock data - replace with real data from your APIs
+  const stats = [
     {
-      title: "Products",
-      description: `${products.length} products\nValue: ₹${totalProductValue.toFixed(2)}`,
-      icon: <Package className="h-6 w-6" />,
-      onClick: () => navigate('/products'),
-      color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-900"
+      title: "Total Farmers",
+      value: "156",
+      icon: Users,
+      change: "+12%",
+      changeType: "positive" as const
     },
     {
-      title: "Sales",
-      description: `₹${totalSales.toFixed(2)} total\n${transactions.length} sales`,
-      icon: <IndianRupee className="h-6 w-6" />,
-      onClick: () => navigate('/transactions'),
-      color: "bg-green-100 hover:bg-green-200 text-green-900"
+      title: "Active Products",
+      value: "2,341",
+      icon: Package,
+      change: "+8%",
+      changeType: "positive" as const
     },
     {
-      title: "Today's Sales",
-      description: `₹${todaySales.toFixed(2)} today`,
-      icon: <TrendingUp className="h-6 w-6" />,
-      onClick: () => navigate('/transactions'),
-      color: "bg-blue-100 hover:bg-blue-200 text-blue-900"
+      title: "Total Orders",
+      value: "1,234",
+      icon: ShoppingCart,
+      change: "+23%",
+      changeType: "positive" as const
     },
     {
-      title: "Customers",
-      description: `${customers.length} customers`,
-      icon: <Users className="h-6 w-6" />,
-      onClick: () => navigate('/customers'),
-      color: "bg-teal-100 hover:bg-teal-200 text-teal-900"
-    },
-    {
-      title: "Coupons",
-      description: `${filteredCoupons.filter(c => c.is_active).length} active`,
-      icon: <Tag className="h-6 w-6" />,
-      onClick: () => navigate('/coupons'),
-      color: "bg-purple-100 hover:bg-purple-200 text-purple-900"
-    },
-    {
-      title: "Support Tickets",
-      description: `${tickets.length} total\n${tickets.filter(t => t.status === 'pending').length} pending`,
-      icon: <Ticket className="h-6 w-6" />,
-      onClick: () => navigate('/tickets'),
-      color: "bg-orange-100 hover:bg-orange-200 text-orange-900"
+      title: "Revenue",
+      value: "₹45,231",
+      icon: DollarSign,
+      change: "+15%",
+      changeType: "positive" as const
     }
   ];
 
-  // Handler for the new sale button
-  const handleNewSaleClick = () => {
-    navigate('/sales');
-  };
-
   return (
-    <div className="pt-16">
-      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
-      <div className="w-full max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome to DostanFarms Dashboard</p>
+    <div className="min-h-screen bg-gray-50">
+      <FixedHeader 
+        onChangePhoto={() => {}} 
+        onChangePassword={() => {}} 
+      />
+      <div className="pt-16">
+        <div className="container mx-auto p-6">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Welcome back, {currentUser?.name}!
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Here's what's happening with your business today.
+            </p>
           </div>
-          <Button onClick={handleNewSaleClick} className="bg-green-600 hover:bg-green-700 text-white">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">New Sale</span>
-            <span className="sm:hidden">Sale</span>
-          </Button>
-        </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {actionButtons.map((action, idx) => (
-              <Button
-                key={action.title}
-                onClick={action.onClick}
-                className={`flex flex-col items-start p-5 h-full w-full min-h-[110px] transition-all ${action.color} shadow group rounded-lg`}
-              >
-                <div className="mb-2">{action.icon}</div>
-                <div className="font-semibold text-base">{action.title}</div>
-                <div className="text-xs whitespace-pre-line text-left">{action.description}</div>
-              </Button>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    </div>
+                    <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <stat.icon className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center mt-4">
+                    <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+                    <span className="text-sm font-medium text-green-600">{stat.change}</span>
+                    <span className="text-sm text-gray-600 ml-1">from last month</span>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </div>
 
-        <ProfileChangeDialog
-          open={showProfileDialog}
-          onClose={() => setShowProfileDialog(false)}
-          mode={profileMode}
-        />
+          {/* Additional Dashboard Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-medium">New farmer registered</p>
+                      <p className="text-xs text-gray-500">2 minutes ago</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-medium">Product updated</p>
+                      <p className="text-xs text-gray-500">15 minutes ago</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-medium">New order received</p>
+                      <p className="text-xs text-gray-500">1 hour ago</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <button className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Add Farmer</p>
+                  </button>
+                  <button className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                    <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Add Product</p>
+                  </button>
+                  <button className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                    <ShoppingCart className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">View Orders</p>
+                  </button>
+                  <button className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                    <DollarSign className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Settlements</p>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

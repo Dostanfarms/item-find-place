@@ -9,38 +9,74 @@ import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessBranch } from '@/utils/employeeData';
 import { Farmer } from '@/hooks/useFarmers';
+import { useToast } from '@/hooks/use-toast';
 
 interface FarmerFormProps {
-  onSubmit: (farmer: Farmer) => void;
+  onSubmit: (farmer: any) => Promise<void>;
   onCancel: () => void;
-  editFarmer?: Farmer;
+  editFarmer?: Farmer | null;
 }
 
 const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer }) => {
   const { branches } = useBranches();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    id: editFarmer?.id || '',
-    name: editFarmer?.name || '',
-    email: editFarmer?.email || '',
-    phone: editFarmer?.phone || '',
-    password: editFarmer?.password || '',
-    address: editFarmer?.address || '',
-    state: editFarmer?.state || '',
-    district: editFarmer?.district || '',
-    village: editFarmer?.village || '',
-    bank_name: editFarmer?.bank_name || '',
-    account_number: editFarmer?.account_number || '',
-    ifsc_code: editFarmer?.ifsc_code || '',
-    profile_photo: editFarmer?.profile_photo || '',
-    date_joined: editFarmer?.date_joined || new Date().toISOString(),
-    branch_id: editFarmer?.branch_id || '',
-    products: editFarmer?.products || [],
-    transactions: editFarmer?.transactions || []
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    address: '',
+    state: '',
+    district: '',
+    village: '',
+    bank_name: '',
+    account_number: '',
+    ifsc_code: '',
+    profile_photo: '',
+    branch_id: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form data when editFarmer changes
+  useEffect(() => {
+    if (editFarmer) {
+      setFormData({
+        name: editFarmer.name || '',
+        email: editFarmer.email || '',
+        phone: editFarmer.phone || '',
+        password: editFarmer.password || '',
+        address: editFarmer.address || '',
+        state: editFarmer.state || '',
+        district: editFarmer.district || '',
+        village: editFarmer.village || '',
+        bank_name: editFarmer.bank_name || '',
+        account_number: editFarmer.account_number || '',
+        ifsc_code: editFarmer.ifsc_code || '',
+        profile_photo: editFarmer.profile_photo || '',
+        branch_id: editFarmer.branch_id || '',
+      });
+    } else {
+      // Reset form for new farmer
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        address: '',
+        state: '',
+        district: '',
+        village: '',
+        bank_name: '',
+        account_number: '',
+        ifsc_code: '',
+        profile_photo: '',
+        branch_id: '',
+      });
+    }
+  }, [editFarmer]);
 
   // Filter branches based on user permissions
   const accessibleBranches = branches.filter(branch => 
@@ -58,29 +94,47 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      alert('Please fill in all required fields');
+    if (!formData.name || !formData.email || !formData.phone) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields (Name, Email, Phone)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!editFarmer && !formData.password) {
+      toast({
+        title: "Error",
+        description: "Password is required for new farmers",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      await onSubmit(formData as Farmer);
+      await onSubmit(formData);
     } catch (error) {
       console.error('Error submitting farmer form:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save farmer details",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>{editFarmer ? 'Edit Farmer' : 'Add New Farmer'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
@@ -123,15 +177,15 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
+              <Label htmlFor="password">Password {!editFarmer && '*'}</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Enter password"
-                required
+                placeholder={editFarmer ? "Leave blank to keep current password" : "Enter password"}
+                required={!editFarmer}
                 disabled={isSubmitting}
               />
             </div>
@@ -195,7 +249,7 @@ const FarmerForm: React.FC<FarmerFormProps> = ({ onSubmit, onCancel, editFarmer 
               name="branch_id"
               value={formData.branch_id}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-background"
               disabled={isSubmitting}
             >
               <option value="">Select Branch</option>
