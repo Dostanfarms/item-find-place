@@ -319,21 +319,19 @@ const Products = () => {
 
         {showAddDialog && (
           <ProductForm
-            isOpen={showAddDialog}
-            onClose={() => setShowAddDialog(false)}
-            onSubmit={handleAddProduct}
+            onCancel={() => setShowAddDialog(false)}
+            farmerId=""
           />
         )}
 
         {showEditDialog && selectedProduct && (
           <ProductForm
-            isOpen={showEditDialog}
-            onClose={() => {
+            onCancel={() => {
               setShowEditDialog(false);
               setSelectedProduct(null);
             }}
-            product={selectedProduct}
-            onSubmit={handleUpdateProduct}
+            editProduct={selectedProduct}
+            farmerId=""
           />
         )}
 

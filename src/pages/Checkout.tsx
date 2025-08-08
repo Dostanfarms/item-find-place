@@ -39,7 +39,7 @@ const Checkout = () => {
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showReceipt, setShowReceipt] = useState(false);
-  const [transactionId, setTransactionId] = useState('');
+  const [transactionData, setTransactionData] = useState<any>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [profileMode, setProfileMode] = useState<'photo' | 'password'>('photo');
 
@@ -166,7 +166,7 @@ const Checkout = () => {
     }
 
     try {
-      const transactionData = {
+      const transactionPayload = {
         customer_name: customer.name,
         customer_mobile: customer.mobile,
         subtotal: getTotalPrice(),
@@ -183,10 +183,30 @@ const Checkout = () => {
         }))
       };
 
-      const result = await addTransaction(transactionData);
+      const result = await addTransaction(transactionPayload);
       
       if (result.success && result.data) {
-        setTransactionId(result.data.id);
+        // Create the transaction data for the receipt
+        const receiptData = {
+          id: result.data.id,
+          customerName: customer.name,
+          customerMobile: customer.mobile,
+          items: items.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.pricePerUnit,
+            quantity: item.quantity,
+            unit: item.unit || 'pcs'
+          })),
+          subtotal: getTotalPrice(),
+          discount: 0,
+          total: getTotalPrice(),
+          couponUsed: undefined,
+          paymentMethod: paymentMethod,
+          timestamp: new Date().toISOString()
+        };
+
+        setTransactionData(receiptData);
         setShowReceipt(true);
         clearCart();
         
@@ -226,6 +246,26 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Show receipt if transaction completed
+  if (showReceipt && transactionData) {
+    return (
+      <TransactionReceipt
+        transaction={transactionData}
+        onNewSale={() => {
+          setShowReceipt(false);
+          setTransactionData(null);
+          setCustomer(null);
+          setMobile('');
+          setCustomerName('');
+          setShowCreateCustomer(false);
+        }}
+        onBackToSales={() => {
+          navigate('/sales');
+        }}
+      />
     );
   }
 
@@ -355,19 +395,6 @@ const Checkout = () => {
             Complete Order
           </Button>
         </div>
-
-        <TransactionReceipt
-          open={showReceipt}
-          onOpenChange={() => {
-            setShowReceipt(false);
-            navigate('/sales');
-          }}
-          transactionId={transactionId}
-          customer={customer!}
-          items={items}
-          total={getTotalPrice()}
-          paymentMethod={paymentMethod}
-        />
 
         <ProfileChangeDialog
           open={showProfileDialog}
