@@ -1,362 +1,269 @@
 
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useAuth } from '@/context/AuthContext';
+import { Tractor, Search, Plus, Edit, Eye, Phone, MapPin } from 'lucide-react';
 import { useFarmers } from '@/hooks/useFarmers';
-import { Search, Plus, Users, Eye, Edit2, Trash2, Menu } from 'lucide-react';
-import FarmerForm from '@/components/FarmerForm';
 import { useToast } from '@/hooks/use-toast';
-import ProtectedAction from '@/components/ProtectedAction';
-import BranchFilter from '@/components/BranchFilter';
+import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
+import FarmerForm from '@/components/FarmerForm';
+import BranchFilter from '@/components/BranchFilter';
 import FixedHeader from '@/components/layout/FixedHeader';
+import ProfileChangeDialog from '@/components/profile/ProfileChangeDialog';
 
 const Farmers = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedFarmer, setSelectedFarmer] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
-  
-  const { currentUser } = useAuth();
-  const { farmers, loading, addFarmer, updateFarmer, deleteFarmer } = useFarmers();
+  const { farmers, loading, addFarmer, updateFarmer } = useFarmers();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   
-  const itemsPerPage = 10;
-
-  // Filter farmers based on search query and branch filter
-  const filteredFarmers = farmers.filter(farmer => {
-    const matchesSearch = 
-      farmer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      farmer.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      farmer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      farmer.village?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      farmer.district?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesBranch = selectedBranchFilter === 'all' || farmer.branch_id === selectedBranchFilter;
-
-    return matchesSearch && matchesBranch;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredFarmers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedFarmers = filteredFarmers.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleCreateFarmer = async (farmerData: any) => {
-    const result = await addFarmer(farmerData);
-    if (result.success) {
-      setIsCreateDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Farmer created successfully!",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to create farmer",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateFarmer = async (farmerData: any) => {
-    if (!selectedFarmer) return;
-    
-    const result = await updateFarmer(selectedFarmer.id, farmerData);
-    if (result.success) {
-      setIsEditDialogOpen(false);
-      setSelectedFarmer(null);
-      toast({
-        title: "Success",
-        description: "Farmer updated successfully!",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to update farmer",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteFarmer = async (farmerId: string) => {
-    if (!confirm('Are you sure you want to delete this farmer? This action cannot be undone.')) {
-      return;
-    }
-
-    const result = await deleteFarmer(farmerId);
-    if (result.success) {
-      toast({
-        title: "Success",
-        description: "Farmer deleted successfully!",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to delete farmer",
-        variant: "destructive",
-      });
-    }
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingFarmer, setEditingFarmer] = useState<any>(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [profileMode, setProfileMode] = useState<'photo' | 'password'>('photo');
 
   const handleChangePhoto = () => {
-    console.log('Change photo clicked');
+    setProfileMode('photo');
+    setShowProfileDialog(true);
   };
 
   const handleChangePassword = () => {
-    console.log('Change password clicked');
+    setProfileMode('password');
+    setShowProfileDialog(true);
   };
 
+  const filteredFarmers = farmers.filter(farmer =>
+    farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    farmer.mobile_number.includes(searchTerm) ||
+    (farmer.village && farmer.village.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const handleAddFarmer = () => {
+    setEditingFarmer(null);
+    setShowDialog(true);
+  };
+
+  const handleEditFarmer = (farmer: any) => {
+    setEditingFarmer(farmer);
+    setShowDialog(true);
+  };
+
+  const handleSubmit = async (farmerData: any) => {
+    try {
+      let result;
+      if (editingFarmer) {
+        result = await updateFarmer(editingFarmer.id, farmerData);
+      } else {
+        result = await addFarmer(farmerData);
+      }
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Farmer ${editingFarmer ? 'updated' : 'added'} successfully`,
+        });
+        setShowDialog(false);
+        setEditingFarmer(null);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || `Failed to ${editingFarmer ? 'update' : 'add'} farmer`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving farmer:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${editingFarmer ? 'update' : 'add'} farmer`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    setShowDialog(false);
+    setEditingFarmer(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-20">
+        <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading farmers...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="pt-20">
       <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
-      <div className="flex-1 p-6 pt-20">
-        <div className="flex items-center gap-3 mb-6">
-          <SidebarTrigger className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </SidebarTrigger>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">Farmers</h1>
-            <p className="text-muted-foreground">Manage farmer accounts and information</p>
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Tractor className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold">Farmer Management</h1>
           </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Farmers</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{filteredFarmers.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Active farmer accounts
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Verification</CardTitle>
-              <Badge variant="outline" className="h-4 w-4 text-muted-foreground">0</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                Farmers awaiting verification
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <Plus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {farmers.filter(f => {
-                  const joinDate = new Date(f.date_joined);
-                  const now = new Date();
-                  return joinDate.getMonth() === now.getMonth() && joinDate.getFullYear() === now.getFullYear();
-                }).length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                New farmers this month
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search farmers by name, phone, email, or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
-          <BranchFilter
-            selectedBranch={selectedBranchFilter}
-            onBranchChange={setSelectedBranchFilter}
-          />
-
-          <ProtectedAction resource="farmers" action="create">
-            <Button 
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
+          {hasPermission('farmers', 'create') && (
+            <Button onClick={handleAddFarmer}>
               <Plus className="h-4 w-4 mr-2" />
               Add Farmer
             </Button>
-          </ProtectedAction>
+          )}
         </div>
 
-        {/* Farmers Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Farmers Directory</CardTitle>
+            <CardTitle>Farmers</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="text-center py-8">Loading farmers...</div>
-            ) : filteredFarmers.length === 0 ? (
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <BranchFilter />
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search farmers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Mobile</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Products Count</TableHead>
+                    <TableHead>Total Amount</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Joined Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFarmers.map((farmer) => (
+                    <TableRow key={farmer.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {farmer.profile_photo_url ? (
+                            <img 
+                              src={farmer.profile_photo_url} 
+                              alt={farmer.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <Tractor className="h-4 w-4 text-gray-500" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{farmer.name}</p>
+                            <p className="text-sm text-gray-500">{farmer.email || 'No email'}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {farmer.mobile_number}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <div className="text-sm">
+                            {[farmer.village, farmer.district, farmer.state]
+                              .filter(Boolean)
+                              .join(', ') || 'Not specified'}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {farmer.farmer_products?.length || 0} products
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        ₹{farmer.farmer_products?.reduce((sum: number, product: any) => 
+                          sum + (product.quantity * product.price_per_unit), 0
+                        ).toFixed(2) || '0.00'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={farmer.farmer_products?.some((p: any) => p.payment_status === 'unsettled') 
+                            ? "destructive" : "default"}
+                        >
+                          {farmer.farmer_products?.some((p: any) => p.payment_status === 'unsettled')
+                            ? 'Pending' : 'Settled'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(farmer.created_at), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={farmer.is_active ? "default" : "secondary"}>
+                          {farmer.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`/farmer-details/${farmer.id}`, '_blank')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {hasPermission('farmers', 'edit') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditFarmer(farmer)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {filteredFarmers.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 No farmers found matching your search criteria.
               </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Join Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedFarmers.map((farmer) => (
-                        <TableRow key={farmer.id}>
-                          <TableCell className="font-medium">
-                            <div>
-                              <div>{farmer.name}</div>
-                              {farmer.email && (
-                                <div className="text-sm text-muted-foreground">{farmer.email}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <div>{farmer.phone}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {farmer.village && <div>{farmer.village}</div>}
-                              {farmer.district && <div className="text-muted-foreground">{farmer.district}, {farmer.state}</div>}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {farmer.date_joined ? format(new Date(farmer.date_joined), 'MMM dd, yyyy') : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-green-600">
-                              Active
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <ProtectedAction resource="farmers" action="edit">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedFarmer(farmer);
-                                    setIsEditDialogOpen(true);
-                                  }}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                              </ProtectedAction>
-                              <ProtectedAction resource="farmers" action="delete">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => handleDeleteFarmer(farmer.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </ProtectedAction>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredFarmers.length)} of {filteredFarmers.length} farmers
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
             )}
           </CardContent>
         </Card>
 
-        {/* Create Farmer Dialog */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Farmer</DialogTitle>
-            </DialogHeader>
-            <FarmerForm
-              onSubmit={handleCreateFarmer}
-              onCancel={() => setIsCreateDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {showDialog && (
+          <FarmerForm
+            isOpen={showDialog}
+            onClose={handleCancel}
+            farmer={editingFarmer}
+            onSubmit={handleSubmit}
+          />
+        )}
 
-        {/* Edit Farmer Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Farmer</DialogTitle>
-            </DialogHeader>
-            <FarmerForm
-              farmer={selectedFarmer}
-              onSubmit={handleUpdateFarmer}
-              onCancel={() => {
-                setIsEditDialogOpen(false);
-                setSelectedFarmer(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <ProfileChangeDialog
+          open={showProfileDialog}
+          onClose={() => setShowProfileDialog(false)}
+          mode={profileMode}
+        />
       </div>
     </div>
   );
