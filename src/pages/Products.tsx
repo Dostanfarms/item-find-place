@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -320,7 +319,7 @@ const Products = () => {
 
         {showAddDialog && (
           <ProductForm
-            isOpen={showAddDialog}
+            open={showAddDialog}
             onClose={() => setShowAddDialog(false)}
             onSubmit={handleAddProduct}
           />
@@ -328,7 +327,7 @@ const Products = () => {
 
         {showEditDialog && selectedProduct && (
           <ProductForm
-            isOpen={showEditDialog}
+            open={showEditDialog}
             onClose={() => {
               setShowEditDialog(false);
               setSelectedProduct(null);
@@ -340,13 +339,16 @@ const Products = () => {
 
         {showCopyDialog && selectedProduct && (
           <ProductCopyDialog
-            isOpen={showCopyDialog}
+            open={showCopyDialog}
             onClose={() => {
               setShowCopyDialog(false);
               setSelectedProduct(null);
             }}
-            sourceProduct={selectedProduct}
-            onSubmit={handleCopyProduct}
+            selectedProducts={[selectedProduct]}
+            onSuccess={() => {
+              setShowCopyDialog(false);
+              setSelectedProduct(null);
+            }}
           />
         )}
 
