@@ -46,38 +46,16 @@ const Products = () => {
     setShowCopyDialog(true);
   };
 
-  const handleFormSubmit = async (productData: any) => {
-    try {
-      if (selectedProduct) {
-        const result = await updateProduct(selectedProduct.id, productData);
-        if (result.success) {
-          setShowForm(false);
-          setSelectedProduct(null);
-          fetchProducts();
-        }
-      } else {
-        const result = await addProduct(productData);
-        if (result.success) {
-          setShowForm(false);
-          setSelectedProduct(null);
-          fetchProducts();
-        }
-      }
-    } catch (error) {
-      console.error('Error submitting product form:', error);
-    }
-  };
-
   const handleFormCancel = () => {
     setShowForm(false);
     setSelectedProduct(null);
+    fetchProducts(); // Refresh products after form operations
   };
 
-  const handleCopySubmit = async (copyData: any) => {
-    console.log('Copy data:', copyData);
+  const handleCopySuccess = () => {
     setShowCopyDialog(false);
     setSelectedProduct(null);
-    fetchProducts();
+    fetchProducts(); // Refresh products after copy operation
   };
 
   const handleCopyCancel = () => {
@@ -138,7 +116,7 @@ const Products = () => {
             <ProductForm
               editProduct={selectedProduct}
               onCancel={handleFormCancel}
-              onSubmit={handleFormSubmit}
+              farmerId={selectedBranch || ''}
             />
           </div>
         </div>
@@ -320,7 +298,7 @@ const Products = () => {
           open={showCopyDialog}
           onClose={handleCopyCancel}
           selectedProducts={selectedProduct ? [selectedProduct] : []}
-          onSuccess={handleCopySubmit}
+          onSuccess={handleCopySuccess}
         />
       )}
     </div>
