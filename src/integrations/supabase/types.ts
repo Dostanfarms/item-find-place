@@ -1107,6 +1107,10 @@ export type Database = {
         Args: { branch_name: string }
         Returns: string
       }
+      get_employee_branches: {
+        Args: { emp_id: string }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

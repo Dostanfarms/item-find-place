@@ -38,6 +38,7 @@ export const useEmployees = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
+      console.log('Fetching employees...');
       
       // Fetch employees with their branch assignments
       const { data: employeesData, error: employeesError } = await supabase
@@ -55,10 +56,13 @@ export const useEmployees = () => {
         return;
       }
 
+      console.log('Fetched employees:', employeesData?.length);
+
       // Get branch assignments for each employee
       const employeesWithBranches = await Promise.all(
         (employeesData || []).map(async (emp) => {
           const branchIds = await getEmployeeBranches(emp.id);
+          console.log(`Employee ${emp.name} has branches:`, branchIds);
           
           return {
             id: emp.id,
@@ -81,19 +85,25 @@ export const useEmployees = () => {
             updatedAt: emp.updated_at,
             branchId: emp.branch_id || undefined,
             branch_id: emp.branch_id || undefined,
-            branchIds: branchIds
+            branchIds: branchIds.length > 0 ? branchIds : (emp.branch_id ? [emp.branch_id] : [])
           };
         })
       );
 
       // Apply branch filtering - admins see all, others see only their branch employees
       let filteredEmployees = employeesWithBranches;
-      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branchIds) {
+        const userBranches = Array.isArray(currentUser.branchIds) ? currentUser.branchIds : [currentUser.branchIds];
+        filteredEmployees = employeesWithBranches.filter(emp => 
+          emp.branchIds?.some(branchId => userBranches.includes(branchId))
+        );
+      } else if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
         filteredEmployees = employeesWithBranches.filter(emp => 
           emp.branchIds?.includes(currentUser.branch_id!) || emp.branch_id === currentUser.branch_id
         );
       }
 
+      console.log('Filtered employees:', filteredEmployees.length);
       setEmployees(filteredEmployees);
     } catch (error) {
       console.error('Error in fetchEmployees:', error);
@@ -109,12 +119,18 @@ export const useEmployees = () => {
 
   const addEmployee = async (employeeData: Omit<Employee, 'id' | 'dateJoined' | 'createdAt' | 'updatedAt'>) => {
     try {
+      console.log('Adding employee with data:', employeeData);
+      
       // Use the primary branch from branchIds
       let primaryBranchId = employeeData.branchIds?.[0];
       
       // If not admin and no branch specified, use current user's branch
-      if (currentUser?.role?.toLowerCase() !== 'admin' && !primaryBranchId && currentUser?.branch_id) {
-        primaryBranchId = currentUser.branch_id;
+      if (currentUser?.role?.toLowerCase() !== 'admin' && !primaryBranchId) {
+        if (currentUser?.branchIds?.[0]) {
+          primaryBranchId = currentUser.branchIds[0];
+        } else if (currentUser?.branch_id) {
+          primaryBranchId = currentUser.branch_id;
+        }
       }
 
       const { data, error } = await supabase
@@ -149,9 +165,15 @@ export const useEmployees = () => {
         return { success: false, error };
       }
 
+      console.log('Employee added successfully:', data);
+
       // Assign employee to multiple branches
       if (employeeData.branchIds && employeeData.branchIds.length > 0) {
-        await assignEmployeeToBranches(data.id, employeeData.branchIds);
+        console.log('Assigning to branches:', employeeData.branchIds);
+        const assignResult = await assignEmployeeToBranches(data.id, employeeData.branchIds);
+        if (!assignResult.success) {
+          console.error('Error assigning branches:', assignResult.error);
+        }
       }
 
       await fetchEmployees();
@@ -174,6 +196,8 @@ export const useEmployees = () => {
 
   const updateEmployee = async (id: string, employeeData: Partial<Employee>) => {
     try {
+      console.log('Updating employee:', id, employeeData);
+      
       const updateData: any = {};
       
       if (employeeData.name !== undefined) updateData.name = employeeData.name;
@@ -215,7 +239,11 @@ export const useEmployees = () => {
 
       // Update branch assignments if provided
       if (employeeData.branchIds !== undefined) {
-        await assignEmployeeToBranches(id, employeeData.branchIds);
+        console.log('Updating branch assignments:', employeeData.branchIds);
+        const assignResult = await assignEmployeeToBranches(id, employeeData.branchIds);
+        if (!assignResult.success) {
+          console.error('Error updating branch assignments:', assignResult.error);
+        }
       }
 
       await fetchEmployees();
@@ -274,7 +302,7 @@ export const useEmployees = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [currentUser]);
 
   return {
     employees,

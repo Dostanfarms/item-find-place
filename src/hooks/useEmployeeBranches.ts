@@ -46,11 +46,18 @@ export const useEmployeeBranches = () => {
 
   const assignEmployeeToBranches = async (employeeId: string, branchIds: string[]) => {
     try {
+      console.log('Assigning employee to branches:', { employeeId, branchIds });
+      
       // First, remove existing assignments
-      await supabase
+      const { error: deleteError } = await supabase
         .from('employee_branches')
         .delete()
         .eq('employee_id', employeeId);
+
+      if (deleteError) {
+        console.error('Error removing existing assignments:', deleteError);
+        return { success: false, error: deleteError };
+      }
 
       // Then add new assignments
       if (branchIds.length > 0) {
@@ -59,13 +66,25 @@ export const useEmployeeBranches = () => {
           branch_id: branchId
         }));
 
-        const { error } = await supabase
+        console.log('Creating assignments:', assignments);
+
+        const { error: insertError } = await supabase
           .from('employee_branches')
           .insert(assignments);
 
-        if (error) {
-          console.error('Error assigning employee to branches:', error);
-          return { success: false, error };
+        if (insertError) {
+          console.error('Error assigning employee to branches:', insertError);
+          return { success: false, error: insertError };
+        }
+
+        // Also update the primary branch in employees table
+        const { error: updateError } = await supabase
+          .from('employees')
+          .update({ branch_id: branchIds[0] })
+          .eq('id', employeeId);
+
+        if (updateError) {
+          console.error('Error updating primary branch:', updateError);
         }
       }
 
@@ -78,6 +97,8 @@ export const useEmployeeBranches = () => {
 
   const getEmployeeBranches = async (employeeId: string): Promise<string[]> => {
     try {
+      console.log('Getting branches for employee:', employeeId);
+      
       const { data, error } = await supabase
         .from('employee_branches')
         .select('branch_id')
@@ -88,7 +109,9 @@ export const useEmployeeBranches = () => {
         return [];
       }
 
-      return data?.map(item => item.branch_id) || [];
+      const branchIds = data?.map(item => item.branch_id) || [];
+      console.log('Found branch IDs:', branchIds);
+      return branchIds;
     } catch (error) {
       console.error('Error in getEmployeeBranches:', error);
       return [];

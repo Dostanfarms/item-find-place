@@ -122,12 +122,25 @@ export const getBranchRestrictedData = <T extends { branch_id?: string | null }>
     return data;
   }
   
+  // Convert userBranchIds to array for consistent handling
+  let userBranches: string[] = [];
+  if (Array.isArray(userBranchIds)) {
+    userBranches = userBranchIds;
+  } else if (userBranchIds) {
+    userBranches = [userBranchIds];
+  }
+  
   // Filter data based on branch access
   const filteredData = data.filter(item => {
-    const hasAccess = canAccessBranch(userRole, userBranchIds, item.branch_id);
+    // Allow access to items that belong to user's assigned branches
+    const hasAccess = userBranches.length === 0 
+      ? item.branch_id === null 
+      : userBranches.includes(item.branch_id || '') || item.branch_id === null;
+    
     console.log('Item access check:', { 
       itemId: (item as any).id, 
       itemBranch: item.branch_id, 
+      userBranches,
       hasAccess 
     });
     return hasAccess;

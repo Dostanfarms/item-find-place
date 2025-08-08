@@ -39,20 +39,22 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const [rolePermissions, setRolePermissions] = useState<any[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
-  // Fetch employee branch assignments
+  // Fetch employee branch assignments using the database function
   const fetchEmployeeBranches = async (employeeId: string): Promise<string[]> => {
     try {
-      const { data, error } = await supabase
-        .from('employee_branches')
-        .select('branch_id')
-        .eq('employee_id', employeeId);
+      console.log('Fetching branches for employee:', employeeId);
+      
+      const { data, error } = await supabase.rpc('get_employee_branches', {
+        emp_id: employeeId
+      });
 
       if (error) {
         console.error('Error fetching employee branches:', error);
         return [];
       }
 
-      return data?.map(item => item.branch_id) || [];
+      console.log('Employee branches from function:', data);
+      return data || [];
     } catch (error) {
       console.error('Error in fetchEmployeeBranches:', error);
       return [];
@@ -109,14 +111,16 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         setRolePermissions(permissions);
       });
 
-      // Fetch employee branch assignments if not admin
-      if (user.role.toLowerCase() !== 'admin') {
-        fetchEmployeeBranches(user.id).then(branchIds => {
-          if (branchIds.length > 0) {
-            setUser(prev => prev ? { ...prev, branchIds } : null);
-          }
-        });
-      }
+      // Fetch employee branch assignments for all users (including admins for consistency)
+      fetchEmployeeBranches(user.id).then(branchIds => {
+        console.log('Fetched user branch IDs:', branchIds);
+        if (branchIds.length > 0) {
+          setUser(prev => prev ? { ...prev, branchIds } : null);
+        } else if (user.branch_id) {
+          // Fallback to single branch if no multi-branch assignments
+          setUser(prev => prev ? { ...prev, branchIds: [user.branch_id!] } : null);
+        }
+      });
     } else {
       console.log('No user, removing from localStorage');
       localStorage.removeItem('user');
@@ -181,12 +185,13 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         branch_id: employee.branch_id || null
       };
 
-      // Fetch multi-branch assignments for non-admin users
-      if (employee.role.toLowerCase() !== 'admin') {
-        const branchIds = await fetchEmployeeBranches(employee.id);
-        if (branchIds.length > 0) {
-          authenticatedUser.branchIds = branchIds;
-        }
+      // Fetch multi-branch assignments for all users
+      const branchIds = await fetchEmployeeBranches(employee.id);
+      if (branchIds.length > 0) {
+        authenticatedUser.branchIds = branchIds;
+      } else if (employee.branch_id) {
+        // Fallback to single branch
+        authenticatedUser.branchIds = [employee.branch_id];
       }
       
       console.log('Setting authenticated user:', authenticatedUser);
