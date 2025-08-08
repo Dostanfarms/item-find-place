@@ -1,406 +1,384 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ShoppingCart, User, CreditCard } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
-import PaymentMethods from '@/components/PaymentMethods';
-import TransactionReceipt from '@/components/TransactionReceipt';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Check, ShoppingCart } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useCoupons } from '@/hooks/useCoupons';
 import { useTransactions } from '@/hooks/useTransactions';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
-import FixedHeader from '@/components/layout/FixedHeader';
-import ProfileChangeDialog from '@/components/profile/ProfileChangeDialog';
+import { toast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import TransactionReceipt from '@/components/TransactionReceipt';
 
-// Local interface that matches the Customer from useCustomers hook
-interface LocalCustomer {
+interface CheckoutItem {
   id: string;
   name: string;
-  mobile: string; // Changed from mobile_number to mobile
-  email?: string;
+  price: number;
+  quantity: number;
+  unit: string;
+  category: string;
 }
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items, getTotalPrice, clearCart } = useCart();
-  const { customers, addCustomer } = useCustomers();
-  const { addTransaction } = useTransactions();
-  const { toast } = useToast();
-  const { currentUser } = useAuth();
-  
-  const [customer, setCustomer] = useState<LocalCustomer | null>(null);
-  const [mobile, setMobile] = useState('');
+  const [items, setItems] = useState<CheckoutItem[]>([]);
   const [customerName, setCustomerName] = useState('');
-  const [showCreateCustomer, setShowCreateCustomer] = useState(false);
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [selectedCoupon, setSelectedCoupon] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [isVerified, setIsVerified] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [discount, setDiscount] = useState(0);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [transactionData, setTransactionData] = useState<any>(null);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [profileMode, setProfileMode] = useState<'photo' | 'password'>('photo');
+  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
+  
+  const { customers } = useCustomers();
+  const { coupons } = useCoupons();
+  const { addTransaction } = useTransactions();
 
-  const handleChangePhoto = () => {
-    setProfileMode('photo');
-    setShowProfileDialog(true);
-  };
+  useEffect(() => {
+    // Load cart items from localStorage
+    const storedItems = localStorage.getItem('checkoutItems');
+    if (storedItems) {
+      setItems(JSON.parse(storedItems));
+    } else {
+      // If no items, redirect back to sales
+      navigate('/sales');
+    }
+  }, [navigate]);
 
-  const handleChangePassword = () => {
-    setProfileMode('password');
-    setShowProfileDialog(true);
-  };
+  // Load all active coupons
+  useEffect(() => {
+    const activeCoupons = coupons.filter(coupon => 
+      coupon.is_active && 
+      new Date(coupon.expiry_date) > new Date()
+    );
+    setAvailableCoupons(activeCoupons);
+  }, [coupons]);
 
-  const searchCustomer = () => {
-    if (!mobile.trim()) {
+  const handleVerifyCustomer = () => {
+    if (!customerMobile.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a mobile number",
-        variant: "destructive"
+        title: "Missing Mobile Number",
+        description: "Please enter a mobile number to verify",
+        variant: "destructive",
       });
       return;
     }
 
-    const foundCustomer = customers.find(c => c.mobile === mobile);
-    if (foundCustomer) {
-      const localCustomer: LocalCustomer = {
-        id: foundCustomer.id,
-        name: foundCustomer.name,
-        mobile: foundCustomer.mobile,
-        email: foundCustomer.email
-      };
-      setCustomer(localCustomer);
-      setShowCreateCustomer(false);
+    const customer = customers.find(c => c.mobile === customerMobile);
+    
+    if (customer) {
+      setCustomerName(customer.name);
+      setIsVerified(true);
+      
+      // Filter coupons for this customer (including 'all' target type and specific customer coupons)
+      const customerCoupons = coupons.filter(coupon => 
+        coupon.is_active && 
+        new Date(coupon.expiry_date) > new Date() &&
+        (coupon.target_type === 'all' || 
+         (coupon.target_type === 'customer' && coupon.target_user_id === customer.mobile))
+      );
+      
+      setAvailableCoupons(customerCoupons);
+      
       toast({
-        title: "Customer Found",
-        description: `Welcome back, ${foundCustomer.name}!`,
+        title: "Customer Verified",
+        description: `Welcome ${customer.name}!`,
       });
     } else {
-      setCustomer(null);
-      setShowCreateCustomer(true);
       toast({
         title: "Customer Not Found",
-        description: "Please create a new customer account",
-        variant: "destructive"
+        description: "No customer found with this mobile number",
+        variant: "destructive",
       });
     }
   };
 
-  const createCustomer = async () => {
-    if (!customerName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter customer name",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsCreatingCustomer(true);
-    try {
-      const customerData = {
-        name: customerName,
-        mobile: mobile, // Changed from mobile_number to mobile
-        email: '',
-        address: '',
-        pincode: '',
-        password: 'defaultPassword123',
-        profile_photo: null
-      };
-
-      const result = await addCustomer(customerData);
-      if (result.success && result.data) {
-        const newCustomer: LocalCustomer = {
-          id: result.data.id,
-          name: result.data.name,
-          mobile: result.data.mobile,
-          email: result.data.email
-        };
+  const handleCouponChange = (couponCode: string) => {
+    setSelectedCoupon(couponCode);
+    
+    if (couponCode) {
+      const coupon = availableCoupons.find(c => c.code === couponCode);
+      if (coupon) {
+        const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        let discountAmount = 0;
         
-        setCustomer(newCustomer);
-        setShowCreateCustomer(false);
-        setCustomerName('');
+        if (coupon.discount_type === 'percentage') {
+          discountAmount = (subtotal * coupon.discount_value) / 100;
+        } else {
+          discountAmount = coupon.discount_value;
+        }
         
-        toast({
-          title: "Success",
-          description: "Customer created successfully!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to create customer",
-          variant: "destructive"
-        });
+        // Apply max discount limit if set
+        if (coupon.max_discount_limit && discountAmount > coupon.max_discount_limit) {
+          discountAmount = coupon.max_discount_limit;
+        }
+        
+        setDiscount(discountAmount);
       }
-    } catch (error) {
-      console.error('Error creating customer:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create customer",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreatingCustomer(false);
+    } else {
+      setDiscount(0);
     }
   };
 
-  const handleCheckout = async () => {
-    if (!customer) {
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = subtotal - discount;
+
+  const handleCompleteTransaction = async () => {
+    if (!customerName.trim() || !customerMobile.trim()) {
       toast({
-        title: "Error",
-        description: "Please select a customer first",
-        variant: "destructive"
+        title: "Missing Information",
+        description: "Please verify customer details",
+        variant: "destructive",
       });
       return;
     }
 
-    if (items.length === 0) {
-      toast({
-        title: "Error",
-        description: "Cart is empty",
-        variant: "destructive"
-      });
-      return;
-    }
+    const transactionData = {
+      customer_name: customerName,
+      customer_mobile: customerMobile,
+      items: items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      subtotal,
+      discount,
+      total,
+      coupon_used: selectedCoupon || null,
+      payment_method: paymentMethod,
+      status: 'completed'
+    };
 
-    try {
-      const transactionPayload = {
-        customer_name: customer.name,
-        customer_mobile: customer.mobile,
-        subtotal: getTotalPrice(),
-        discount: 0,
-        total: getTotalPrice(),
-        coupon_used: null,
-        payment_method: paymentMethod,
-        status: 'completed',
-        items: items.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.pricePerUnit, // Use pricePerUnit from CartItem
-          quantity: item.quantity
-        }))
+    const result = await addTransaction(transactionData);
+    
+    if (result.success) {
+      // Create transaction object for receipt
+      const transaction = {
+        id: result.data.id,
+        customerName,
+        customerMobile,
+        items,
+        subtotal,
+        discount,
+        total,
+        couponUsed: selectedCoupon,
+        paymentMethod,
+        timestamp: new Date().toISOString()
       };
-
-      const result = await addTransaction(transactionPayload);
       
-      if (result.success && result.data) {
-        // Create the transaction data for the receipt
-        const receiptData = {
-          id: result.data.id,
-          customerName: customer.name,
-          customerMobile: customer.mobile,
-          items: items.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.pricePerUnit,
-            quantity: item.quantity,
-            unit: item.unit || 'pcs'
-          })),
-          subtotal: getTotalPrice(),
-          discount: 0,
-          total: getTotalPrice(),
-          couponUsed: undefined,
-          paymentMethod: paymentMethod,
-          timestamp: new Date().toISOString()
-        };
-
-        setTransactionData(receiptData);
-        setShowReceipt(true);
-        clearCart();
-        
-        toast({
-          title: "Success",
-          description: "Transaction completed successfully!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to complete transaction",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
+      setCompletedTransaction(transaction);
+      setShowReceipt(true);
+      
+      // Clear checkout items
+      localStorage.removeItem('checkoutItems');
+      
       toast({
-        title: "Error",
-        description: "Failed to complete checkout",
-        variant: "destructive"
+        title: "Transaction Completed",
+        description: `Sale completed successfully. Total: ₹${total.toFixed(2)}`,
+      });
+    } else {
+      toast({
+        title: "Transaction Failed",
+        description: result.error || "Failed to complete transaction",
+        variant: "destructive",
       });
     }
   };
 
-  if (items.length === 0 && !showReceipt) {
-    return (
-      <div className="pt-20">
-        <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No items in cart</h3>
-            <p className="mt-1 text-sm text-gray-500">Add some products to get started.</p>
-            <Button onClick={() => navigate('/products')} className="mt-4">
-              Browse Products
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleBackToSales = () => {
+    // Keep items in localStorage when going back to sales
+    navigate('/sales', { state: { fromCheckout: true } });
+  };
 
-  // Show receipt if transaction completed
-  if (showReceipt && transactionData) {
+  // Show receipt if transaction is completed
+  if (showReceipt && completedTransaction) {
     return (
-      <TransactionReceipt
-        transaction={transactionData}
+      <TransactionReceipt 
+        transaction={completedTransaction}
         onNewSale={() => {
           setShowReceipt(false);
-          setTransactionData(null);
-          setCustomer(null);
-          setMobile('');
-          setCustomerName('');
-          setShowCreateCustomer(false);
-        }}
-        onBackToSales={() => {
+          setCompletedTransaction(null);
           navigate('/sales');
         }}
+        onBackToSales={() => navigate('/sales')}
       />
     );
   }
 
   return (
-    <div className="pt-20">
-      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
-      <div className="space-y-6 p-6">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Checkout</h1>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            onClick={handleBackToSales}
+            className="p-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Checkout</h1>
+            <p className="text-muted-foreground">Complete the transaction</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Customer Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Customer Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="mobile">Mobile Number</Label>
-                  <Input
-                    id="mobile"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="Enter mobile number"
-                    onKeyPress={(e) => e.key === 'Enter' && searchCustomer()}
-                  />
-                </div>
-                <Button onClick={searchCustomer} className="mt-6">
-                  Search
-                </Button>
-              </div>
-
-              {customer && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="font-medium">{customer.name}</p>
-                  <p className="text-sm text-gray-600">{customer.mobile}</p>
-                  {customer.email && (
-                    <p className="text-sm text-gray-600">{customer.email}</p>
-                  )}
-                </div>
-              )}
-
-              {showCreateCustomer && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md space-y-3">
-                  <h4 className="font-medium">Create New Customer</h4>
-                  <div>
-                    <Label htmlFor="customerName">Customer Name</Label>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Customer & Payment Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Customer Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="mobile">Mobile Number</Label>
                     <Input
-                      id="customerName"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Enter customer name"
+                      id="mobile"
+                      value={customerMobile}
+                      onChange={(e) => setCustomerMobile(e.target.value)}
+                      placeholder="Enter mobile number"
+                      disabled={isVerified}
                     />
                   </div>
-                  <Button 
-                    onClick={createCustomer}
-                    disabled={isCreatingCustomer}
-                    className="w-full"
-                  >
-                    {isCreatingCustomer ? 'Creating...' : 'Create Customer'}
-                  </Button>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={handleVerifyCustomer}
+                      disabled={isVerified}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isVerified ? <Check className="h-4 w-4" /> : 'Verify'}
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                
+                <div>
+                  <Label htmlFor="customerName">Customer Name</Label>
+                  <Input
+                    id="customerName"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Customer name"
+                    disabled={isVerified}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Coupon Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Apply Coupon</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedCoupon} onValueChange={handleCouponChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a coupon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No coupon</SelectItem>
+                    {availableCoupons.map((coupon) => (
+                      <SelectItem key={coupon.id} value={coupon.code}>
+                        {coupon.code} - {coupon.discount_type === 'percentage' 
+                          ? `${coupon.discount_value}% off` 
+                          : `₹${coupon.discount_value} off`}
+                        {coupon.target_type === 'customer' && ' (Personal)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availableCoupons.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No active coupons available
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payment Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Order Summary */}
-          <Card>
+          <Card className="h-fit">
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center py-2 border-b">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-600">
-                        Qty: {item.quantity} × ₹{item.pricePerUnit}
-                      </p>
-                    </div>
-                    <p className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</p>
+            <CardContent className="space-y-4">
+              {/* Items with Scroll */}
+              <div className="max-h-80 overflow-y-auto">
+                <ScrollArea className="h-full">
+                  <div className="space-y-2 pr-4">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm p-2 border rounded">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-muted-foreground">
+                            {item.quantity} × ₹{item.price.toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </ScrollArea>
               </div>
-              
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total</span>
-                  <span>₹{getTotalPrice().toFixed(2)}</span>
+
+              {/* Totals */}
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount:</span>
+                    <span>-₹{discount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
+
+              <Button 
+                onClick={handleCompleteTransaction}
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={!customerName.trim() || !customerMobile.trim()}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Complete Transaction
+              </Button>
             </CardContent>
           </Card>
         </div>
-
-        {/* Payment Methods */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Method
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaymentMethods
-              total={getTotalPrice()}
-              onPaymentMethodSelect={(method) => setPaymentMethod(method)}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Checkout Button */}
-        <div className="flex justify-end">
-          <Button
-            onClick={handleCheckout}
-            disabled={!customer || items.length === 0}
-            size="lg"
-            className="min-w-40"
-          >
-            Complete Order
-          </Button>
-        </div>
-
-        <ProfileChangeDialog
-          open={showProfileDialog}
-          onClose={() => setShowProfileDialog(false)}
-          mode={profileMode}
-        />
       </div>
     </div>
   );

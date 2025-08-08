@@ -52,7 +52,7 @@ export const useTransactions = () => {
         return;
       }
 
-      console.log('Transactions fetched successfully:', data?.length);
+      console.log('Transactions fetched successfully:', data);
       
       // Transform the data to match our interface
       const transformedTransactions: Transaction[] = (data || []).map((dbTransaction: DatabaseTransaction) => ({
@@ -72,25 +72,7 @@ export const useTransactions = () => {
         branch_id: dbTransaction.branch_id,
       }));
       
-      // Apply branch filtering for non-admin users
-      let filteredTransactions = transformedTransactions;
-      
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        console.log('Filtering transactions for branches:', userBranchIds);
-        
-        if (userBranchIds.length > 0) {
-          filteredTransactions = transformedTransactions.filter(transaction => 
-            !transaction.branch_id || userBranchIds.includes(transaction.branch_id)
-          );
-        } else {
-          // If user has no branches assigned, show only transactions with no branch
-          filteredTransactions = transformedTransactions.filter(transaction => !transaction.branch_id);
-        }
-      }
-
-      console.log('Filtered transactions after branch restriction:', filteredTransactions.length);
-      setTransactions(filteredTransactions);
+      setTransactions(transformedTransactions);
     } catch (error) {
       console.error('Error in fetchTransactions:', error);
     } finally {
@@ -101,12 +83,6 @@ export const useTransactions = () => {
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'branch_id'>) => {
     try {
       console.log('Adding transaction:', transactionData);
-      
-      // Auto-assign branch for non-admin users
-      let branchId = currentUser?.branch_id || null;
-      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branchIds?.length) {
-        branchId = currentUser.branchIds[0]; // Use first assigned branch
-      }
       
       // Transform data for database insertion
       const dbTransactionData: DatabaseTransactionInsert = {
@@ -120,7 +96,7 @@ export const useTransactions = () => {
         payment_method: transactionData.payment_method,
         status: transactionData.status,
         created_by: currentUser?.email || null,
-        branch_id: branchId,
+        branch_id: currentUser?.branch_id || null,
       };
 
       const { data, error } = await supabase
@@ -171,7 +147,7 @@ export const useTransactions = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [currentUser?.branchIds, currentUser?.branch_id]);
+  }, []);
 
   return {
     transactions,

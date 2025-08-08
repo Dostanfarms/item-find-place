@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Product {
   id: string;
@@ -40,23 +41,14 @@ export const useProducts = () => {
       }
 
       console.log('Raw products from database:', data?.length, 'items');
+      console.log('Sample products:', data?.slice(0, 2));
 
-      // Apply branch filtering based on user's assigned branches
-      let filteredProducts = data || [];
-      
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        console.log('Filtering products for branches:', userBranchIds);
-        
-        if (userBranchIds.length > 0) {
-          filteredProducts = (data || []).filter(product => 
-            !product.branch_id || userBranchIds.includes(product.branch_id)
-          );
-        } else {
-          // If user has no branches assigned, show only products with no branch
-          filteredProducts = (data || []).filter(product => !product.branch_id);
-        }
-      }
+      // Apply branch filtering
+      const filteredProducts = getBranchRestrictedData(
+        data || [], 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
 
       console.log('Filtered products after branch restriction:', filteredProducts.length, 'items');
       setProducts(filteredProducts);
@@ -121,16 +113,14 @@ export const useProducts = () => {
       
       const barcode = await generateUniqueBarcode(branchName);
       
-      // Auto-assign branch based on user's assigned branches
+      // Auto-assign current user's branch if not admin
       let branchId = productData.branch_id;
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        if (userBranchIds.length > 0) {
-          branchId = userBranchIds[0]; // Use first assigned branch as default
-          console.log('Auto-assigning branch to product:', branchId);
-        }
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+        console.log('Auto-assigning branch to product:', branchId);
       }
       
+      // Ensure all fields are properly formatted
       const insertData = {
         name: productData.name.trim(),
         description: productData.description?.trim() || null,
@@ -168,7 +158,7 @@ export const useProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [currentUser?.branchIds, currentUser?.branch_id]); // Re-fetch when user's branches change
+  }, [currentUser?.branch_id]); // Re-fetch when user's branch changes
 
   return {
     products,
@@ -179,6 +169,7 @@ export const useProducts = () => {
       try {
         console.log('Updating product:', id, productData);
 
+        // Prepare update data, ensuring proper formatting
         const updateData: any = {};
         if (productData.name !== undefined) updateData.name = productData.name.trim();
         if (productData.description !== undefined) updateData.description = productData.description?.trim() || null;

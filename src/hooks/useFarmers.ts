@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { getBranchRestrictedData } from '@/utils/employeeData';
 
 export interface Farmer {
   id: string;
@@ -33,7 +33,7 @@ export const useFarmers = () => {
   const fetchFarmers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching farmers...');
+      console.log('Fetching farmers for user:', currentUser);
       
       const { data, error } = await supabase
         .from('farmers')
@@ -50,26 +50,37 @@ export const useFarmers = () => {
         return;
       }
 
-      console.log('Raw farmers data:', data?.length);
+      console.log('Raw farmers from database:', data?.length, 'items');
+      console.log('Sample farmers:', data?.slice(0, 2));
 
-      // Apply branch filtering for non-admin users
-      let filteredFarmers = data || [];
-      
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        console.log('Filtering farmers for branches:', userBranchIds);
-        
-        if (userBranchIds.length > 0) {
-          filteredFarmers = (data || []).filter(farmer => 
-            !farmer.branch_id || userBranchIds.includes(farmer.branch_id)
-          );
-        } else {
-          // If user has no branches assigned, show only farmers with no branch
-          filteredFarmers = (data || []).filter(farmer => !farmer.branch_id);
-        }
-      }
+      const formattedFarmers = data?.map(farmer => ({
+        id: farmer.id,
+        name: farmer.name,
+        email: farmer.email,
+        phone: farmer.phone,
+        password: farmer.password,
+        address: farmer.address,
+        state: farmer.state,
+        district: farmer.district,
+        village: farmer.village,
+        bank_name: farmer.bank_name,
+        account_number: farmer.account_number,
+        ifsc_code: farmer.ifsc_code,
+        profile_photo: farmer.profile_photo,
+        date_joined: farmer.date_joined,
+        branch_id: farmer.branch_id,
+        products: [],
+        transactions: []
+      })) || [];
 
-      console.log('Filtered farmers after branch restriction:', filteredFarmers.length);
+      // Apply branch filtering
+      const filteredFarmers = getBranchRestrictedData(
+        formattedFarmers, 
+        currentUser?.role || '', 
+        currentUser?.branch_id || null
+      );
+
+      console.log('Filtered farmers after branch restriction:', filteredFarmers.length, 'items');
       setFarmers(filteredFarmers);
     } catch (error) {
       console.error('Error in fetchFarmers:', error);
@@ -83,39 +94,32 @@ export const useFarmers = () => {
     }
   };
 
-  const addFarmer = async (farmerData: Omit<Farmer, 'id' | 'date_joined'>) => {
+  const addFarmer = async (farmerData: Omit<Farmer, 'id' | 'date_joined' | 'products' | 'transactions'>) => {
     try {
-      console.log('Adding farmer:', farmerData);
-
-      // Auto-assign branch for non-admin users
+      // Auto-assign current user's branch if not admin
       let branchId = farmerData.branch_id;
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        if (userBranchIds.length > 0) {
-          branchId = userBranchIds[0]; // Use first assigned branch
-          console.log('Auto-assigning branch to farmer:', branchId);
-        }
+      if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+        branchId = currentUser.branch_id;
+        console.log('Auto-assigning branch to farmer:', branchId);
       }
-
-      const insertData = {
-        name: farmerData.name,
-        email: farmerData.email,
-        phone: farmerData.phone,
-        password: farmerData.password,
-        address: farmerData.address || null,
-        state: farmerData.state || null,
-        district: farmerData.district || null,
-        village: farmerData.village || null,
-        bank_name: farmerData.bank_name || null,
-        account_number: farmerData.account_number || null,
-        ifsc_code: farmerData.ifsc_code || null,
-        profile_photo: farmerData.profile_photo || null,
-        branch_id: branchId || null
-      };
 
       const { data, error } = await supabase
         .from('farmers')
-        .insert([insertData])
+        .insert([{
+          name: farmerData.name,
+          email: farmerData.email,
+          phone: farmerData.phone,
+          password: farmerData.password,
+          address: farmerData.address,
+          state: farmerData.state,
+          district: farmerData.district,
+          village: farmerData.village,
+          bank_name: farmerData.bank_name,
+          account_number: farmerData.account_number,
+          ifsc_code: farmerData.ifsc_code,
+          profile_photo: farmerData.profile_photo,
+          branch_id: branchId
+        }])
         .select()
         .single();
 
@@ -123,17 +127,16 @@ export const useFarmers = () => {
         console.error('Error adding farmer:', error);
         toast({
           title: "Error",
-          description: `Failed to add farmer: ${error.message}`,
+          description: "Failed to add farmer",
           variant: "destructive"
         });
         return { success: false, error };
       }
 
-      console.log('Farmer added successfully:', data);
       await fetchFarmers();
       toast({
         title: "Success",
-        description: "Farmer has been added successfully"
+        description: `${farmerData.name} was successfully added`
       });
       
       return { success: true, data };
@@ -150,26 +153,23 @@ export const useFarmers = () => {
 
   const updateFarmer = async (id: string, farmerData: Partial<Farmer>) => {
     try {
-      console.log('Updating farmer:', id, farmerData);
-
-      const updateData: any = {};
-      if (farmerData.name !== undefined) updateData.name = farmerData.name;
-      if (farmerData.email !== undefined) updateData.email = farmerData.email;
-      if (farmerData.phone !== undefined) updateData.phone = farmerData.phone;
-      if (farmerData.password !== undefined) updateData.password = farmerData.password;
-      if (farmerData.address !== undefined) updateData.address = farmerData.address;
-      if (farmerData.state !== undefined) updateData.state = farmerData.state;
-      if (farmerData.district !== undefined) updateData.district = farmerData.district;
-      if (farmerData.village !== undefined) updateData.village = farmerData.village;
-      if (farmerData.bank_name !== undefined) updateData.bank_name = farmerData.bank_name;
-      if (farmerData.account_number !== undefined) updateData.account_number = farmerData.account_number;
-      if (farmerData.ifsc_code !== undefined) updateData.ifsc_code = farmerData.ifsc_code;
-      if (farmerData.profile_photo !== undefined) updateData.profile_photo = farmerData.profile_photo;
-      if (farmerData.branch_id !== undefined) updateData.branch_id = farmerData.branch_id;
-
       const { data, error } = await supabase
         .from('farmers')
-        .update(updateData)
+        .update({
+          name: farmerData.name,
+          email: farmerData.email,
+          phone: farmerData.phone,
+          password: farmerData.password,
+          address: farmerData.address,
+          state: farmerData.state,
+          district: farmerData.district,
+          village: farmerData.village,
+          bank_name: farmerData.bank_name,
+          account_number: farmerData.account_number,
+          ifsc_code: farmerData.ifsc_code,
+          profile_photo: farmerData.profile_photo,
+          branch_id: farmerData.branch_id
+        })
         .eq('id', id)
         .select()
         .single();
@@ -178,7 +178,7 @@ export const useFarmers = () => {
         console.error('Error updating farmer:', error);
         toast({
           title: "Error",
-          description: `Failed to update farmer: ${error.message}`,
+          description: "Failed to update farmer",
           variant: "destructive"
         });
         return { success: false, error };
@@ -187,7 +187,7 @@ export const useFarmers = () => {
       await fetchFarmers();
       toast({
         title: "Success",
-        description: "Farmer has been updated successfully"
+        description: `${farmerData.name}'s information was successfully updated`
       });
       
       return { success: true, data };
@@ -213,7 +213,7 @@ export const useFarmers = () => {
         console.error('Error deleting farmer:', error);
         toast({
           title: "Error",
-          description: `Failed to delete farmer: ${error.message}`,
+          description: "Failed to delete farmer",
           variant: "destructive"
         });
         return { success: false, error };
@@ -239,14 +239,151 @@ export const useFarmers = () => {
 
   useEffect(() => {
     fetchFarmers();
-  }, [currentUser?.branchIds, currentUser?.branch_id]);
+  }, [currentUser?.branch_id]); // Re-fetch when user's branch changes
 
   return {
     farmers,
     loading,
     fetchFarmers,
-    addFarmer,
-    updateFarmer,
-    deleteFarmer
+    addFarmer: async (farmerData: Omit<Farmer, 'id' | 'date_joined' | 'products' | 'transactions'>) => {
+      try {
+        // Auto-assign current user's branch if not admin
+        let branchId = farmerData.branch_id;
+        if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.branch_id) {
+          branchId = currentUser.branch_id;
+          console.log('Auto-assigning branch to farmer:', branchId);
+        }
+
+        const { data, error } = await supabase
+          .from('farmers')
+          .insert([{
+            name: farmerData.name,
+            email: farmerData.email,
+            phone: farmerData.phone,
+            password: farmerData.password,
+            address: farmerData.address,
+            state: farmerData.state,
+            district: farmerData.district,
+            village: farmerData.village,
+            bank_name: farmerData.bank_name,
+            account_number: farmerData.account_number,
+            ifsc_code: farmerData.ifsc_code,
+            profile_photo: farmerData.profile_photo,
+            branch_id: branchId
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error adding farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to add farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: `${farmerData.name} was successfully added`
+        });
+        
+        return { success: true, data };
+      } catch (error) {
+        console.error('Error in addFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    },
+    updateFarmer: async (id: string, farmerData: Partial<Farmer>) => {
+      try {
+        const { data, error } = await supabase
+          .from('farmers')
+          .update({
+            name: farmerData.name,
+            email: farmerData.email,
+            phone: farmerData.phone,
+            password: farmerData.password,
+            address: farmerData.address,
+            state: farmerData.state,
+            district: farmerData.district,
+            village: farmerData.village,
+            bank_name: farmerData.bank_name,
+            account_number: farmerData.account_number,
+            ifsc_code: farmerData.ifsc_code,
+            profile_photo: farmerData.profile_photo,
+            branch_id: farmerData.branch_id
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to update farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: `${farmerData.name}'s information was successfully updated`
+        });
+        
+        return { success: true, data };
+      } catch (error) {
+        console.error('Error in updateFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    },
+    deleteFarmer: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('farmers')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting farmer:', error);
+          toast({
+            title: "Error",
+            description: "Failed to delete farmer",
+            variant: "destructive"
+          });
+          return { success: false, error };
+        }
+
+        await fetchFarmers();
+        toast({
+          title: "Success",
+          description: "Farmer has been deleted successfully"
+        });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error in deleteFarmer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete farmer",
+          variant: "destructive"
+        });
+        return { success: false, error };
+      }
+    }
   };
 };

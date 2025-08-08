@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 
 export interface Ticket {
   id: string;
@@ -33,7 +32,6 @@ export const useTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
 
   const fetchTickets = async () => {
     try {
@@ -53,27 +51,8 @@ export const useTickets = () => {
         return;
       }
 
-      console.log('Fetched tickets:', data?.length);
-
-      // Apply branch filtering for non-admin users
-      let filteredTickets = data || [];
-      
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        console.log('Filtering tickets for branches:', userBranchIds);
-        
-        if (userBranchIds.length > 0) {
-          filteredTickets = (data || []).filter(ticket => 
-            !ticket.branch_id || userBranchIds.includes(ticket.branch_id)
-          );
-        } else {
-          // If user has no branches assigned, show only tickets with no branch
-          filteredTickets = (data || []).filter(ticket => !ticket.branch_id);
-        }
-      }
-
-      console.log('Filtered tickets after branch restriction:', filteredTickets.length);
-      setTickets(filteredTickets);
+      console.log('Fetched tickets:', data);
+      setTickets(data || []);
     } catch (error) {
       console.error('Error in fetchTickets:', error);
       toast({
@@ -101,15 +80,7 @@ export const useTickets = () => {
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
-      // Auto-assign branch for non-admin users
-      let branchId = ticketData.branch_id;
-      if (currentUser?.role?.toLowerCase() !== 'admin') {
-        const userBranchIds = currentUser?.branchIds || (currentUser?.branch_id ? [currentUser.branch_id] : []);
-        if (userBranchIds.length > 0) {
-          branchId = userBranchIds[0]; // Use first assigned branch
-        }
-      }
-
+      // Clean the data
       const insertData = {
         user_id: String(ticketData.user_id).trim(),
         user_name: String(ticketData.user_name).trim(),
@@ -120,7 +91,7 @@ export const useTickets = () => {
         assigned_to: ticketData.assigned_to ? String(ticketData.assigned_to).trim() : null,
         resolution: ticketData.resolution ? String(ticketData.resolution).trim() : null,
         attachment_url: ticketData.attachment_url ? String(ticketData.attachment_url).trim() : null,
-        branch_id: branchId || null
+        branch_id: ticketData.branch_id || null
       };
 
       console.log('Clean insert data:', insertData);
@@ -138,6 +109,7 @@ export const useTickets = () => {
 
       console.log('Ticket added successfully:', data);
       
+      // Refresh tickets list
       await fetchTickets();
       
       return { success: true, data };
@@ -273,7 +245,7 @@ export const useTickets = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, [currentUser?.branchIds, currentUser?.branch_id]);
+  }, []);
 
   return {
     tickets,
