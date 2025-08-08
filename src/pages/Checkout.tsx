@@ -27,7 +27,7 @@ interface Customer {
 }
 
 const Checkout = () => {
-  const { cart, clearCart, getCartTotal } = useCart();
+  const { items, clearCart, getTotalPrice } = useCart();
   const { customers, addCustomer } = useCustomers();
   const { addTransaction } = useTransactions();
   const { currentUser } = useAuth();
@@ -45,10 +45,10 @@ const Checkout = () => {
   const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
-    if (cart.length === 0) {
+    if (items.length === 0) {
       navigate('/pos');
     }
-  }, [cart, navigate]);
+  }, [items, navigate]);
 
   const verifyCustomer = async () => {
     if (!customerMobile || customerMobile.length < 10) {
@@ -157,15 +157,15 @@ const Checkout = () => {
       const transactionData = {
         customer_name: customer.name,
         customer_mobile: customer.mobile,
-        items: cart.map(item => ({
+        items: items.map(item => ({
           id: item.id,
           name: item.name,
-          price: item.price_per_unit,
+          price: item.pricePerUnit,
           quantity: item.quantity
         })),
-        subtotal: getCartTotal(),
+        subtotal: getTotalPrice(),
         discount: 0,
-        total: getCartTotal(),
+        total: getTotalPrice(),
         coupon_used: null,
         payment_method: paymentMethod,
         status: 'completed'
@@ -199,14 +199,24 @@ const Checkout = () => {
     }
   };
 
-  if (cart.length === 0) {
+  const handleChangePhoto = () => {
+    // Implement photo change logic
+    console.log('Change photo clicked');
+  };
+
+  const handleChangePassword = () => {
+    // Implement password change logic
+    console.log('Change password clicked');
+  };
+
+  if (items.length === 0) {
     return null;
   }
 
   return (
     <div className="flex-1 flex flex-col">
-      <FixedHeader />
-      <div className="flex-1 p-6 pt-20"> {/* Added pt-20 for header space */}
+      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
+      <div className="flex-1 p-6 pt-20">
         <div className="flex items-center gap-3 mb-6">
           <SidebarTrigger className="md:hidden">
             <Menu className="h-5 w-5" />
@@ -325,8 +335,8 @@ const Checkout = () => {
               </CardHeader>
               <CardContent>
                 <PaymentMethods
-                  selectedMethod={paymentMethod}
-                  onMethodChange={setPaymentMethod}
+                  total={getTotalPrice()}
+                  onPaymentMethodSelect={(method) => setPaymentMethod(method)}
                 />
               </CardContent>
             </Card>
@@ -342,22 +352,22 @@ const Checkout = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cart.map((item) => (
+                {items.map((item) => (
                   <div key={item.id} className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        ₹{item.price_per_unit} × {item.quantity}
+                        ₹{item.pricePerUnit} × {item.quantity}
                       </p>
                     </div>
-                    <p className="font-medium">₹{(item.price_per_unit * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">₹{(item.pricePerUnit * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total</span>
-                    <span>₹{getCartTotal().toFixed(2)}</span>
+                    <span>₹{getTotalPrice().toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -367,7 +377,7 @@ const Checkout = () => {
                   className="w-full bg-green-600 hover:bg-green-700"
                   size="lg"
                 >
-                  {isProcessing ? 'Processing...' : `Pay ₹${getCartTotal().toFixed(2)}`}
+                  {isProcessing ? 'Processing...' : `Pay ₹${getTotalPrice().toFixed(2)}`}
                 </Button>
               </CardContent>
             </Card>
@@ -376,15 +386,17 @@ const Checkout = () => {
 
         {/* Receipt Dialog */}
         <TransactionReceipt
-          isOpen={showReceipt}
-          onClose={() => {
-            setShowReceipt(false);
-            navigate('/pos');
+          open={showReceipt}
+          onOpenChange={(open) => {
+            setShowReceipt(open);
+            if (!open) {
+              navigate('/pos');
+            }
           }}
           transactionId={transactionId}
           customer={customer}
-          items={cart}
-          total={getCartTotal()}
+          items={items}
+          total={getTotalPrice()}
           paymentMethod={paymentMethod}
         />
       </div>

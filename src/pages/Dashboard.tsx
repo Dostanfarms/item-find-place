@@ -24,10 +24,18 @@ const Dashboard = () => {
     { name: 'Dairy', value: 20, color: '#ef4444' }
   ];
 
+  const handleChangePhoto = () => {
+    console.log('Change photo clicked');
+  };
+
+  const handleChangePassword = () => {
+    console.log('Change password clicked');
+  };
+
   return (
     <div className="flex-1 flex flex-col">
-      <FixedHeader />
-      <div className="flex-1 p-6 pt-20"> {/* Added pt-20 for header space */}
+      <FixedHeader onChangePhoto={handleChangePhoto} onChangePassword={handleChangePassword} />
+      <div className="flex-1 p-6 pt-20">
         <div className="flex items-center gap-3 mb-6">
           <SidebarTrigger className="md:hidden">
             <Menu className="h-5 w-5" />
