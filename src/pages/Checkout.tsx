@@ -357,8 +357,8 @@ const Checkout = () => {
         </div>
 
         <TransactionReceipt
-          isOpen={showReceipt}
-          onClose={() => {
+          open={showReceipt}
+          onOpenChange={() => {
             setShowReceipt(false);
             navigate('/sales');
           }}

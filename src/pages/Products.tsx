@@ -319,7 +319,7 @@ const Products = () => {
 
         {showAddDialog && (
           <ProductForm
-            open={showAddDialog}
+            isOpen={showAddDialog}
             onClose={() => setShowAddDialog(false)}
             onSubmit={handleAddProduct}
           />
@@ -327,7 +327,7 @@ const Products = () => {
 
         {showEditDialog && selectedProduct && (
           <ProductForm
-            open={showEditDialog}
+            isOpen={showEditDialog}
             onClose={() => {
               setShowEditDialog(false);
               setSelectedProduct(null);

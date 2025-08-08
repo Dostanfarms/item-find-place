@@ -252,7 +252,7 @@ const Farmers = () => {
 
         {showDialog && (
           <FarmerForm
-            isOpen={showDialog}
+            open={showDialog}
             onClose={handleCancel}
             farmer={editingFarmer}
             onSubmit={handleSubmit}
