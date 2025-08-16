@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +22,7 @@ interface User {
   branch_id: string | null;
   branchIds?: string[]; // For multi-branch support
   permissions?: any[];
+  profile_photo?: string; // Add this property
 }
 
 interface AuthProviderProps {
