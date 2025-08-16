@@ -12,9 +12,12 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <div className="text-2xl">🌱</div>
-            <h1 className="text-2xl font-bold text-green-600">DostanFarms</h1>
+          <div className="flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/67ff7785-0e07-470a-a478-3e19a67e7253.png" 
+              alt="Dostan Mart" 
+              className="h-8 w-auto"
+            />
           </div>
           
           <Button

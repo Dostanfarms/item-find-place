@@ -35,9 +35,12 @@ const FixedHeader: React.FC<FixedHeaderProps> = ({
   return (
     <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2">
-          <div className="text-2xl">🌱</div>
-          <h1 className="text-xl font-bold text-green-600">DostanFarms</h1>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/lovable-uploads/67ff7785-0e07-470a-a478-3e19a67e7253.png" 
+            alt="Dostan Mart" 
+            className="h-10 w-auto"
+          />
         </div>
         
         <div className="flex items-center gap-4">

@@ -7,7 +7,6 @@ import {
   SidebarTrigger,
   useSidebar
 } from '@/components/ui/sidebar';
-import { Package } from 'lucide-react';
 import TopLevelMenu from './TopLevelMenu';
 import ManageMenu from './ManageMenu';
 import MastersMenu from './MastersMenu';
@@ -20,9 +19,13 @@ const SidebarComponent = () => {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-4 py-2">
           <SidebarTrigger className="-ml-1" />
-          <Package className="h-6 w-6 text-primary" />
+          <img 
+            src="/lovable-uploads/67ff7785-0e07-470a-a478-3e19a67e7253.png" 
+            alt="Dostan Mart" 
+            className="h-6 w-auto"
+          />
           {open && (
-            <h2 className="text-lg font-semibold">Dostan Mart</h2>
+            <h2 className="text-lg font-semibold sr-only">Dostan Mart</h2>
           )}
         </div>
       </SidebarHeader>
