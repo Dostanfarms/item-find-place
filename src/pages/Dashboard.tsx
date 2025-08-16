@@ -32,12 +32,10 @@ const Dashboard = () => {
   };
 
   const handleChangePhoto = () => {
-    // TODO: Implement photo change functionality
     console.log('Change photo clicked');
   };
 
   const handleChangePassword = () => {
-    // TODO: Implement password change functionality
     console.log('Change password clicked');
   };
 
@@ -56,15 +54,6 @@ const Dashboard = () => {
       
       <div className="pt-16">
         <div className="container mx-auto p-6">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {currentUser?.name}!
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Here's your quick actions dashboard.
-            </p>
-          </div>
-
           {/* Quick Actions Card */}
           <div className="max-w-4xl mx-auto">
             <Card>
