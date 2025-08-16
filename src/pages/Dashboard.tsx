@@ -16,7 +16,7 @@ const Dashboard = () => {
   };
 
   const handleViewOrders = () => {
-    navigate('/orders-management');
+    navigate('/orders');
   };
 
   const handleViewTransactions = () => {
