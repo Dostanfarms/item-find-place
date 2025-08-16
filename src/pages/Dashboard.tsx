@@ -1,12 +1,15 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Package, ShoppingCart, DollarSign, TrendingUp, Calendar, Plus, Receipt, CreditCard, Ticket, TrendingDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import FixedHeader from '@/components/layout/FixedHeader';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   // Mock data - replace with real data from your APIs
   const stats = [
@@ -40,11 +43,37 @@ const Dashboard = () => {
     }
   ];
 
+  const handleNewSale = () => {
+    navigate('/sales');
+  };
+
+  const handleViewOrders = () => {
+    navigate('/orders-management');
+  };
+
+  const handleViewTransactions = () => {
+    navigate('/transactions');
+  };
+
+  const handleViewTickets = () => {
+    navigate('/tickets');
+  };
+
+  const handleTodaySales = () => {
+    navigate('/sales-dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <FixedHeader 
         onChangePhoto={() => {}} 
         onChangePassword={() => {}} 
+        rightContent={
+          <Button onClick={handleNewSale} className="bg-green-600 hover:bg-green-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Sale
+          </Button>
+        }
       />
       <div className="pt-16">
         <div className="container mx-auto p-6">
@@ -123,21 +152,33 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Add Farmer</p>
-                  </button>
-                  <button className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                    <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Add Product</p>
-                  </button>
-                  <button className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                  <button 
+                    onClick={handleViewOrders}
+                    className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  >
                     <ShoppingCart className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium">View Orders</p>
+                    <p className="text-sm font-medium">Orders</p>
                   </button>
-                  <button className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-                    <DollarSign className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Settlements</p>
+                  <button 
+                    onClick={handleViewTransactions}
+                    className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <CreditCard className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Transactions</p>
+                  </button>
+                  <button 
+                    onClick={handleViewTickets}
+                    className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                  >
+                    <Ticket className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Tickets</p>
+                  </button>
+                  <button 
+                    onClick={handleTodaySales}
+                    className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                  >
+                    <TrendingDown className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Today Sales</p>
                   </button>
                 </div>
               </CardContent>
