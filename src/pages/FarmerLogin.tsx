@@ -45,7 +45,7 @@ const FarmerLogin = () => {
     
     if (!farmer) {
       setIsLoading(false);
-      navigate('/access-denied');
+      navigate('/farmers-dashboard');
       return;
     }
     
