@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LogOut, Plus, User, Menu, ShoppingBag, TrendingUp, Power, PowerOff } from 'lucide-react';
+import { LogOut, Plus, User, Menu, ShoppingBag, TrendingUp, Power, PowerOff, Key } from 'lucide-react';
 import { useSellerAuth } from '@/contexts/SellerAuthContext';
 import SellerItemsForm from '@/components/SellerItemsForm';
 import MyMenu from '@/components/MyMenu';
 import { SellerOrderManagement } from '@/components/SellerOrderManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 const SellerDashboard = () => {
   const {
     seller,
@@ -23,6 +24,7 @@ const SellerDashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [isOnline, setIsOnline] = useState(false);
   const [orderCount, setOrderCount] = useState(0);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const {
     toast
   } = useToast();
@@ -129,6 +131,10 @@ const SellerDashboard = () => {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowChangePassword(true)}>
+                  <Key className="mr-2 h-4 w-4" />
+                  <span>Change Password</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
@@ -210,6 +216,17 @@ const SellerDashboard = () => {
       <SellerItemsForm open={showItemsForm} onOpenChange={setShowItemsForm} onSuccess={() => {
       // Optional: Add any refresh logic here
     }} />
+
+      {/* Change Password Modal */}
+      {seller && (
+        <ChangePasswordModal
+          open={showChangePassword}
+          onOpenChange={setShowChangePassword}
+          userType="seller"
+          userId={seller.id}
+          currentPasswordHash={seller.password_hash || ''}
+        />
+      )}
     </div>;
 };
 export default SellerDashboard;

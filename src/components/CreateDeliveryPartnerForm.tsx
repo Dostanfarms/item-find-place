@@ -28,6 +28,7 @@ interface CreateDeliveryPartnerFormProps {
 interface FormData {
   name: string;
   mobile: string;
+  password: string;
   profilePhoto?: FileList;
 }
 
@@ -43,6 +44,7 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
     if (editingPartner) {
       setValue('name', editingPartner.name);
       setValue('mobile', editingPartner.mobile);
+      setValue('password', ''); // Don't populate password for security
     } else {
       reset();
     }
@@ -103,6 +105,14 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
         if (profilePhotoUrl) {
           updateData.profile_photo_url = profilePhotoUrl;
         }
+        // Only update password if provided
+        if (data.password) {
+          const { data: hashedPassword, error: hashError } = await supabase.rpc('hash_password', { 
+            password: data.password 
+          });
+          if (hashError) throw hashError;
+          updateData.password_hash = hashedPassword;
+        }
         
         const result = await supabase
           .from('delivery_partners')
@@ -110,11 +120,18 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
           .eq('id', editingPartner.id);
         error = result.error;
       } else {
+        // Hash password for new delivery partner
+        const { data: hashedPassword, error: hashError } = await supabase.rpc('hash_password', { 
+          password: data.password 
+        });
+        if (hashError) throw hashError;
+        
         const result = await supabase
           .from('delivery_partners')
           .insert({
             name: data.name,
             mobile: data.mobile,
+            password_hash: hashedPassword,
             profile_photo_url: profilePhotoUrl,
           });
         error = result.error;
@@ -180,6 +197,25 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
             />
             {errors.mobile && (
               <p className="text-sm text-destructive">{errors.mobile.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password {editingPartner && "(Leave empty to keep current password)"}</Label>
+            <Input
+              id="password"
+              type="password"
+              {...register("password", { 
+                required: editingPartner ? false : "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters long"
+                }
+              })}
+              placeholder={editingPartner ? "Enter new password (optional)" : "Enter password"}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
             )}
           </div>
 
