@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 interface ChangePasswordFormData {
   currentPassword: string;
@@ -24,6 +24,9 @@ interface ChangePasswordModalProps {
 
 const ChangePasswordModal = ({ open, onOpenChange, userType, userId, currentPasswordHash }: ChangePasswordModalProps) => {
   const [loading, setLoading] = React.useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const { toast } = useToast();
   
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ChangePasswordFormData>();
@@ -107,12 +110,28 @@ const ChangePasswordModal = ({ open, onOpenChange, userType, userId, currentPass
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Current Password</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              {...register("currentPassword", { required: "Current password is required" })}
-              placeholder="Enter current password"
-            />
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrentPassword ? "text" : "password"}
+                {...register("currentPassword", { required: "Current password is required" })}
+                placeholder="Enter current password"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              >
+                {showCurrentPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             {errors.currentPassword && (
               <p className="text-sm text-destructive">{errors.currentPassword.message}</p>
             )}
@@ -120,18 +139,34 @@ const ChangePasswordModal = ({ open, onOpenChange, userType, userId, currentPass
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">New Password</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              {...register("newPassword", { 
-                required: "New password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters long"
-                }
-              })}
-              placeholder="Enter new password"
-            />
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showNewPassword ? "text" : "password"}
+                {...register("newPassword", { 
+                  required: "New password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters long"
+                  }
+                })}
+                placeholder="Enter new password"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+              >
+                {showNewPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             {errors.newPassword && (
               <p className="text-sm text-destructive">{errors.newPassword.message}</p>
             )}
@@ -139,15 +174,31 @@ const ChangePasswordModal = ({ open, onOpenChange, userType, userId, currentPass
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              {...register("confirmPassword", { 
-                required: "Please confirm your new password",
-                validate: value => value === newPassword || "Passwords do not match"
-              })}
-              placeholder="Confirm new password"
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                {...register("confirmPassword", { 
+                  required: "Please confirm your new password",
+                  validate: value => value === newPassword || "Passwords do not match"
+                })}
+                placeholder="Confirm new password"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             {errors.confirmPassword && (
               <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
             )}

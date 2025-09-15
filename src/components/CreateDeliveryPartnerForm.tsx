@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Eye, EyeOff } from "lucide-react";
 
 interface DeliveryPartner {
   id: string;
@@ -35,6 +35,7 @@ interface FormData {
 const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartner }: CreateDeliveryPartnerFormProps) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>();
@@ -202,18 +203,34 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
 
           <div className="space-y-2">
             <Label htmlFor="password">Password {editingPartner && "(Leave empty to keep current password)"}</Label>
-            <Input
-              id="password"
-              type="password"
-              {...register("password", { 
-                required: editingPartner ? false : "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters long"
-                }
-              })}
-              placeholder={editingPartner ? "Enter new password (optional)" : "Enter password"}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                {...register("password", { 
+                  required: editingPartner ? false : "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters long"
+                  }
+                })}
+                placeholder={editingPartner ? "Enter new password (optional)" : "Enter password"}
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password.message}</p>
             )}
