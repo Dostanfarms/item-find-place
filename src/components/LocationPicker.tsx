@@ -3,8 +3,8 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, MapPin } from 'lucide-react';
+import CurrentLocationButton from '@/components/CurrentLocationButton';
 
 interface LocationPickerProps {
   open: boolean;
@@ -30,24 +30,11 @@ const LocationPicker = ({
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   
-  // Get current location when dialog opens
+  // Get current location when dialog opens and when "Use Current Location" is clicked
   useEffect(() => {
-    if (open && navigator.geolocation) {
-      setLocationLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setSelectedLat(latitude);
-          setSelectedLng(longitude);
-          setLocationLoading(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setLocationLoading(false);
-          // Keep default coordinates if geolocation fails
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+    if (open && navigator.geolocation && !mapboxToken) {
+      // Only auto-get location if we're using current location flow
+      // Don't auto-get for "Add New Address" flow
     }
   }, [open]);
   
@@ -127,16 +114,38 @@ const LocationPicker = ({
     onOpenChange(false);
   };
 
+  const handleCurrentLocationClick = (lat: number, lng: number) => {
+    setSelectedLat(lat);
+    setSelectedLng(lng);
+    
+    // Update map and marker if they exist
+    if (map.current && marker.current) {
+      map.current.setCenter([lng, lat]);
+      marker.current.setLngLat([lng, lat]);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Select Seller Location</DialogTitle>
+      <DialogContent className="max-w-md max-h-[90vh] p-0 gap-0">
+        {/* Header */}
+        <DialogHeader className="p-4 pb-0">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => onOpenChange(false)}
+              className="p-0 h-auto"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <DialogTitle className="text-lg font-semibold">Select Location</DialogTitle>
+          </div>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="flex-1 relative">
           {loading && (
-            <div className="flex items-center justify-center py-8">
+            <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                 <p className="text-sm text-muted-foreground">Loading map...</p>
@@ -145,59 +154,49 @@ const LocationPicker = ({
           )}
           
           {!loading && !mapboxToken && (
-            <div className="text-center py-8">
-              <p className="text-sm text-destructive">Failed to load map. Please try again.</p>
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.reload()} 
-                className="mt-2"
-              >
-                Reload
-              </Button>
+            <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+              <div className="text-center">
+                <p className="text-sm text-destructive mb-2">Failed to load map. Please try again.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.reload()}
+                >
+                  Reload
+                </Button>
+              </div>
             </div>
           )}
           
           {!loading && mapboxToken && (
             <>
-              <div className="space-y-2">
-                {locationLoading && (
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span>Getting your current location...</span>
+              <div ref={mapContainer} className="w-full h-96" />
+              
+              {/* Current Location Button */}
+              <CurrentLocationButton
+                onLocationFound={handleCurrentLocationClick}
+                className="absolute bottom-20 left-1/2 transform -translate-x-1/2"
+              />
+              
+              {/* Bottom Sheet with Address */}
+              <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl p-4 shadow-lg">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <MapPin className="h-5 w-5 text-orange-600" />
                   </div>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  📍 Drag the red marker or click on the map to select the seller location
-                  {!locationLoading && (
-                    <span className="block text-xs mt-1">
-                      {navigator.geolocation ? 'Started with your current location' : 'Using default location (Delhi)'}
-                    </span>
-                  )}
-                </p>
-                <div ref={mapContainer} className="w-full h-96 rounded-lg border shadow-sm" />
-              </div>
-              
-              <div className="bg-muted/50 p-3 rounded-lg">
-                <p className="text-sm font-medium mb-2">Selected Coordinates:</p>
-                <p className="text-xs text-muted-foreground">
-                  Lat: {selectedLat.toFixed(6)}, Lng: {selectedLng.toFixed(6)}
-                </p>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-1">Order will be delivered here</p>
+                    <h3 className="font-semibold text-lg">Selected Location</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Coordinates: {selectedLat.toFixed(6)}, {selectedLng.toFixed(6)}
+                    </p>
+                  </div>
+                </div>
+                
                 <Button 
-                  type="button" 
                   onClick={handleConfirm}
-                  className="bg-[#EA4335] hover:bg-[#EA4335]/90 text-white"
+                  className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white text-lg font-medium rounded-lg"
                 >
-                  Confirm & Proceed
+                  Confirm & proceed
                 </Button>
               </div>
             </>

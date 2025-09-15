@@ -285,6 +285,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_addresses: {
+        Row: {
+          apartment_area: string | null
+          created_at: string
+          directions: string | null
+          full_address: string
+          house_number: string
+          id: string
+          is_default: boolean
+          label: string
+          latitude: number
+          longitude: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apartment_area?: string | null
+          created_at?: string
+          directions?: string | null
+          full_address: string
+          house_number: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          latitude: number
+          longitude: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apartment_area?: string | null
+          created_at?: string
+          directions?: string | null
+          full_address?: string
+          house_number?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          latitude?: number
+          longitude?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_otp: {
         Row: {
           created_at: string

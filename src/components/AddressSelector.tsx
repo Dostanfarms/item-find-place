@@ -8,7 +8,9 @@ import {
   Home,
   Building2,
   Briefcase,
-  MoreVertical
+  MoreVertical,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useUserAuth } from '@/contexts/UserAuthContext';
+import LocationPicker from '@/components/LocationPicker';
+import AddressDetailsForm from '@/components/AddressDetailsForm';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SavedAddress {
   id: string;
@@ -40,89 +52,120 @@ const AddressSelector = ({
   onAddressSelect, 
   selectedAddress 
 }: AddressSelectorProps) => {
+  const { user } = useUserAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([
-    {
-      id: '1',
-      label: 'Home New',
-      address: '6-1-103/101, Beside Dr Bhatia Medical Coaching Institute, Pulse Hospital Lane,...',
-      distance: '3 m',
-      isSelected: true
-    },
-    {
-      id: '2',
-      label: 'Hotel',
-      address: '209 Oyo, Oyo Beside Mahankali Bar, Kranti Colony, Telephone Colony, Chen...',
-      distance: '9.5 km'
-    },
-    {
-      id: '3',
-      label: 'Work',
-      address: '3rd Floor, Musheerabad Main Rd, Musheerabad, Zamistanpur, Hyderaba...',
-      distance: '776 m'
-    }
-  ]);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [recentSearches] = useState<SavedAddress[]>([
-    {
-      id: '4',
-      label: 'Abhinav Colony',
-      address: 'Abhinav Colony, Walker Town, Padmarao Nagar, Hyderabad, Telangana 500020, In...'
-    },
-    {
-      id: '5',
-      label: 'Postal Colony',
-      address: 'Nehru Nagar, Postal Colony, Kurnool, Andhra Pradesh 518004, India',
-      distance: '182 km'
+  // Load saved addresses when component opens
+  useEffect(() => {
+    if (open && user) {
+      loadSavedAddresses();
     }
-  ]);
+  }, [open, user]);
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
+  const loadSavedAddresses = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const addresses: SavedAddress[] = data?.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        address: addr.full_address,
+        latitude: parseFloat(addr.latitude.toString()),
+        longitude: parseFloat(addr.longitude.toString()),
+      })) || [];
+
+      setSavedAddresses(addresses);
+    } catch (error) {
+      console.error('Error loading addresses:', error);
       toast({
-        title: "Location Not Supported",
-        description: "Your browser doesn't support location services.",
+        title: "Error",
+        description: "Failed to load saved addresses.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        // Create a current location address object
-        const currentLocationAddress: SavedAddress = {
-          id: 'current',
-          label: 'Current Location',
-          address: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`,
-          latitude,
-          longitude,
-          isSelected: true
-        };
+  const handleUseCurrentLocation = () => {
+    setShowLocationPicker(true);
+  };
 
-        onAddressSelect(currentLocationAddress);
-        onOpenChange(false);
-        setIsGettingLocation(false);
-        
-        toast({
-          title: "Location Selected",
-          description: "Your current location has been set as delivery address.",
-        });
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        setIsGettingLocation(false);
-        toast({
-          title: "Location Error",
-          description: "Could not get your current location. Please try again.",
-          variant: "destructive",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+  const handleAddNewAddress = () => {
+    setShowLocationPicker(true);
+  };
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    // Create a reverse geocoded address (simplified)
+    const address = `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    
+    setSelectedLocation({
+      latitude: lat,
+      longitude: lng,
+      address: address
+    });
+    
+    setShowLocationPicker(false);
+    setShowAddressForm(true);
+  };
+
+  const handleAddressSaved = (address: SavedAddress) => {
+    // Reload addresses to include the new one
+    loadSavedAddresses();
+    
+    // Select the new address
+    onAddressSelect(address);
+    onOpenChange(false);
+  };
+
+  const handleDeleteAddress = async (addressId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_addresses')
+        .delete()
+        .eq('id', addressId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Address Deleted",
+        description: "Address has been removed successfully.",
+      });
+
+      // Reload addresses
+      loadSavedAddresses();
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete address. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getAddressIcon = (label: string) => {
@@ -190,6 +233,7 @@ const AddressSelector = ({
               <Button
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-center gap-2 rounded-xl"
+                onClick={handleAddNewAddress}
               >
                 <div className="p-2 bg-gray-100 rounded-full">
                   <Plus className="h-5 w-5 text-gray-600" />
@@ -218,91 +262,86 @@ const AddressSelector = ({
             <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
               SAVED ADDRESSES
             </h3>
-            <div className="space-y-3">
-              {savedAddresses.map((address) => (
-                <Card
-                  key={address.id}
-                  className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                    selectedAddress?.id === address.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => handleAddressSelect(address)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-muted rounded-full mt-1">
-                        {getAddressIcon(address.label)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{address.label}</span>
-                          {address.isSelected && (
-                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                              SELECTED
-                            </Badge>
-                          )}
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : savedAddresses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No saved addresses yet</p>
+                <p className="text-xs">Add your first address to get started</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {savedAddresses.map((address) => (
+                  <Card
+                    key={address.id}
+                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                      selectedAddress?.id === address.id ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => handleAddressSelect(address)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-muted rounded-full mt-1">
+                          {getAddressIcon(address.label)}
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {address.address}
-                        </p>
-                        {address.distance && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {address.distance}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{address.label}</span>
+                            {selectedAddress?.id === address.id && (
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                SELECTED
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {address.address}
                           </p>
-                        )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="p-0 h-auto">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => handleDeleteAddress(address.id, e)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Address
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <Button variant="ghost" size="sm" className="p-0 h-auto">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* View All Button */}
-          <div className="px-4 pb-4">
-            <Button variant="ghost" className="w-full text-orange-600 hover:text-orange-700">
-              View all ↓
-            </Button>
-          </div>
-
-          {/* Recently Searched */}
-          <div className="px-4 pb-6">
-            <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-              RECENTLY SEARCHED
-            </h3>
-            <div className="space-y-3">
-              {recentSearches.map((address) => (
-                <Card
-                  key={address.id}
-                  className="cursor-pointer transition-colors hover:bg-muted/50"
-                  onClick={() => handleAddressSelect(address)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-muted rounded-full mt-1">
-                        <MapPin className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium mb-1">{address.label}</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {address.address}
-                        </p>
-                        {address.distance && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {address.distance}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
         </div>
       </DialogContent>
+
+      {/* Location Picker Modal */}
+      <LocationPicker
+        open={showLocationPicker}
+        onOpenChange={setShowLocationPicker}
+        onLocationSelect={handleLocationSelect}
+      />
+
+      {/* Address Details Form Modal */}
+      <AddressDetailsForm
+        open={showAddressForm}
+        onOpenChange={setShowAddressForm}
+        onAddressSaved={handleAddressSaved}
+        selectedLocation={selectedLocation}
+      />
     </Dialog>
   );
 };
