@@ -49,6 +49,7 @@ export type Database = {
           is_online: boolean
           mobile: string
           name: string
+          password_hash: string | null
           profile_photo_url: string | null
           updated_at: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           is_online?: boolean
           mobile: string
           name: string
+          password_hash?: string | null
           profile_photo_url?: string | null
           updated_at?: string
         }
@@ -69,6 +71,7 @@ export type Database = {
           is_online?: boolean
           mobile?: string
           name?: string
+          password_hash?: string | null
           profile_photo_url?: string | null
           updated_at?: string
         }
@@ -348,6 +351,14 @@ export type Database = {
       generate_seller_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      hash_password: {
+        Args: { password: string }
+        Returns: string
+      }
+      verify_password: {
+        Args: { hash: string; password: string }
+        Returns: boolean
       }
     }
     Enums: {
