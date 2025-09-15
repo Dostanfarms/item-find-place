@@ -1,179 +1,151 @@
+import { ArrowLeft, Plus, Minus, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { useNavigate } from "react-router-dom";
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Minus, Plus, Trash2, ShoppingCart, Package } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
-import LoginPopup from './LoginPopup';
+interface CartProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-const Cart = () => {
+export const Cart = ({ isOpen, onClose }: CartProps) => {
+  const {
+    cartItems,
+    updateQuantity,
+    removeFromCart,
+    getTotalPrice,
+    cartRestaurantName
+  } = useCart();
   const navigate = useNavigate();
-  const { items, removeFromCart, updateQuantity, totalPrice, isCartOpen, setIsCartOpen } = useCart();
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const handleCheckout = () => {
-    const currentCustomer = localStorage.getItem('currentCustomer');
-    
-    if (!currentCustomer) {
-      // Show login popup if not authenticated
-      setShowLoginPopup(true);
-      return;
-    }
-    
-    // Proceed to checkout if authenticated
-    setIsCartOpen(false);
-    navigate('/customer-payment');
+    onClose();
+    navigate('/checkout');
   };
 
-  const handleLoginSuccess = () => {
-    // After successful login, proceed to checkout
-    setIsCartOpen(false);
-    navigate('/customer-payment');
-  };
+  const itemTotal = getTotalPrice();
+  const deliveryFee = itemTotal >= 499 ? 0 : 19;
+  const platformFee = Math.round(itemTotal * 0.05);
+  const totalAmount = itemTotal + deliveryFee + platformFee;
 
-  // Helper function to get product images
-  const getProductImages = (imageUrl?: string): string[] => {
-    if (!imageUrl) return [];
-    
-    try {
-      const parsed = JSON.parse(imageUrl);
-      return Array.isArray(parsed) ? parsed : [imageUrl];
-    } catch {
-      return [imageUrl];
-    }
-  };
+  if (!isOpen) {
+    return null;
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-background z-[9999] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center p-4 border-b bg-background">
+          <Button variant="ghost" size="sm" onClick={onClose} className="mr-3">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Your Cart</h1>
+        </div>
+
+        {/* Empty Cart Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background">
+          <ShoppingBag className="h-24 w-24 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium text-muted-foreground mb-2">Your cart is empty</p>
+          <p className="text-sm text-muted-foreground mb-6 text-center">Add some delicious items to get started</p>
+          <Button onClick={onClose}>Continue Shopping</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-        <SheetContent side="right" className="w-full p-0">
-          <div className="flex flex-col h-full">
-            <SheetHeader className="p-6 border-b">
-              <SheetTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Your Cart ({items.length} items)
-              </SheetTitle>
-              
-              {/* Checkout button at top */}
-              {items.length > 0 && (
-                <div className="pt-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-lg font-semibold">Total:</span>
-                    <span className="text-xl font-bold text-green-600">
-                      ₹{totalPrice.toFixed(2)}
-                    </span>
+    <div className="fixed inset-0 bg-background z-[9999] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center p-4 border-b bg-background">
+        <Button variant="ghost" size="sm" onClick={onClose} className="mr-3">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-semibold">{cartRestaurantName}</h1>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4">
+          {/* Items count */}
+          <p className="text-sm text-muted-foreground mb-4">
+            {cartItems.length} item{cartItems.length > 1 ? 's' : ''} in your cart
+          </p>
+
+          {/* Proceed to Checkout Button - Below restaurant name */}
+          <Button 
+            onClick={handleCheckout} 
+            className="w-full mb-6 bg-green-600 hover:bg-green-700 text-white" 
+            size="lg"
+          >
+            Proceed to Checkout • ₹{totalAmount}
+          </Button>
+
+          {/* Cart Items */}
+          <div className="space-y-4 mb-6">
+            {cartItems.map(item => (
+              <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  {item.item_photo_url && (
+                    <img 
+                      src={item.item_photo_url} 
+                      alt={item.item_name} 
+                      className="w-12 h-12 rounded-lg object-cover" 
+                    />
+                  )}
+                  <div>
+                    <h4 className="font-medium">{item.item_name}</h4>
+                    <p className="text-sm text-muted-foreground">₹{item.seller_price}</p>
                   </div>
-                  <Button 
-                    onClick={handleCheckout}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Proceed to Checkout
-                  </Button>
                 </div>
-              )}
-            </SheetHeader>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 text-center">
-                  <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500">Your cart is empty</p>
-                  <p className="text-sm text-gray-400">Add some products to get started</p>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border rounded-lg">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="px-3 py-1 text-sm font-medium">{item.quantity}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="font-medium">₹{item.seller_price * item.quantity}</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {items.map((item, index) => {
-                    const images = getProductImages(item.imageUrl);
-                    
-                    return (
-                      <div key={`${item.productId}-${item.size || 'no-size'}-${index}`} className="flex items-center gap-4 p-4 border rounded-lg">
-                        {/* Product Image */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-lg overflow-hidden flex-shrink-0">
-                          {images.length > 0 ? (
-                            <img 
-                              src={images[0]} 
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">
-                              {item.category === 'Vegetables' && '🥬'}
-                              {item.category === 'Fruits' && '🍎'}
-                              {item.category === 'Grains' && '🌾'}
-                              {item.category === 'Dairy' && '🥛'}
-                              {item.category === 'Fashion' && '👕'}
-                              {!['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Fashion'].includes(item.category) && <Package className="h-6 w-6 text-green-600" />}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm truncate">{item.name}</h3>
-                          <p className="text-xs text-gray-500">{item.category}</p>
-                          {item.size && (
-                            <p className="text-xs text-blue-600 font-medium">Size: {item.size}</p>
-                          )}
-                          <p className="text-sm font-semibold text-green-600">
-                            ₹{item.pricePerUnit.toFixed(2)} / {item.unit}
-                          </p>
-                          <p className="text-sm font-bold text-gray-900">
-                            Total: ₹{(item.pricePerUnit * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                        
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            
-                            <Badge variant="secondary" className="min-w-[2rem] text-center">
-                              {item.quantity}
-                            </Badge>
-                            
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            onClick={() => removeFromCart(item.productId!, item.size)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
+            ))}
+          </div>
+
+          {/* Bill Summary */}
+          <div className="border rounded-lg p-4 space-y-2 mb-4">
+            <div className="flex justify-between text-sm">
+              <span>Item Total</span>
+              <span>₹{itemTotal}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Delivery Fee</span>
+              <span>{deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Platform Fee</span>
+              <span>₹{platformFee}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-medium">
+              <span>TO PAY</span>
+              <span>₹{totalAmount}</span>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
-
-      <LoginPopup
-        isOpen={showLoginPopup}
-        onClose={() => setShowLoginPopup(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
-    </>
+        </div>
+      </div>
+    </div>
   );
 };
-
-export default Cart;
