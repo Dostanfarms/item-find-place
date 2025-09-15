@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
-import { Package, MapPin, Phone, CreditCard, AlertCircle, Navigation } from "lucide-react";
+import { formatDistanceToNow, isToday, isThisWeek, isThisMonth } from "date-fns";
+import { Package, MapPin, Phone, CreditCard, AlertCircle, Navigation, Filter, Clock, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PinVerificationModal } from "./PinVerificationModal";
 import { DeliveryPinVerificationModal } from "./DeliveryPinVerificationModal";
@@ -34,6 +35,7 @@ interface Order {
   pickup_at: string;
   going_for_pickup_at: string;
   going_for_delivery_at: string;
+  delivered_at: string;
 }
 
 interface DeliveryPartnerOrdersProps {
@@ -48,7 +50,22 @@ const DeliveryPartnerOrders = ({ partnerId }: DeliveryPartnerOrdersProps) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [expectedPin, setExpectedPin] = useState("");
   const [expectedDeliveryPin, setExpectedDeliveryPin] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
   const { toast } = useToast();
+
+  const statusOptions = [
+    { value: "all", label: "All Orders", icon: Package },
+    { value: "pending", label: "Pending Orders", icon: Clock },
+    { value: "delivered", label: "Delivered Orders", icon: CheckCircle }
+  ];
+
+  const dateOptions = [
+    { value: "all", label: "All Time" },
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" }
+  ];
 
   const fetchAssignedOrders = async () => {
     try {
@@ -288,20 +305,151 @@ const DeliveryPartnerOrders = ({ partnerId }: DeliveryPartnerOrdersProps) => {
     );
   }
 
-  if (orders.length === 0) {
+  const filteredOrders = orders.filter(order => {
+    // Status filtering
+    if (statusFilter === "pending") {
+      return order.status !== "delivered";
+    } else if (statusFilter === "delivered") {
+      return order.status === "delivered";
+    }
+    
+    // If "all" is selected, don't filter by status
+    return true;
+  }).filter(order => {
+    // Date filtering for delivered orders
+    if (statusFilter === "delivered" && dateFilter !== "all") {
+      const orderDate = new Date(order.delivered_at || order.created_at);
+      switch (dateFilter) {
+        case "today":
+          return isToday(orderDate);
+        case "week":
+          return isThisWeek(orderDate);
+        case "month":
+          return isThisMonth(orderDate);
+        default:
+          return true;
+      }
+    }
+    return true;
+  });
+
+  if (filteredOrders.length === 0) {
     return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No orders assigned yet</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {/* Status Filter Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {statusOptions.map(status => {
+            const Icon = status.icon;
+            const count = status.value === "all" ? orders.length : 
+              status.value === "pending" ? orders.filter(o => o.status !== "delivered").length :
+              orders.filter(o => o.status === "delivered").length;
+            
+            return (
+              <Card 
+                key={status.value}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''
+                }`}
+                onClick={() => setStatusFilter(status.value)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">{status.label}</p>
+                      <p className="text-xl font-bold">{count}</p>
+                    </div>
+                    <Icon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Date Filter for Delivered Orders */}
+        {statusFilter === "delivered" && (
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent>
+                {dateOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        <Card>
+          <CardContent className="text-center py-8">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              No {statusFilter === "all" ? "" : statusFilter} orders found
+              {statusFilter === "delivered" && dateFilter !== "all" ? ` for ${dateFilter}` : ""}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {orders.map((order) => (
+      {/* Status Filter Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {statusOptions.map(status => {
+          const Icon = status.icon;
+          const count = status.value === "all" ? orders.length : 
+            status.value === "pending" ? orders.filter(o => o.status !== "delivered").length :
+            orders.filter(o => o.status === "delivered").length;
+          
+          return (
+            <Card 
+              key={status.value}
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''
+              }`}
+              onClick={() => setStatusFilter(status.value)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">{status.label}</p>
+                    <p className="text-xl font-bold">{count}</p>
+                  </div>
+                  <Icon className="h-6 w-6 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Date Filter for Delivered Orders */}
+      {statusFilter === "delivered" && (
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              {dateOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      
+      {filteredOrders.map((order) => (
         <Card key={order.id} className="border-l-4 border-l-primary">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">

@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useSellerAuth } from "@/contexts/SellerAuthContext";
-import { formatDistanceToNow } from "date-fns";
-import { Package, Clock, CheckCircle, Truck, AlertCircle, User, MapPin, Eye } from "lucide-react";
+import { formatDistanceToNow, isToday, isThisWeek, isThisMonth } from "date-fns";
+import { Package, Clock, CheckCircle, Truck, AlertCircle, User, MapPin, Eye, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Order {
@@ -40,7 +41,15 @@ export const SellerOrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("pending");
+  const [dateFilter, setDateFilter] = useState("all");
   const { seller } = useSellerAuth();
+
+  const dateOptions = [
+    { value: "all", label: "All Time" },
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" }
+  ];
 
   const statusOptions = [
     {
@@ -252,6 +261,22 @@ export const SellerOrderManagement = () => {
       return order.status === "delivered" || sellerStatus === "delivered";
     }
     return sellerStatus === selectedStatus;
+  }).filter(order => {
+    // Date filtering for delivered orders
+    if (selectedStatus === "delivered" && dateFilter !== "all") {
+      const orderDate = new Date(order.delivered_at || order.created_at);
+      switch (dateFilter) {
+        case "today":
+          return isToday(orderDate);
+        case "week":
+          return isThisWeek(orderDate);
+        case "month":
+          return isThisMonth(orderDate);
+        default:
+          return true;
+      }
+    }
+    return true;
   });
 
   return (
@@ -295,6 +320,25 @@ export const SellerOrderManagement = () => {
           );
         })}
       </div>
+
+      {/* Date Filter for Delivered Orders */}
+      {selectedStatus === "delivered" && (
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              {dateOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {filteredOrders.length === 0 ? (
         <Card>
