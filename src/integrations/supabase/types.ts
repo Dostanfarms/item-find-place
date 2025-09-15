@@ -49,7 +49,7 @@ export type Database = {
           is_online: boolean
           mobile: string
           name: string
-          password_hash: number | null
+          password_hash: string | null
           profile_photo_url: string | null
           updated_at: string
         }
@@ -60,7 +60,7 @@ export type Database = {
           is_online?: boolean
           mobile: string
           name: string
-          password_hash?: number | null
+          password_hash?: string | null
           profile_photo_url?: string | null
           updated_at?: string
         }
@@ -71,7 +71,7 @@ export type Database = {
           is_online?: boolean
           mobile?: string
           name?: string
-          password_hash?: number | null
+          password_hash?: string | null
           profile_photo_url?: string | null
           updated_at?: string
         }

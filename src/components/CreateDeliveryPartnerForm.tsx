@@ -132,7 +132,7 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
           .insert({
             name: data.name,
             mobile: data.mobile,
-            password_hash: hashedPassword,
+            password_hash: hashedPassword as any,
             profile_photo_url: profilePhotoUrl,
           });
         error = result.error;

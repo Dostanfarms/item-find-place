@@ -53,7 +53,7 @@ const DeliveryPartnerLogin = () => {
       // Verify password
       const { data: isValidPassword, error: verifyError } = await supabase.rpc('verify_password', {
         password: data.password,
-        hash: partner.password_hash
+        hash: partner.password_hash as any
       });
 
       if (verifyError || !isValidPassword) {
