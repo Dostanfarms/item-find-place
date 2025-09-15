@@ -135,6 +135,12 @@ export const SellerOrderManagement = () => {
         description: `Order has been ${newStatus.replace('_', ' ')}`,
       });
 
+      // Close the order details dialog after accepting or rejecting
+      if (newStatus === 'accepted' || newStatus === 'rejected') {
+        setShowOrderDetails(false);
+        setSelectedOrder(null);
+      }
+
       fetchSellerOrders();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -242,7 +248,8 @@ export const SellerOrderManagement = () => {
   const filteredOrders = selectedStatus === "All" ? orders : orders.filter(order => {
     const sellerStatus = (order as any).seller_status || 'pending';
     if (selectedStatus === "delivered") {
-      return order.status === "delivered";
+      // Check both main status and seller_status for delivered orders
+      return order.status === "delivered" || sellerStatus === "delivered";
     }
     return sellerStatus === selectedStatus;
   });
@@ -262,7 +269,7 @@ export const SellerOrderManagement = () => {
           const Icon = status.icon;
           const count = status.value === "All" ? orders.length : (() => {
             if (status.value === "delivered") {
-              return orders.filter(order => order.status === "delivered").length;
+              return orders.filter(order => order.status === "delivered" || (order as any).seller_status === "delivered").length;
             }
             return orders.filter(order => {
               const sellerStatus = (order as any).seller_status || 'pending';
