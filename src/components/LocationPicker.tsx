@@ -32,9 +32,20 @@ const LocationPicker = ({
   
   // Get current location when dialog opens and when "Use Current Location" is clicked
   useEffect(() => {
-    if (open && navigator.geolocation && !mapboxToken) {
-      // Only auto-get location if we're using current location flow
-      // Don't auto-get for "Add New Address" flow
+    if (open && navigator.geolocation) {
+      // Auto-get current location when dialog opens
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setSelectedLat(latitude);
+          setSelectedLng(longitude);
+        },
+        (error) => {
+          console.error('Error getting current location:', error);
+          // Fallback to default location (Delhi) if geolocation fails
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
     }
   }, [open]);
   
@@ -120,7 +131,11 @@ const LocationPicker = ({
     
     // Update map and marker if they exist
     if (map.current && marker.current) {
-      map.current.setCenter([lng, lat]);
+      map.current.flyTo({
+        center: [lng, lat],
+        zoom: 16,
+        essential: true
+      });
       marker.current.setLngLat([lng, lat]);
     }
   };

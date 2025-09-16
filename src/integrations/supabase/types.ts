@@ -297,6 +297,7 @@ export type Database = {
           label: string
           latitude: number
           longitude: number
+          mobile: string | null
           updated_at: string
           user_id: string
         }
@@ -311,6 +312,7 @@ export type Database = {
           label?: string
           latitude: number
           longitude: number
+          mobile?: string | null
           updated_at?: string
           user_id: string
         }
@@ -325,6 +327,7 @@ export type Database = {
           label?: string
           latitude?: number
           longitude?: number
+          mobile?: string | null
           updated_at?: string
           user_id?: string
         }

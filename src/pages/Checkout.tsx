@@ -32,12 +32,14 @@ export const Checkout = () => {
     address: string;
     latitude?: number;
     longitude?: number;
+    mobile?: string;
   }>({
     id: 'default',
     label: 'Default',
     address: '1, Welcome, Waltair Station Approach Road',
     latitude: 17.7172,
-    longitude: 83.3150
+    longitude: 83.3150,
+    mobile: user?.mobile || ''
   });
   const itemTotal = getTotalPrice();
   const deliveryFee = itemTotal >= 499 ? 0 : 19;
@@ -111,6 +113,7 @@ export const Checkout = () => {
         delivery_address: selectedAddress.address,
         delivery_latitude: selectedAddress.latitude || userLocation?.lat,
         delivery_longitude: selectedAddress.longitude || userLocation?.lng,
+        delivery_mobile: selectedAddress.mobile || user?.mobile || '',
         instructions: instructions,
         payment_method: selectedPayment,
         status: 'pending'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Mic, Home, Briefcase, Users, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,9 +30,17 @@ const AddressDetailsForm = ({
   const [houseNumber, setHouseNumber] = useState('');
   const [apartmentArea, setApartmentArea] = useState('');
   const [directions, setDirections] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [selectedLabel, setSelectedLabel] = useState('Home');
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Load user's mobile number on component mount
+  useEffect(() => {
+    if (user?.mobile) {
+      setMobileNumber(user.mobile);
+    }
+  }, [user]);
 
   const labelOptions = [
     { value: 'Home', icon: Home, label: 'Home' },
@@ -91,6 +99,7 @@ const AddressDetailsForm = ({
           house_number: houseNumber,
           apartment_area: apartmentArea || null,
           directions: directions || null,
+          mobile: mobileNumber,
           full_address: fullAddress,
           latitude: selectedLocation.latitude,
           longitude: selectedLocation.longitude,
@@ -115,6 +124,7 @@ const AddressDetailsForm = ({
       setHouseNumber('');
       setApartmentArea('');
       setDirections('');
+      setMobileNumber(user?.mobile || '');
       setSelectedLabel('Home');
 
       toast({
@@ -196,6 +206,21 @@ const AddressDetailsForm = ({
               />
             </div>
 
+            {/* Mobile Number */}
+            <div className="space-y-2">
+              <Label htmlFor="mobile" className="text-sm font-medium text-muted-foreground uppercase">
+                MOBILE NUMBER
+              </Label>
+              <Input
+                id="mobile"
+                type="tel"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="Enter mobile number"
+                className="h-12"
+              />
+            </div>
+
             {/* Directions */}
             <div className="space-y-2">
               <Label htmlFor="directions" className="text-sm font-medium text-muted-foreground uppercase">
@@ -261,7 +286,7 @@ const AddressDetailsForm = ({
         <div className="p-4 border-t">
           <Button
             onClick={handleSaveAddress}
-            disabled={isSaving || !houseNumber.trim()}
+            disabled={isSaving || !houseNumber.trim() || !mobileNumber.trim()}
             className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium uppercase tracking-wide"
           >
             {isSaving ? 'Saving...' : `ENTER HOUSE / FLAT / BLOCK NO.`}
