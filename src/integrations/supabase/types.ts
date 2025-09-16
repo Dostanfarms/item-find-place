@@ -131,6 +131,7 @@ export type Database = {
           delivery_fee: number
           delivery_latitude: number | null
           delivery_longitude: number | null
+          delivery_mobile: string | null
           delivery_pin: string | null
           going_for_delivery_at: string | null
           going_for_pickup_at: string | null
@@ -162,6 +163,7 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_mobile?: string | null
           delivery_pin?: string | null
           going_for_delivery_at?: string | null
           going_for_pickup_at?: string | null
@@ -193,6 +195,7 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_mobile?: string | null
           delivery_pin?: string | null
           going_for_delivery_at?: string | null
           going_for_pickup_at?: string | null

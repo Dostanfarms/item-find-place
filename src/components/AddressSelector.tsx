@@ -37,6 +37,7 @@ interface SavedAddress {
   isSelected?: boolean;
   latitude?: number;
   longitude?: number;
+  mobile?: string;
 }
 
 interface AddressSelectorProps {
@@ -91,6 +92,7 @@ const AddressSelector = ({
         address: addr.full_address,
         latitude: parseFloat(addr.latitude.toString()),
         longitude: parseFloat(addr.longitude.toString()),
+        mobile: addr.mobile,
       })) || [];
 
       setSavedAddresses(addresses);

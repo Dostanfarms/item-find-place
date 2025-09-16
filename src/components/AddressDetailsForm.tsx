@@ -115,6 +115,7 @@ const AddressDetailsForm = ({
         address: data.full_address,
         latitude: data.latitude,
         longitude: data.longitude,
+        mobile: data.mobile,
       };
 
       onAddressSaved(savedAddress);
