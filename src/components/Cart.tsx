@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/contexts/UserAuthContext";
-import { LoginForm } from "@/components/auth/LoginForm";
-import { useState } from "react";
 
 interface CartProps {
   isOpen: boolean;
@@ -21,19 +19,13 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
   } = useCart();
   const { isAuthenticated } = useUserAuth();
   const navigate = useNavigate();
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      setShowLoginModal(true);
+      onClose();
+      navigate('/login');
       return;
     }
-    onClose();
-    navigate('/checkout');
-  };
-
-  const handleLoginSuccess = () => {
-    setShowLoginModal(false);
     onClose();
     navigate('/checkout');
   };
@@ -161,14 +153,6 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
           </div>
         </div>
       </div>
-
-      {/* Login Modal */}
-      <LoginForm
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onSuccess={handleLoginSuccess}
-        onRegisterRequired={() => setShowLoginModal(false)}
-      />
     </div>
   );
 };

@@ -18,6 +18,8 @@ import RestaurantMenu from "./pages/RestaurantMenu";
 import { Checkout } from "./pages/Checkout";
 import { MyOrders } from "./pages/MyOrders";
 import CartPage from "./pages/CartPage";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 import { SellerAuthProvider } from "./contexts/SellerAuthContext";
 import { UserAuthProvider } from "./contexts/UserAuthContext";
 import { CartProvider } from "./contexts/CartContext";
@@ -35,6 +37,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/restaurant/:restaurantId" element={<RestaurantMenu />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/cart" element={<CartPage />} />
