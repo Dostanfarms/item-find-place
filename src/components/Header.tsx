@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SearchResults } from "@/components/SearchResults";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -18,6 +19,10 @@ export const Header = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [currentLocation, setCurrentLocation] = useState("Detecting location...");
   const [locationGranted, setLocationGranted] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<{
+    label: string;
+    address: string;
+  } | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
@@ -33,7 +38,35 @@ export const Header = () => {
   const navigateToPage = useNavigate();
   useEffect(() => {
     requestLocationPermission();
-  }, []);
+    if (isAuthenticated) {
+      loadSelectedAddress();
+    }
+  }, [isAuthenticated]);
+
+  const loadSelectedAddress = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('label, full_address')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setSelectedAddress({
+          label: data.label,
+          address: data.full_address,
+        });
+      }
+    } catch (error) {
+      console.error('No saved addresses found');
+    }
+  };
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -121,13 +154,18 @@ export const Header = () => {
 
           {/* Location */}
           <div className="hidden md:flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
-            <MapPin className={`h-4 w-4 ${locationGranted ? 'text-primary' : 'text-muted-foreground'}`} />
+            <MapPin className={`h-4 w-4 ${locationGranted || selectedAddress ? 'text-primary' : 'text-muted-foreground'}`} />
             <div className="flex flex-col">
               <span className="text-xs text-muted-foreground">Deliver to:</span>
               <span className="font-medium text-sm flex items-center gap-1">
-                {currentLocation}
-                {!locationGranted && <AlertCircle className="h-3 w-3 text-orange-500" />}
+                {selectedAddress ? selectedAddress.label : currentLocation}
+                {!locationGranted && !selectedAddress && <AlertCircle className="h-3 w-3 text-orange-500" />}
               </span>
+              {selectedAddress && (
+                <span className="text-xs text-muted-foreground line-clamp-1 max-w-40">
+                  {selectedAddress.address.split(',')[0]}
+                </span>
+              )}
             </div>
           </div>
 

@@ -34,13 +34,41 @@ const AddressDetailsForm = ({
   const [selectedLabel, setSelectedLabel] = useState('Home');
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [existingLabels, setExistingLabels] = useState<string[]>([]);
 
-  // Load user's mobile number on component mount
+  // Load user's mobile number and existing address labels on component mount
   useEffect(() => {
     if (user?.mobile) {
       setMobileNumber(user.mobile);
     }
-  }, [user]);
+    if (open && user) {
+      loadExistingLabels();
+    }
+  }, [user, open]);
+
+  const loadExistingLabels = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('label')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const labels = data?.map(addr => addr.label) || [];
+      setExistingLabels(labels);
+      
+      // Set default label to first available option
+      const availableLabel = labelOptions.find(option => !labels.includes(option.value));
+      if (availableLabel) {
+        setSelectedLabel(availableLabel.value);
+      }
+    } catch (error) {
+      console.error('Error loading existing labels:', error);
+    }
+  };
 
   const labelOptions = [
     { value: 'Home', icon: Home, label: 'Home' },
@@ -263,21 +291,28 @@ const AddressDetailsForm = ({
               </Label>
               
               <div className="grid grid-cols-2 gap-3">
-                {labelOptions.map(({ value, icon: Icon, label }) => (
-                  <Button
-                    key={value}
-                    variant={selectedLabel === value ? "default" : "outline"}
-                    className={`h-12 flex items-center gap-2 ${
-                      selectedLabel === value 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'text-muted-foreground'
-                    }`}
-                    onClick={() => setSelectedLabel(value)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm">{label}</span>
-                  </Button>
-                ))}
+                {labelOptions.map(({ value, icon: Icon, label }) => {
+                  const isUsed = existingLabels.includes(value);
+                  return (
+                    <Button
+                      key={value}
+                      variant={selectedLabel === value ? "default" : "outline"}
+                      className={`h-12 flex items-center gap-2 ${
+                        selectedLabel === value 
+                          ? 'bg-primary text-primary-foreground' 
+                          : isUsed 
+                            ? 'text-muted-foreground opacity-50 cursor-not-allowed' 
+                            : 'text-muted-foreground'
+                      }`}
+                      onClick={() => !isUsed && setSelectedLabel(value)}
+                      disabled={isUsed}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-sm">{label}</span>
+                      {isUsed && <span className="text-xs ml-1">(Used)</span>}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </div>

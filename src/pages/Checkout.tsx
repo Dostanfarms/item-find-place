@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Plus, Minus, Tag, CreditCard, Wallet, Building2, MapPin, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
@@ -35,12 +35,49 @@ export const Checkout = () => {
     mobile?: string;
   }>({
     id: 'default',
-    label: 'Default',
+    label: 'Home',
     address: '1, Welcome, Waltair Station Approach Road',
     latitude: 17.7172,
     longitude: 83.3150,
     mobile: user?.mobile || ''
   });
+
+  // Load user's default address
+  const loadDefaultAddress = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setSelectedAddress({
+          id: data.id,
+          label: data.label,
+          address: data.full_address,
+          latitude: parseFloat(data.latitude.toString()),
+          longitude: parseFloat(data.longitude.toString()),
+          mobile: data.mobile,
+        });
+      }
+    } catch (error) {
+      console.error('No saved addresses found, using default');
+    }
+  };
+
+  // Load default address on component mount
+  useEffect(() => {
+    if (user) {
+      loadDefaultAddress();
+    }
+  }, [user]);
   const itemTotal = getTotalPrice();
   const deliveryFee = itemTotal >= 499 ? 0 : 19;
   const platformFee = Math.round(itemTotal * 0.05);
