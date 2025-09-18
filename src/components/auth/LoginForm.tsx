@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,18 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const { toast } = useToast();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleSendOtp = async () => {
     if (!mobile.trim()) {
@@ -83,6 +94,7 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
       });
 
       setStep('verify');
+      setResendTimer(30); // 30 second countdown
     } catch (error) {
       console.error('Error sending OTP:', error);
       toast({
@@ -163,10 +175,49 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
     }
   };
 
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Generate new OTP and save to database
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      const { error } = await supabase
+        .from('user_otp')
+        .insert({
+          mobile: mobile,
+          otp_code: otpCode,
+          expires_at: expiresAt.toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "OTP Resent",
+        description: `Your new OTP is: ${otpCode} (Valid for 5 minutes)`,
+      });
+
+      setResendTimer(30); // Reset 30 second countdown
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+      toast({
+        title: "Error",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setStep('login');
     setMobile("");
     setOtp("");
+    setResendTimer(0);
   };
 
   const handleClose = () => {
@@ -232,6 +283,20 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
                   className="flex-1"
                 >
                   {isLoading ? "Verifying..." : "Verify OTP"}
+                </Button>
+              </div>
+              {/* Resend OTP Button */}
+              <div className="text-center">
+                <Button 
+                  variant="link" 
+                  onClick={handleResendOtp}
+                  disabled={resendTimer > 0 || isLoading}
+                  className="text-sm"
+                >
+                  {resendTimer > 0 
+                    ? `Resend OTP in ${resendTimer}s` 
+                    : "Resend OTP"
+                  }
                 </Button>
               </div>
             </>

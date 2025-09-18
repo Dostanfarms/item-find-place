@@ -19,7 +19,7 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
     getTotalPrice,
     cartRestaurantName
   } = useCart();
-  const { isAuthenticated } = useUserAuth();
+  const { isAuthenticated, login } = useUserAuth();
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -32,7 +32,8 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
     navigate('/checkout');
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (user: any) => {
+    login(user);
     setShowLoginModal(false);
     onClose();
     navigate('/checkout');
