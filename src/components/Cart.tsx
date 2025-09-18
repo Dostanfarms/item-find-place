@@ -19,7 +19,7 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
     getTotalPrice,
     cartRestaurantName
   } = useCart();
-  const { isAuthenticated, login } = useUserAuth();
+  const { isAuthenticated, login, user, logout } = useUserAuth();
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -87,6 +87,22 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
           <p className="text-sm text-muted-foreground mb-4">
             {cartItems.length} item{cartItems.length > 1 ? 's' : ''} in your cart
           </p>
+
+          {/* Debug Auth Status */}
+          <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
+            Auth Status: {isAuthenticated ? 'Logged In' : 'Not Logged In'}
+            {user && <div>User: {user.name} - {user.mobile}</div>}
+            {user && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={logout}
+                className="mt-2"
+              >
+                Logout (Test)
+              </Button>
+            )}
+          </div>
 
           {/* Proceed to Checkout Button - Below restaurant name */}
           <Button 
