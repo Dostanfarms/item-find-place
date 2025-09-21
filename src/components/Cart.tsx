@@ -24,6 +24,7 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleCheckout = () => {
+    console.log('Auth check:', isAuthenticated, user);
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
@@ -88,21 +89,6 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
             {cartItems.length} item{cartItems.length > 1 ? 's' : ''} in your cart
           </p>
 
-          {/* Debug Auth Status */}
-          <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
-            Auth Status: {isAuthenticated ? 'Logged In' : 'Not Logged In'}
-            {user && <div>User: {user.name} - {user.mobile}</div>}
-            {user && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={logout}
-                className="mt-2"
-              >
-                Logout (Test)
-              </Button>
-            )}
-          </div>
 
           {/* Proceed to Checkout Button - Below restaurant name */}
           <Button 

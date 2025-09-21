@@ -94,7 +94,7 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
       });
 
       setStep('verify');
-      setResendTimer(30); // 30 second countdown
+      setResendTimer(10); // 10 second countdown
     } catch (error) {
       console.error('Error sending OTP:', error);
       toast({
@@ -200,7 +200,7 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
         description: `Your new OTP is: ${otpCode} (Valid for 5 minutes)`,
       });
 
-      setResendTimer(30); // Reset 30 second countdown
+      setResendTimer(10); // Reset 10 second countdown
     } catch (error) {
       console.error('Error resending OTP:', error);
       toast({
