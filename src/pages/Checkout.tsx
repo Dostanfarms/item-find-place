@@ -105,15 +105,6 @@ export const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!isAuthenticated || !user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to place an order",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (cartItems.length === 0) {
       toast({
         title: "Empty Cart",

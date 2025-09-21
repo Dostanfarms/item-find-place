@@ -24,7 +24,6 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleCheckout = () => {
-    console.log('Auth check:', isAuthenticated, user);
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
