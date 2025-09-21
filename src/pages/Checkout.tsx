@@ -19,12 +19,18 @@ export const Checkout = () => {
     cartRestaurantName,
     clearCart
   } = useCart();
-  const { user, isAuthenticated } = useUserAuth();
+  const {
+    user,
+    isAuthenticated
+  } = useUserAuth();
   const navigate = useNavigate();
   const [selectedPayment, setSelectedPayment] = useState("upi");
   const [instructions, setInstructions] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [showAddressSelector, setShowAddressSelector] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<{
     id: string;
@@ -45,18 +51,14 @@ export const Checkout = () => {
   // Load user's default address
   const loadDefaultAddress = async () => {
     if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('user_addresses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('user_addresses').select('*').eq('user_id', user.id).order('updated_at', {
+        ascending: false
+      }).limit(1).single();
       if (error) throw error;
-
       if (data) {
         setSelectedAddress({
           id: data.id,
@@ -64,7 +66,7 @@ export const Checkout = () => {
           address: data.full_address,
           latitude: parseFloat(data.latitude.toString()),
           longitude: parseFloat(data.longitude.toString()),
-          mobile: data.mobile,
+          mobile: data.mobile
         });
       }
     } catch (error) {
@@ -82,49 +84,42 @@ export const Checkout = () => {
   const deliveryFee = itemTotal >= 499 ? 0 : 19;
   const platformFee = Math.round(itemTotal * 0.05);
   const totalAmount = itemTotal + deliveryFee + platformFee;
-
   const getUserLocation = () => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          toast({
-            title: "Location Access",
-            description: "Could not get your location. Using default address.",
-            variant: "destructive",
-          });
-        }
-      );
+      navigator.geolocation.getCurrentPosition(position => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      }, error => {
+        console.error('Error getting location:', error);
+        toast({
+          title: "Location Access",
+          description: "Could not get your location. Using default address.",
+          variant: "destructive"
+        });
+      });
     }
   };
-
   const handlePlaceOrder = async () => {
     if (cartItems.length === 0) {
       toast({
         title: "Empty Cart",
         description: "Please add items to cart before placing order",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     try {
       setIsPlacingOrder(true);
-      
+
       // Get user location if not already obtained
       if (!userLocation) {
         getUserLocation();
       }
-      
+
       // Get seller info from first item (all items are from same restaurant)
       const firstItem = cartItems[0];
-      
       const orderData = {
         user_id: user.id,
         seller_id: firstItem.seller_id,
@@ -146,30 +141,26 @@ export const Checkout = () => {
         payment_method: selectedPayment,
         status: 'pending'
       };
-
-      const { error } = await supabase
-        .from('orders')
-        .insert([orderData]);
-
+      const {
+        error
+      } = await supabase.from('orders').insert([orderData]);
       if (error) throw error;
 
       // Clear cart after successful order
       clearCart();
-      
       toast({
         title: "Order Placed Successfully!",
-        description: "Your order has been placed and will be processed soon.",
+        description: "Your order has been placed and will be processed soon."
       });
 
       // Navigate to home page or order confirmation page
       navigate('/');
-      
     } catch (error) {
       console.error('Error placing order:', error);
       toast({
         title: "Order Failed",
         description: "Failed to place order. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsPlacingOrder(false);
@@ -216,14 +207,10 @@ export const Checkout = () => {
 
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Savings Banner */}
-        <Card className="mb-6 bg-green-50 border-green-200">
-          
-        </Card>
+        
 
         {/* Membership Offer */}
-        <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-          
-        </Card>
+        
 
         {/* Cart Items */}
         <Card className="mb-6">
@@ -261,23 +248,16 @@ export const Checkout = () => {
         </Card>
 
         {/* Complete Your Meal */}
-        <Card className="mb-6">
-          
-        </Card>
+        
 
         {/* Savings Corner */}
-        <Card className="mb-6">
-          
-        </Card>
+        
 
         {/* Delivery Address */}
         <Card className="mb-6">
           <CardContent className="p-4">
             <h3 className="font-semibold mb-4">Delivery Address</h3>
-            <div 
-              className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => setShowAddressSelector(true)}
-            >
+            <div className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setShowAddressSelector(true)}>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-full">
                   <MapPin className="h-4 w-4 text-green-600" />
@@ -292,12 +272,7 @@ export const Checkout = () => {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
             
-            <Textarea 
-              placeholder="Any instructions for the restaurant or delivery partner?" 
-              value={instructions} 
-              onChange={e => setInstructions(e.target.value)} 
-              className="mt-3" 
-            />
+            <Textarea placeholder="Any instructions for the restaurant or delivery partner?" value={instructions} onChange={e => setInstructions(e.target.value)} className="mt-3" />
           </CardContent>
         </Card>
 
@@ -347,12 +322,7 @@ export const Checkout = () => {
             </div>
             
             {/* Pay Button */}
-            <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white mt-4" 
-              size="lg"
-              onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || cartItems.length === 0}
-            >
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white mt-4" size="lg" onClick={handlePlaceOrder} disabled={isPlacingOrder || cartItems.length === 0}>
               {isPlacingOrder ? "Placing Order..." : `Pay ₹${totalAmount}`}
             </Button>
           </CardContent>
@@ -360,16 +330,14 @@ export const Checkout = () => {
       </div>
 
       {/* Address Selector Modal */}
-      <AddressSelector
-        open={showAddressSelector}
-        onOpenChange={setShowAddressSelector}
-        onAddressSelect={(address) => {
-          setSelectedAddress(address);
-          if (address.latitude && address.longitude) {
-            setUserLocation({ lat: address.latitude, lng: address.longitude });
-          }
-        }}
-        selectedAddress={selectedAddress}
-      />
+      <AddressSelector open={showAddressSelector} onOpenChange={setShowAddressSelector} onAddressSelect={address => {
+      setSelectedAddress(address);
+      if (address.latitude && address.longitude) {
+        setUserLocation({
+          lat: address.latitude,
+          lng: address.longitude
+        });
+      }
+    }} selectedAddress={selectedAddress} />
     </div>;
 };
