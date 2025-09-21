@@ -10,7 +10,6 @@ import { useSellerAuth } from "@/contexts/SellerAuthContext";
 import { formatDistanceToNow, isToday, isThisWeek, isThisMonth } from "date-fns";
 import { Package, Clock, CheckCircle, Truck, AlertCircle, User, MapPin, Eye, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
 interface Order {
   id: string;
   user_id: string;
@@ -34,7 +33,6 @@ interface Order {
   seller_packed_at: string | null;
   delivered_at: string | null;
 }
-
 export const SellerOrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,59 +40,58 @@ export const SellerOrderManagement = () => {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("pending");
   const [dateFilter, setDateFilter] = useState("all");
-  const { seller } = useSellerAuth();
-
-  const dateOptions = [
-    { value: "all", label: "All Time" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" }
-  ];
-
-  const statusOptions = [
-    {
-      label: "All",
-      value: "All", 
-      icon: Package,
-      color: "bg-muted"
-    },
-    {
-      label: "Pending",
-      value: "pending",
-      icon: Clock,
-      color: "bg-yellow-100 text-yellow-800"
-    },
-    {
-      label: "Accepted",
-      value: "accepted",
-      icon: CheckCircle,
-      color: "bg-green-100 text-green-800"
-    },
-    {
-      label: "Packed",
-      value: "packed",
-      icon: Package,
-      color: "bg-blue-100 text-blue-800"
-    },
-    {
-      label: "Delivered",
-      value: "delivered",
-      icon: Truck,
-      color: "bg-purple-100 text-purple-800"
-    }
-  ];
-
+  const {
+    seller
+  } = useSellerAuth();
+  const dateOptions = [{
+    value: "all",
+    label: "All Time"
+  }, {
+    value: "today",
+    label: "Today"
+  }, {
+    value: "week",
+    label: "This Week"
+  }, {
+    value: "month",
+    label: "This Month"
+  }];
+  const statusOptions = [{
+    label: "All",
+    value: "All",
+    icon: Package,
+    color: "bg-muted"
+  }, {
+    label: "Pending",
+    value: "pending",
+    icon: Clock,
+    color: "bg-yellow-100 text-yellow-800"
+  }, {
+    label: "Accepted",
+    value: "accepted",
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-800"
+  }, {
+    label: "Packed",
+    value: "packed",
+    icon: Package,
+    color: "bg-blue-100 text-blue-800"
+  }, {
+    label: "Delivered",
+    value: "delivered",
+    icon: Truck,
+    color: "bg-purple-100 text-purple-800"
+  }];
   const fetchSellerOrders = async () => {
     if (!seller) return;
-    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('seller_id', seller.id)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('orders').select('*').eq('seller_id', seller.id).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setOrders((data || []) as any);
     } catch (error) {
@@ -102,24 +99,23 @@ export const SellerOrderManagement = () => {
       toast({
         title: "Error",
         description: "Failed to fetch orders",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchSellerOrders();
   }, [seller]);
-
   const generatePickupPin = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
   };
-
   const updateOrderStatus = async (orderId: string, newStatus: string, timestampField?: string) => {
     try {
-      const updateData: any = { seller_status: newStatus };
+      const updateData: any = {
+        seller_status: newStatus
+      };
       if (timestampField) {
         updateData[timestampField] = new Date().toISOString();
       }
@@ -131,17 +127,13 @@ export const SellerOrderManagement = () => {
         console.log('Generating pickup PIN:', pickupPin, 'for order:', orderId);
         console.log('Update data:', updateData);
       }
-
-      const { error } = await supabase
-        .from('orders')
-        .update(updateData)
-        .eq('id', orderId);
-
+      const {
+        error
+      } = await supabase.from('orders').update(updateData).eq('id', orderId);
       if (error) throw error;
-
       toast({
         title: "Order Updated",
-        description: `Order has been ${newStatus.replace('_', ' ')}`,
+        description: `Order has been ${newStatus.replace('_', ' ')}`
       });
 
       // Close the order details dialog after accepting or rejecting
@@ -149,111 +141,103 @@ export const SellerOrderManagement = () => {
         setShowOrderDetails(false);
         setSelectedOrder(null);
       }
-
       fetchSellerOrders();
     } catch (error) {
       console.error('Error updating order:', error);
       toast({
         title: "Error",
         description: "Failed to update order",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <Clock className="h-4 w-4" />;
-      case 'seller_accepted': 
-      case 'preparing': return <Package className="h-4 w-4" />;
+      case 'pending':
+        return <Clock className="h-4 w-4" />;
+      case 'seller_accepted':
+      case 'preparing':
+        return <Package className="h-4 w-4" />;
       case 'packed':
-      case 'out_for_delivery': return <Truck className="h-4 w-4" />;
-      case 'delivered': return <CheckCircle className="h-4 w-4" />;
-      case 'rejected': return <AlertCircle className="h-4 w-4" />;
-      default: return <Package className="h-4 w-4" />;
+      case 'out_for_delivery':
+        return <Truck className="h-4 w-4" />;
+      case 'delivered':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'rejected':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Package className="h-4 w-4" />;
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'accepted':
       case 'seller_accepted':
-      case 'preparing': return 'bg-blue-100 text-blue-800';
+      case 'preparing':
+        return 'bg-blue-100 text-blue-800';
       case 'packed':
-      case 'out_for_delivery': return 'bg-purple-100 text-purple-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'out_for_delivery':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'New Order';
-      case 'accepted': 
-      case 'seller_accepted': return 'Accepted';
-      case 'preparing': return 'Preparing';
-      case 'packed': return 'Packed';
-      case 'out_for_delivery': return 'Out for Delivery';
-      case 'delivered': return 'Delivered';
-      case 'rejected': return 'Rejected';
-      default: return status;
+      case 'pending':
+        return 'New Order';
+      case 'accepted':
+      case 'seller_accepted':
+        return 'Accepted';
+      case 'preparing':
+        return 'Preparing';
+      case 'packed':
+        return 'Packed';
+      case 'out_for_delivery':
+        return 'Out for Delivery';
+      case 'delivered':
+        return 'Delivered';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return status;
     }
   };
-
   const getActionButtons = (order: Order) => {
     const sellerStatus = (order as any).seller_status || 'pending';
-    
     switch (sellerStatus) {
       case 'pending':
-        return (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => updateOrderStatus(order.id, 'accepted', 'seller_accepted_at')}
-              className="bg-green-600 hover:bg-green-700"
-            >
+        return <div className="flex gap-2">
+            <Button size="sm" onClick={() => updateOrderStatus(order.id, 'accepted', 'seller_accepted_at')} className="bg-green-600 hover:bg-green-700">
               Accept Order
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => updateOrderStatus(order.id, 'rejected')}
-            >
+            <Button size="sm" variant="destructive" onClick={() => updateOrderStatus(order.id, 'rejected')}>
               Reject
             </Button>
-          </div>
-        );
+          </div>;
       case 'accepted':
-        return (
-          <Button
-            size="sm"
-            onClick={() => updateOrderStatus(order.id, 'packed', 'seller_packed_at')}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
+        return <Button size="sm" onClick={() => updateOrderStatus(order.id, 'packed', 'seller_packed_at')} className="bg-purple-600 hover:bg-purple-700">
             Mark as Packed
-          </Button>
-        );
+          </Button>;
       default:
         return null;
     }
   };
-
   if (loading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
+    return <div className="space-y-4">
+        {[1, 2, 3].map(i => <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
               <div className="h-24 bg-muted rounded"></div>
             </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+          </Card>)}
+      </div>;
   }
-
   const filteredOrders = selectedStatus === "All" ? orders : orders.filter(order => {
     const sellerStatus = (order as any).seller_status || 'pending';
     if (selectedStatus === "delivered") {
@@ -278,9 +262,7 @@ export const SellerOrderManagement = () => {
     }
     return true;
   });
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       <CardHeader className="px-0">
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
@@ -291,22 +273,17 @@ export const SellerOrderManagement = () => {
       {/* Status Filter Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statusOptions.map(status => {
-          const Icon = status.icon;
-          const count = status.value === "All" ? orders.length : (() => {
-            if (status.value === "delivered") {
-              return orders.filter(order => order.status === "delivered" || (order as any).seller_status === "delivered").length;
-            }
-            return orders.filter(order => {
-              const sellerStatus = (order as any).seller_status || 'pending';
-              return sellerStatus === status.value;
-            }).length;
-          })();
-          return (
-            <Card 
-              key={status.value} 
-              className={`cursor-pointer transition-all hover:shadow-md ${selectedStatus === status.value ? 'ring-2 ring-primary shadow-md' : ''}`}
-              onClick={() => setSelectedStatus(status.value)}
-            >
+        const Icon = status.icon;
+        const count = status.value === "All" ? orders.length : (() => {
+          if (status.value === "delivered") {
+            return orders.filter(order => order.status === "delivered" || (order as any).seller_status === "delivered").length;
+          }
+          return orders.filter(order => {
+            const sellerStatus = (order as any).seller_status || 'pending';
+            return sellerStatus === status.value;
+          }).length;
+        })();
+        return <Card key={status.value} className={`cursor-pointer transition-all hover:shadow-md ${selectedStatus === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} onClick={() => setSelectedStatus(status.value)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -316,32 +293,26 @@ export const SellerOrderManagement = () => {
                   <Icon className="h-6 w-6 text-muted-foreground" />
                 </div>
               </CardContent>
-            </Card>
-          );
-        })}
+            </Card>;
+      })}
       </div>
 
       {/* Date Filter for Delivered Orders */}
-      {selectedStatus === "delivered" && (
-        <div className="flex items-center gap-2">
+      {selectedStatus === "delivered" && <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by date" />
             </SelectTrigger>
             <SelectContent>
-              {dateOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
+              {dateOptions.map(option => <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
-      )}
+        </div>}
 
-      {filteredOrders.length === 0 ? (
-        <Card>
+      {filteredOrders.length === 0 ? <Card>
           <CardContent className="p-8 text-center">
             <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Orders Found</h3>
@@ -349,11 +320,8 @@ export const SellerOrderManagement = () => {
               No orders found for {selectedStatus.toLowerCase()} status.
             </p>
           </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => (
-            <Card key={order.id} className="border-l-4 border-l-primary">
+        </Card> : <div className="space-y-4">
+          {filteredOrders.map(order => <Card key={order.id} className="border-l-4 border-l-primary">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div className="space-y-1">
@@ -366,24 +334,18 @@ export const SellerOrderManagement = () => {
                     </div>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(order.created_at), {
+                  addSuffix: true
+                })}
                     </p>
                   </div>
                   <div className="text-right space-y-1">
-                    {(order as any).pickup_pin && (
-                      <Badge variant="secondary" className="font-mono text-xs">
+                    {(order as any).pickup_pin && <Badge variant="secondary" className="font-mono text-xs">
                         PIN {(order as any).pickup_pin}
-                      </Badge>
-                    )}
-                    {(order as any).seller_status === 'packed' && !(order as any).pickup_pin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateOrderStatus(order.id, 'packed')}
-                      >
+                      </Badge>}
+                    {(order as any).seller_status === 'packed' && !(order as any).pickup_pin && <Button size="sm" variant="outline" onClick={() => updateOrderStatus(order.id, 'packed')}>
                         Generate PIN
-                      </Button>
-                    )}
+                      </Button>}
                     <p className="font-semibold text-lg">₹{order.total_amount}</p>
                     <p className="text-xs text-muted-foreground">
                       {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
@@ -392,33 +354,17 @@ export const SellerOrderManagement = () => {
                 </div>
 
                 {/* Show Pickup PIN if order is packed */}
-                {(order as any).seller_status === 'packed' && (order as any).pickup_pin && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-yellow-800">Pickup PIN</p>
-                        <p className="text-xs text-yellow-600">Share this PIN with delivery partner</p>
-                      </div>
-                      <div className="text-2xl font-bold text-yellow-800 bg-yellow-100 px-3 py-1 rounded">
-                        {(order as any).pickup_pin}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {(order as any).seller_status === 'packed' && (order as any).pickup_pin}
 
                 <div className="flex justify-between items-center">
                   <div className="text-xs text-muted-foreground">
                     Payment: {order.payment_method.toUpperCase()}
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setShowOrderDetails(true);
-                      }}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => {
+                setSelectedOrder(order);
+                setShowOrderDetails(true);
+              }}>
                       <Eye className="w-4 h-4 mr-1" />
                       View Details
                     </Button>
@@ -426,10 +372,8 @@ export const SellerOrderManagement = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+            </Card>)}
+        </div>}
 
       {/* Order Details Dialog */}
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
@@ -437,8 +381,7 @@ export const SellerOrderManagement = () => {
           <DialogHeader>
             <DialogTitle>Order Details - #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-4">
+          {selectedOrder && <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <Badge className={getStatusColor((selectedOrder as any).seller_status || 'pending')}>
                   {getStatusIcon((selectedOrder as any).seller_status || 'pending')}
@@ -452,12 +395,10 @@ export const SellerOrderManagement = () => {
               <div>
                 <h4 className="font-medium mb-2">Order Items:</h4>
                 <div className="space-y-1">
-                  {selectedOrder.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm bg-muted/50 p-2 rounded">
+                  {selectedOrder.items.map((item, index) => <div key={index} className="flex justify-between text-sm bg-muted/50 p-2 rounded">
                       <span>{item.item_name} x{item.quantity}</span>
                       <span className="font-medium">₹{item.seller_price * item.quantity}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </div>
               
@@ -471,15 +412,13 @@ export const SellerOrderManagement = () => {
                 <p className="text-sm">{selectedOrder.delivery_address}</p>
               </div>
               
-              {selectedOrder.instructions && (
-                <div className="space-y-2">
+              {selectedOrder.instructions && <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <User className="h-4 w-4" />
                     <span className="font-medium">Special Instructions:</span>
                   </div>
                   <p className="text-sm">{selectedOrder.instructions}</p>
-                </div>
-              )}
+                </div>}
               
               <Separator />
               
@@ -489,10 +428,8 @@ export const SellerOrderManagement = () => {
                 </div>
                 {getActionButtons(selectedOrder)}
               </div>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
