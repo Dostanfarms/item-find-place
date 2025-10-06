@@ -74,18 +74,6 @@ export const Checkout = () => {
     }
   };
 
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please login to continue with checkout",
-        variant: "destructive"
-      });
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
-
   // Load default address on component mount
   useEffect(() => {
     if (user) {
@@ -114,6 +102,15 @@ export const Checkout = () => {
     }
   };
   const handlePlaceOrder = async () => {
+    if (!user || !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to place an order",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (cartItems.length === 0) {
       toast({
         title: "Empty Cart",
