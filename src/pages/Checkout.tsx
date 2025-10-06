@@ -74,6 +74,18 @@ export const Checkout = () => {
     }
   };
 
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to continue with checkout",
+        variant: "destructive"
+      });
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
   // Load default address on component mount
   useEffect(() => {
     if (user) {
