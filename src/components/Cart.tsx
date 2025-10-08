@@ -164,13 +164,17 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
         </div>
       </div>
 
-      {/* Login Modal */}
-      <LoginForm
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onSuccess={handleLoginSuccess}
-        onRegisterRequired={() => setShowLoginModal(false)}
-      />
+      {/* Login Modal - Rendered outside cart with higher z-index */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[10000]">
+          <LoginForm
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onSuccess={handleLoginSuccess}
+            onRegisterRequired={() => setShowLoginModal(false)}
+          />
+        </div>
+      )}
     </div>
   );
 };
