@@ -127,10 +127,10 @@ const RestaurantMenu = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Header />
       
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 max-w-full overflow-x-hidden">
         {/* Back Button */}
         <Button 
           variant="ghost" 
@@ -151,34 +151,34 @@ const RestaurantMenu = () => {
               </div>
             </div>
           )}
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
             <img
               src={restaurant.profile_photo_url || restaurant1}
               alt={restaurant.seller_name}
-              className={`w-24 h-24 rounded-lg object-cover ${restaurant.is_online === false ? 'grayscale' : ''}`}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0 ${restaurant.is_online === false ? 'grayscale' : ''}`}
             />
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-card-foreground">
+            <div className="flex-1 min-w-0 w-full">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-card-foreground break-words">
                   {restaurant.seller_name}
                 </h1>
-                <Badge variant={restaurant.is_online !== false ? "default" : "secondary"}>
+                <Badge variant={restaurant.is_online !== false ? "default" : "secondary"} className="flex-shrink-0">
                   {restaurant.is_online !== false ? "Online" : "Offline"}
                 </Badge>
               </div>
-              <p className="text-muted-foreground mb-3">Owner: {restaurant.owner_name}</p>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground mb-3 break-words">Owner: {restaurant.owner_name}</p>
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-food-green fill-current" />
-                  <span>4.5 (120 reviews)</span>
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4 text-food-green fill-current flex-shrink-0" />
+                  <span className="whitespace-nowrap">4.5 (120)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{restaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"}</span>
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">{restaurant.is_online !== false ? "25-35 min" : "Offline"}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>1.2 km away</span>
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">1.2 km</span>
                 </div>
               </div>
             </div>
