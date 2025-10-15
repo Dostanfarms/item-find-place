@@ -127,10 +127,12 @@ const RestaurantMenu = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      <Header />
+    <div className="min-h-screen bg-background">
+      <div className="fixed top-0 left-0 right-0 z-[100]">
+        <Header />
+      </div>
       
-      <main className="container mx-auto px-4 py-6 max-w-full overflow-x-hidden">
+      <main className="container mx-auto px-4 py-6 max-w-full overflow-x-hidden pt-24">
         {/* Back Button */}
         <Button 
           variant="ghost" 
