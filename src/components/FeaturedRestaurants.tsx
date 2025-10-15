@@ -10,6 +10,8 @@ interface Restaurant {
   profile_photo_url: string | null;
   status: string;
   is_online?: boolean;
+  average_rating?: number;
+  total_ratings?: number;
 }
 export const FeaturedRestaurants = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -20,12 +22,29 @@ export const FeaturedRestaurants = () => {
   }, []);
   const fetchRestaurants = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('sellers').select('id, seller_name, profile_photo_url, status, is_online').eq('status', 'approved');
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('sellers')
+        .select('id, seller_name, profile_photo_url, status, is_online')
+        .eq('status', 'approved');
+
       if (error) throw error;
-      setRestaurants(data || []);
+      
+      // Fetch ratings for each restaurant
+      const restaurantsWithRatings = await Promise.all(
+        (data || []).map(async (restaurant) => {
+          const { data: ratingData } = await supabase
+            .rpc('get_seller_rating', { seller_uuid: restaurant.id });
+          
+          return {
+            ...restaurant,
+            average_rating: ratingData?.[0]?.average_rating || 0,
+            total_ratings: ratingData?.[0]?.total_ratings || 0,
+          };
+        })
+      );
+      
+      setRestaurants(restaurantsWithRatings);
     } catch (error) {
       console.error('Error fetching restaurants:', error);
     } finally {
@@ -54,7 +73,7 @@ export const FeaturedRestaurants = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {restaurants.map(restaurant => <RestaurantCard key={restaurant.id} id={restaurant.id} name={restaurant.seller_name} image={restaurant.profile_photo_url || restaurant1} cuisine={["Restaurant"]} rating={4.5} reviewsCount={100} deliveryTime={restaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"} deliveryFee={0} distance="1.2 km" offers={restaurant.is_online !== false ? ["Fresh & Delicious"] : ["Offline"]} onClick={() => handleRestaurantClick(restaurant.id)} isOffline={restaurant.is_online === false} />)}
+          {restaurants.map(restaurant => <RestaurantCard key={restaurant.id} id={restaurant.id} name={restaurant.seller_name} image={restaurant.profile_photo_url || restaurant1} cuisine={["Restaurant"]} rating={restaurant.average_rating || 0} reviewsCount={restaurant.total_ratings || 0} deliveryTime={restaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"} deliveryFee={0} distance="1.2 km" offers={restaurant.is_online !== false ? ["Fresh & Delicious"] : ["Offline"]} onClick={() => handleRestaurantClick(restaurant.id)} isOffline={restaurant.is_online === false} />)}
         </div>
       </div>
     </section>;

@@ -58,11 +58,17 @@ export const RestaurantCard = ({
         {/* Rating and Time */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1">
-            <div className="flex items-center space-x-1 bg-food-green text-white px-2 py-1 rounded text-xs">
-              <Star className="h-3 w-3 fill-current" />
-              <span className="font-medium">{rating}</span>
-            </div>
-            <span className="text-xs text-muted-foreground">({reviewsCount})</span>
+            {rating > 0 ? (
+              <>
+                <div className="flex items-center space-x-1 bg-food-green text-white px-2 py-1 rounded text-xs">
+                  <Star className="h-3 w-3 fill-current" />
+                  <span className="font-medium">{rating}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">({reviewsCount})</span>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground">New Restaurant</span>
+            )}
           </div>
           
           <div className="flex items-center space-x-1 text-xs text-muted-foreground">

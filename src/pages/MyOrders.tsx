@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { Package, Clock, CheckCircle, Truck, AlertCircle, ArrowLeft } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, AlertCircle, ArrowLeft, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { RatingModal } from "@/components/RatingModal";
 interface Order {
   id: string;
+  seller_id: string;
   seller_name: string;
   items: Array<{
     id: string;
@@ -27,10 +29,13 @@ interface Order {
   status: string;
   delivery_pin: string;
   created_at: string;
+  is_rated: boolean;
 }
 export const MyOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   const {
     user,
     isAuthenticated
@@ -208,13 +213,55 @@ export const MyOrders = () => {
                       <strong>Instructions:</strong> {order.instructions}
                     </div>}
 
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Payment: {order.payment_method.toUpperCase()}</span>
-                    <span>{order.delivery_address}</span>
+                    <span className="text-right line-clamp-1">{order.delivery_address.split(',')[0]}</span>
                   </div>
+
+                  {/* Rate Order Button */}
+                  {order.status === 'delivered' && !order.is_rated && (
+                    <div className="mt-3 pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOrder(order);
+                          setShowRatingModal(true);
+                        }}
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Rate Your Experience
+                      </Button>
+                    </div>
+                  )}
+
+                  {order.is_rated && (
+                    <div className="mt-3 pt-3 border-t flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Rated</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>)}
           </div>}
       </div>
+
+      {/* Rating Modal */}
+      {selectedOrder && user && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setSelectedOrder(null);
+          }}
+          orderId={selectedOrder.id}
+          sellerId={selectedOrder.seller_id}
+          sellerName={selectedOrder.seller_name}
+          userId={user.id}
+          onRatingSubmit={fetchMyOrders}
+        />
+      )}
     </div>;
 };

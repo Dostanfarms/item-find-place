@@ -18,6 +18,8 @@ interface Restaurant {
   owner_name: string;
   mobile: string;
   is_online?: boolean;
+  average_rating?: number;
+  total_ratings?: number;
 }
 
 interface MenuItem {
@@ -55,7 +57,16 @@ const RestaurantMenu = () => {
         .single();
 
       if (restaurantError) throw restaurantError;
-      setRestaurant(restaurantData);
+      
+      // Fetch rating for this restaurant
+      const { data: ratingData } = await supabase
+        .rpc('get_seller_rating', { seller_uuid: restaurantId });
+      
+      setRestaurant({
+        ...restaurantData,
+        average_rating: ratingData?.[0]?.average_rating || 0,
+        total_ratings: ratingData?.[0]?.total_ratings || 0,
+      });
 
       // Fetch menu items (include all items, both active and inactive)
       const { data: itemsData, error: itemsError } = await supabase
@@ -75,7 +86,22 @@ const RestaurantMenu = () => {
         .limit(3);
 
       if (similarError) throw similarError;
-      setSimilarRestaurants(similarData || []);
+      
+      // Fetch ratings for similar restaurants
+      const similarWithRatings = await Promise.all(
+        (similarData || []).map(async (restaurant) => {
+          const { data: ratingData } = await supabase
+            .rpc('get_seller_rating', { seller_uuid: restaurant.id });
+          
+          return {
+            ...restaurant,
+            average_rating: ratingData?.[0]?.average_rating || 0,
+            total_ratings: ratingData?.[0]?.total_ratings || 0,
+          };
+        })
+      );
+      
+      setSimilarRestaurants(similarWithRatings);
 
     } catch (error) {
       console.error('Error fetching restaurant data:', error);
@@ -172,7 +198,10 @@ const RestaurantMenu = () => {
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 sm:h-4 sm:w-4 text-food-green fill-current flex-shrink-0" />
-                  <span className="whitespace-nowrap">4.5 (120)</span>
+                  <span className="whitespace-nowrap">
+                    {restaurant.average_rating > 0 ? restaurant.average_rating : 'New'} 
+                    {restaurant.total_ratings > 0 && ` (${restaurant.total_ratings})`}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -244,8 +273,8 @@ const RestaurantMenu = () => {
                   name={similarRestaurant.seller_name}
                   image={similarRestaurant.profile_photo_url || restaurant1}
                   cuisine={["Restaurant"]}
-                  rating={4.5}
-                  reviewsCount={100}
+                  rating={similarRestaurant.average_rating || 0}
+                  reviewsCount={similarRestaurant.total_ratings || 0}
                   deliveryTime={similarRestaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"}
                   deliveryFee={0}
                   distance="1.2 km"

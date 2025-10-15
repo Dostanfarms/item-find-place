@@ -138,6 +138,7 @@ export type Database = {
           gst_charges: number
           id: string
           instructions: string | null
+          is_rated: boolean
           items: Json
           payment_method: string
           pickup_at: string | null
@@ -170,6 +171,7 @@ export type Database = {
           gst_charges?: number
           id?: string
           instructions?: string | null
+          is_rated?: boolean
           items: Json
           payment_method?: string
           pickup_at?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           gst_charges?: number
           id?: string
           instructions?: string | null
+          is_rated?: boolean
           items?: Json
           payment_method?: string
           pickup_at?: string | null
@@ -224,6 +227,61 @@ export type Database = {
             columns: ["assigned_delivery_partner_id"]
             isOneToOne: false
             referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ratings: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          review: string | null
+          seller_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          rating: number
+          review?: string | null
+          seller_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          review?: string | null
+          seller_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -291,6 +349,7 @@ export type Database = {
       user_addresses: {
         Row: {
           apartment_area: string | null
+          area: string | null
           created_at: string
           directions: string | null
           full_address: string
@@ -306,6 +365,7 @@ export type Database = {
         }
         Insert: {
           apartment_area?: string | null
+          area?: string | null
           created_at?: string
           directions?: string | null
           full_address: string
@@ -321,6 +381,7 @@ export type Database = {
         }
         Update: {
           apartment_area?: string | null
+          area?: string | null
           created_at?: string
           directions?: string | null
           full_address?: string
@@ -402,6 +463,13 @@ export type Database = {
       generate_seller_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_seller_rating: {
+        Args: { seller_uuid: string }
+        Returns: {
+          average_rating: number
+          total_ratings: number
+        }[]
       }
       hash_password: {
         Args: { password: string }
