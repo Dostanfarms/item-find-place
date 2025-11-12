@@ -144,7 +144,7 @@ export const Header = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-full">
               <span className="text-white font-bold text-sm">D</span>
             </div>
-            <span className="font-bold text-xs text-left text-orange-500">Door Delivery</span>
+            <span className="font-bold text-xs text-left text-slate-900">Door Delivery</span>
           </div>
 
           {/* Location */}
