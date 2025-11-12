@@ -7,7 +7,6 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { SearchResults } from "@/components/SearchResults";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,7 +25,6 @@ export const Header = () => {
   } | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  
   const searchRef = useRef<HTMLDivElement>(null);
   const {
     user,
@@ -44,25 +42,20 @@ export const Header = () => {
       loadSelectedAddress();
     }
   }, [isAuthenticated]);
-
   const loadSelectedAddress = async () => {
     if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('user_addresses')
-        .select('label, full_address')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('user_addresses').select('label, full_address').eq('user_id', user.id).order('updated_at', {
+        ascending: false
+      }).limit(1).single();
       if (error) throw error;
-
       if (data) {
         setSelectedAddress({
           label: data.label,
-          address: data.full_address,
+          address: data.full_address
         });
       }
     } catch (error) {
@@ -151,7 +144,7 @@ export const Header = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-full">
               <span className="text-white font-bold text-sm">D</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Door Delivery</span>
+            <span className="font-bold text-xs text-left text-orange-500">Door Delivery</span>
           </div>
 
           {/* Location */}
@@ -163,11 +156,9 @@ export const Header = () => {
                 {selectedAddress ? selectedAddress.label : currentLocation}
                 {!locationGranted && !selectedAddress && <AlertCircle className="h-3 w-3 text-orange-500" />}
               </span>
-              {selectedAddress && (
-                <span className="text-xs text-muted-foreground line-clamp-1 max-w-40">
+              {selectedAddress && <span className="text-xs text-muted-foreground line-clamp-1 max-w-40">
                   {selectedAddress.address.split(',')[0]}
-                </span>
-              )}
+                </span>}
             </div>
           </div>
 
@@ -249,8 +240,7 @@ export const Header = () => {
             </Button>
 
             {/* Mobile Menu */}
-            {!isAuthenticated && (
-              <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+            {!isAuthenticated && <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="md:hidden">
                     <Menu className="h-5 w-5" />
@@ -261,31 +251,22 @@ export const Header = () => {
                     <SheetTitle>Menu</SheetTitle>
                   </SheetHeader>
                   <div className="flex flex-col space-y-4 mt-6">
-                    <Button 
-                      variant="default" 
-                      className="w-full justify-start" 
-                      onClick={() => {
-                        setShowMobileMenu(false);
-                        setShowRegister(true);
-                      }}
-                    >
+                    <Button variant="default" className="w-full justify-start" onClick={() => {
+                  setShowMobileMenu(false);
+                  setShowRegister(true);
+                }}>
                       Register
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start" 
-                      onClick={() => {
-                        setShowMobileMenu(false);
-                        setShowLogin(true);
-                      }}
-                    >
+                    <Button variant="outline" className="w-full justify-start" onClick={() => {
+                  setShowMobileMenu(false);
+                  setShowLogin(true);
+                }}>
                       <User className="h-4 w-4 mr-2" />
                       Login
                     </Button>
                   </div>
                 </SheetContent>
-              </Sheet>
-            )}
+              </Sheet>}
           </div>
         </div>
       </div>
