@@ -55,26 +55,31 @@ export const FeaturedRestaurants = () => {
     navigate(`/restaurant/${restaurantId}`);
   };
   if (loading) {
-    return <section className="py-12 bg-gradient-subtle">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="animate-pulse">Loading restaurants...</div>
-          </div>
-        </div>
-      </section>;
-  }
-  return <section className="py-12 bg-gradient-subtle">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Top Restaurants</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Discover the best restaurants in your area with amazing offers and fast delivery
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {restaurants.map(restaurant => <RestaurantCard key={restaurant.id} id={restaurant.id} name={restaurant.seller_name} image={restaurant.profile_photo_url || restaurant1} cuisine={["Restaurant"]} rating={restaurant.average_rating || 0} reviewsCount={restaurant.total_ratings || 0} deliveryTime={restaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"} deliveryFee={0} distance="1.2 km" offers={restaurant.is_online !== false ? ["Fresh & Delicious"] : ["Offline"]} onClick={() => handleRestaurantClick(restaurant.id)} isOffline={restaurant.is_online === false} />)}
-        </div>
+    return (
+      <div className="text-center py-8">
+        <div className="animate-pulse">Loading restaurants...</div>
       </div>
-    </section>;
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+      {restaurants.map(restaurant => (
+        <RestaurantCard 
+          key={restaurant.id} 
+          id={restaurant.id} 
+          name={restaurant.seller_name} 
+          image={restaurant.profile_photo_url || restaurant1} 
+          cuisine={["Restaurant"]} 
+          rating={restaurant.average_rating || 0} 
+          reviewsCount={restaurant.total_ratings || 0} 
+          deliveryTime={restaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"} 
+          deliveryFee={0} 
+          distance="1.2 km" 
+          offers={restaurant.is_online !== false ? ["Fresh & Delicious"] : ["Offline"]} 
+          onClick={() => handleRestaurantClick(restaurant.id)} 
+          isOffline={restaurant.is_online === false} 
+        />
+      ))}
+    </div>
+  );
 };
