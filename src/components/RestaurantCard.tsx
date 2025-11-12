@@ -52,24 +52,12 @@ export const RestaurantCard = ({
           <h3 className="font-semibold text-lg text-card-foreground group-hover:text-primary transition-colors">
             {name}
           </h3>
-          <p className="text-sm text-muted-foreground">{cuisine.join(", ")}</p>
+          
         </div>
 
         {/* Rating and Time */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1">
-            {rating > 0 ? (
-              <>
-                <div className="flex items-center space-x-1 bg-food-green text-white px-2 py-1 rounded text-xs">
-                  <Star className="h-3 w-3 fill-current" />
-                  <span className="font-medium">{rating}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">({reviewsCount})</span>
-              </>
-            ) : (
-              <span className="text-xs text-muted-foreground">New Restaurant</span>
-            )}
-          </div>
+          
           
           <div className="flex items-center space-x-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
