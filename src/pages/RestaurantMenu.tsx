@@ -160,9 +160,9 @@ const RestaurantMenu = () => {
       
       <main className="container mx-auto px-4 py-6 max-w-full overflow-x-hidden pt-24">
         {/* Back Button */}
-        <Button 
+          <Button 
           variant="ghost" 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/restaurants')}
           className="mb-6 flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -224,7 +224,7 @@ const RestaurantMenu = () => {
               <p className="text-muted-foreground">No menu items available</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {menuItems.map((item) => (
                 <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="h-48 overflow-hidden">
