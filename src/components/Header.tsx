@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, MapPin, User, ShoppingCart, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu } from "lucide-react";
+import { MapPin, User, ShoppingCart, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RegisterForm } from "@/components/auth/RegisterForm";
@@ -164,14 +164,7 @@ export const Header = () => {
 
           {/* Search Bar */}
           <div className="flex-1 max-w-md mx-4" ref={searchRef}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input type="text" placeholder="Search for restaurants, cuisines, or dishes..." value={searchQuery} onChange={e => {
-              setSearchQuery(e.target.value);
-              setShowSearchResults(e.target.value.trim().length > 0);
-            }} onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)} className="pl-10 bg-muted/50 border-0 focus:bg-background" />
-              {showSearchResults && <SearchResults searchQuery={searchQuery} onClose={() => setShowSearchResults(false)} />}
-            </div>
+            
           </div>
 
           {/* User Actions */}
