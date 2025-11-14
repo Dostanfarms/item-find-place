@@ -10,6 +10,7 @@ import { ArrowLeft, Star, Clock, MapPin, Plus, ChevronRight } from "lucide-react
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { useCart } from "@/contexts/CartContext";
 import restaurant1 from "@/assets/restaurant-1.jpg";
+import { calculateDistance, getDeliveryTime, formatDistance } from "@/lib/distanceUtils";
 
 interface Restaurant {
   id: string;
@@ -20,6 +21,10 @@ interface Restaurant {
   is_online?: boolean;
   average_rating?: number;
   total_ratings?: number;
+  seller_latitude?: number;
+  seller_longitude?: number;
+  distance?: number;
+  deliveryTime?: string;
 }
 
 interface MenuItem {
@@ -38,20 +43,67 @@ const RestaurantMenu = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [similarRestaurants, setSimilarRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const { addToCart, getTotalItems, getTotalPrice } = useCart();
 
   useEffect(() => {
-    if (restaurantId) {
+    getUserLocation();
+  }, []);
+
+  useEffect(() => {
+    if (restaurantId && userLocation) {
       fetchRestaurantData();
     }
-  }, [restaurantId]);
+  }, [restaurantId, userLocation]);
+
+  const getUserLocation = async () => {
+    try {
+      // First, try to get user's saved default address
+      const { data: addresses } = await supabase
+        .from('user_addresses')
+        .select('latitude, longitude')
+        .eq('is_default', true)
+        .limit(1);
+
+      if (addresses && addresses.length > 0) {
+        setUserLocation({
+          lat: parseFloat(addresses[0].latitude.toString()),
+          lng: parseFloat(addresses[0].longitude.toString())
+        });
+        return;
+      }
+
+      // If no saved address, use browser geolocation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          () => {
+            // Default to a location if geolocation fails
+            setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Hyderabad
+          }
+        );
+      } else {
+        setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Default
+      }
+    } catch (error) {
+      console.error('Error getting user location:', error);
+      setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Default
+    }
+  };
 
   const fetchRestaurantData = async () => {
+    if (!userLocation) return;
+
     try {
       // Fetch restaurant details
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('sellers')
-        .select('id, seller_name, profile_photo_url, owner_name, mobile, is_online')
+        .select('id, seller_name, profile_photo_url, owner_name, mobile, is_online, seller_latitude, seller_longitude')
         .eq('id', restaurantId)
         .eq('status', 'approved')
         .single();
@@ -62,10 +114,25 @@ const RestaurantMenu = () => {
       const { data: ratingData } = await supabase
         .rpc('get_seller_rating', { seller_uuid: restaurantId });
       
+      // Calculate distance if restaurant has coordinates
+      let distance = 0;
+      let deliveryTime = "25-35 min";
+      if (restaurantData.seller_latitude && restaurantData.seller_longitude) {
+        distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          parseFloat(restaurantData.seller_latitude.toString()),
+          parseFloat(restaurantData.seller_longitude.toString())
+        );
+        deliveryTime = getDeliveryTime(distance);
+      }
+
       setRestaurant({
         ...restaurantData,
         average_rating: ratingData?.[0]?.average_rating || 0,
         total_ratings: ratingData?.[0]?.total_ratings || 0,
+        distance,
+        deliveryTime
       });
 
       // Fetch menu items (include all items, both active and inactive)
@@ -80,28 +147,46 @@ const RestaurantMenu = () => {
       // Fetch similar restaurants (other approved sellers)
       const { data: similarData, error: similarError } = await supabase
         .from('sellers')
-        .select('id, seller_name, profile_photo_url, owner_name, mobile, is_online')
+        .select('id, seller_name, profile_photo_url, owner_name, mobile, is_online, seller_latitude, seller_longitude')
         .eq('status', 'approved')
-        .neq('id', restaurantId)
-        .limit(3);
+        .neq('id', restaurantId);
 
       if (similarError) throw similarError;
       
-      // Fetch ratings for similar restaurants
-      const similarWithRatings = await Promise.all(
+      // Fetch ratings and calculate distances for similar restaurants
+      const similarWithDetails = await Promise.all(
         (similarData || []).map(async (restaurant) => {
           const { data: ratingData } = await supabase
             .rpc('get_seller_rating', { seller_uuid: restaurant.id });
           
+          // Calculate distance
+          let distance = 0;
+          if (restaurant.seller_latitude && restaurant.seller_longitude) {
+            distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              parseFloat(restaurant.seller_latitude.toString()),
+              parseFloat(restaurant.seller_longitude.toString())
+            );
+          }
+
           return {
             ...restaurant,
             average_rating: ratingData?.[0]?.average_rating || 0,
             total_ratings: ratingData?.[0]?.total_ratings || 0,
+            distance,
+            deliveryTime: getDeliveryTime(distance)
           };
         })
       );
+
+      // Filter restaurants within 10km, sort by distance, and limit to 3
+      const nearbySimilar = similarWithDetails
+        .filter(r => r.distance <= 10)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
       
-      setSimilarRestaurants(similarWithRatings);
+      setSimilarRestaurants(nearbySimilar);
 
     } catch (error) {
       console.error('Error fetching restaurant data:', error);
@@ -205,11 +290,13 @@ const RestaurantMenu = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{restaurant.is_online !== false ? "25-35 min" : "Offline"}</span>
+                  <span className="whitespace-nowrap">
+                    {restaurant.is_online !== false ? restaurant.deliveryTime || "25-35 min" : "Offline"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">1.2 km</span>
+                  <span className="whitespace-nowrap">{formatDistance(restaurant.distance || 0)}</span>
                 </div>
               </div>
             </div>
@@ -298,9 +385,9 @@ const RestaurantMenu = () => {
                   cuisine={["Restaurant"]}
                   rating={similarRestaurant.average_rating || 0}
                   reviewsCount={similarRestaurant.total_ratings || 0}
-                  deliveryTime={similarRestaurant.is_online !== false ? "25-35 min" : "Currently not taking orders"}
+                  deliveryTime={similarRestaurant.is_online !== false ? similarRestaurant.deliveryTime || "25-35 min" : "Currently not taking orders"}
                   deliveryFee={0}
-                  distance="1.2 km"
+                  distance={formatDistance(similarRestaurant.distance || 0)}
                   offers={similarRestaurant.is_online !== false ? ["Fresh & Delicious"] : ["Offline"]}
                   onClick={() => navigate(`/restaurant/${similarRestaurant.id}`)}
                   isOffline={similarRestaurant.is_online === false}
