@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, User, ShoppingCart, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu } from "lucide-react";
+import { MapPin, User, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RegisterForm } from "@/components/auth/RegisterForm";
@@ -148,16 +148,27 @@ export const Header = () => {
           </div>
 
           {/* Location */}
-          <div className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
-            <MapPin className={`h-5 w-5 ${locationGranted || selectedAddress ? 'text-orange-500' : 'text-muted-foreground'}`} />
+          <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
+            <MapPin className="h-5 w-5 text-orange-500" />
             <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground">Deliver to:</span>
-              <span className="font-semibold text-sm flex items-center gap-1">
-                {selectedAddress ? selectedAddress.label : currentLocation}
-              </span>
-              {selectedAddress && <span className="text-xs text-muted-foreground line-clamp-1 max-w-40">
-                  {selectedAddress.address.split(',')[0]}
-                </span>}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">
+                  {selectedAddress ? selectedAddress.label : currentLocation}
+                </span>
+                {(selectedAddress || locationGranted) && (
+                  <>
+                    <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium">
+                      New
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  </>
+                )}
+              </div>
+              {selectedAddress && (
+                <span className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
+                  {selectedAddress.address}
+                </span>
+              )}
             </div>
           </div>
 
@@ -224,13 +235,6 @@ export const Header = () => {
                 </Button>
               </>}
             
-            <Button variant="ghost" size="sm" className="relative" onClick={() => navigateToPage('/cart')}>
-              <ShoppingCart className="h-4 w-4" />
-              {getTotalItems() > 0 && <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {getTotalItems()}
-                </span>}
-            </Button>
-
             {/* Mobile Menu */}
             {!isAuthenticated && <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
                 <SheetTrigger asChild>
