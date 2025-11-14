@@ -148,13 +148,12 @@ export const Header = () => {
           </div>
 
           {/* Location */}
-          <div className="hidden md:flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
-            <MapPin className={`h-4 w-4 ${locationGranted || selectedAddress ? 'text-primary' : 'text-muted-foreground'}`} />
+          <div className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
+            <MapPin className={`h-5 w-5 ${locationGranted || selectedAddress ? 'text-orange-500' : 'text-muted-foreground'}`} />
             <div className="flex flex-col">
               <span className="text-xs text-muted-foreground">Deliver to:</span>
-              <span className="font-medium text-sm flex items-center gap-1">
+              <span className="font-semibold text-sm flex items-center gap-1">
                 {selectedAddress ? selectedAddress.label : currentLocation}
-                {!locationGranted && !selectedAddress && <AlertCircle className="h-3 w-3 text-orange-500" />}
               </span>
               {selectedAddress && <span className="text-xs text-muted-foreground line-clamp-1 max-w-40">
                   {selectedAddress.address.split(',')[0]}
