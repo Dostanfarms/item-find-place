@@ -140,12 +140,7 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-full">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
-            <span className="font-bold text-xs text-left text-slate-900">Door Delivery</span>
-          </div>
+          
 
           {/* Location */}
           <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
@@ -155,20 +150,16 @@ export const Header = () => {
                 <span className="font-semibold text-sm">
                   {selectedAddress ? selectedAddress.label : currentLocation}
                 </span>
-                {(selectedAddress || locationGranted) && (
-                  <>
+                {(selectedAddress || locationGranted) && <>
                     <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium">
                       New
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                  </>
-                )}
+                  </>}
               </div>
-              {selectedAddress && (
-                <span className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
+              {selectedAddress && <span className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
                   {selectedAddress.address}
-                </span>
-              )}
+                </span>}
             </div>
           </div>
 
