@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Star, Clock, MapPin, Plus, ChevronRight } from "lucide-react";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { useCart } from "@/contexts/CartContext";
 import restaurant1 from "@/assets/restaurant-1.jpg";
@@ -38,7 +38,7 @@ const RestaurantMenu = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [similarRestaurants, setSimilarRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useCart();
+  const { addToCart, getTotalItems, getTotalPrice } = useCart();
 
   useEffect(() => {
     if (restaurantId) {
@@ -224,36 +224,59 @@ const RestaurantMenu = () => {
               <p className="text-muted-foreground">No menu items available</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 pb-24">
               {menuItems.map((item) => (
-                <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={item.item_photo_url || restaurant1}
-                      alt={item.item_name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{item.item_name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-xl font-bold text-primary">
-                        ₹{item.seller_price}
+                <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-border/40">
+                  <div className="relative h-40 overflow-hidden">
+                    {item.item_photo_url ? (
+                      <img
+                        src={item.item_photo_url}
+                        alt={item.item_name}
+                        className="w-full h-full object-cover rounded-t-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-subtle flex items-center justify-center">
+                        <span className="text-muted-foreground">No image</span>
                       </div>
-                      <Badge variant={item.is_active && restaurant.is_online !== false ? "default" : "destructive"}>
-                        {item.is_active && restaurant.is_online !== false ? "Available" : "Out of Stock"}
-                      </Badge>
+                    )}
+                    {/* Rating Badge Overlay */}
+                    <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs font-semibold">4.2</span>
                     </div>
-                    <Button 
-                      className="w-full" 
-                      variant={item.is_active && restaurant.is_online !== false ? "food" : "outline"}
-                      disabled={!item.is_active || restaurant.is_online === false}
-                      onClick={() => handleAddToCart(item)}
-                    >
-                      {item.is_active && restaurant.is_online !== false ? "Add to Cart" : "Out of Stock"}
-                    </Button>
+                  </div>
+                  <CardContent className="p-3 space-y-2">
+                    <div>
+                      <h3 className="font-semibold text-sm line-clamp-2">{item.item_name}</h3>
+                      {/* Nutritional info placeholder */}
+                      <p className="text-xs text-muted-foreground mt-0.5">20g protein</p>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground line-through">
+                          ₹{item.franchise_price}
+                        </span>
+                        <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-700 hover:bg-yellow-400/30 text-xs px-2 py-0">
+                          ₹{item.seller_price}
+                        </Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddToCart(item)}
+                        disabled={!item.is_active}
+                        className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        ADD
+                      </Button>
+                    </div>
+                    
+                    {!item.is_active && (
+                      <Badge variant="secondary" className="text-xs">
+                        Unavailable
+                      </Badge>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -282,15 +305,36 @@ const RestaurantMenu = () => {
                   onClick={() => navigate(`/restaurant/${similarRestaurant.id}`)}
                   isOffline={similarRestaurant.is_online === false}
                 />
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+
+        <Footer />
+        
+        {/* Floating Cart Button */}
+        {getTotalItems() > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
+            <Button
+              onClick={() => navigate('/cart')}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 shadow-lg flex items-center justify-between pointer-events-auto"
+            >
+              <div className="flex items-center gap-2">
+                <span className="bg-white/20 px-2 py-1 rounded text-sm">
+                  {getTotalItems()}
+                </span>
+                <span>Item{getTotalItems() > 1 ? 's' : ''} added</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>View Cart</span>
+                <ChevronRight className="h-5 w-5" />
+              </div>
+            </Button>
+          </div>
         )}
-      </main>
+      </div>
+    );
+  };
 
-      <Footer />
-    </div>
-  );
-};
-
-export default RestaurantMenu;
+  export default RestaurantMenu;
