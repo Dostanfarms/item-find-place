@@ -2,10 +2,11 @@ import { Header } from "@/components/Header";
 import { UniversalSearchBar } from "@/components/UniversalSearchBar";
 import { FeaturedRestaurants } from "@/components/FeaturedRestaurants";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 
 const Restaurants = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16">
       <Header />
       <main>
         <UniversalSearchBar />
@@ -19,6 +20,7 @@ const Restaurants = () => {
         </section>
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 };
