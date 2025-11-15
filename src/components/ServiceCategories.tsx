@@ -23,9 +23,7 @@ const ServiceCategoryCard = ({
           <div className="flex-1">
             <h3 className="font-bold text-lg text-foreground mb-1">{title}</h3>
             <p className="text-xs text-muted-foreground uppercase">{subtitle}</p>
-            {badge && <div className="mt-2">
-                <span className="text-primary font-semibold text-sm">{badge}</span>
-              </div>}
+            {badge}
           </div>
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
             {icon}
