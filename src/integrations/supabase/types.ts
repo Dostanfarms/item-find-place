@@ -456,14 +456,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_delivery_pin: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_seller_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_delivery_pin: { Args: never; Returns: string }
+      generate_seller_id: { Args: never; Returns: string }
       get_seller_rating: {
         Args: { seller_uuid: string }
         Returns: {
@@ -471,10 +465,7 @@ export type Database = {
           total_ratings: number
         }[]
       }
-      hash_password: {
-        Args: { password: string }
-        Returns: string
-      }
+      hash_password: { Args: { password: string }; Returns: string }
       verify_password: {
         Args: { hash: string; password: string }
         Returns: boolean

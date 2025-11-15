@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SearchResults } from "@/components/SearchResults";
+import AddressSelector from "@/components/AddressSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useUserAuth } from "@/contexts/UserAuthContext";
@@ -13,10 +14,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 export const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
   const [currentLocation, setCurrentLocation] = useState("Detecting location...");
   const [locationGranted, setLocationGranted] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<{
@@ -143,25 +146,28 @@ export const Header = () => {
           
 
           {/* Location */}
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors" onClick={requestLocationPermission}>
+          <button 
+            className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
+            onClick={() => isAuthenticated ? setShowAddressSelector(true) : requestLocationPermission()}
+          >
             <MapPin className="h-5 w-5 text-orange-500" />
-            <div className="flex flex-col">
+            <div className="flex flex-col items-start">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm">
-                  {selectedAddress ? selectedAddress.label : currentLocation}
+                  {isAuthenticated && selectedAddress ? selectedAddress.label : "Current Location"}
                 </span>
-                {(selectedAddress || locationGranted) && <>
-                    <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium">
-                      New
-                    </span>
-                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                  </>}
+                {!isAuthenticated && (
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-600 hover:bg-orange-100 text-xs px-2 py-0">
+                    New
+                  </Badge>
+                )}
+                {isAuthenticated && <ChevronDown className="h-3 w-3 text-muted-foreground" />}
               </div>
-              {selectedAddress && <span className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
-                  {selectedAddress.address}
-                </span>}
+              <span className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">
+                {isAuthenticated && selectedAddress ? selectedAddress.address : currentLocation}
+              </span>
             </div>
-          </div>
+          </button>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-md mx-4" ref={searchRef}>
@@ -261,5 +267,25 @@ export const Header = () => {
       <RegisterForm isOpen={showRegister} onClose={() => setShowRegister(false)} onSuccess={handleAuthSuccess} />
       
       <LoginForm isOpen={showLogin} onClose={() => setShowLogin(false)} onSuccess={handleAuthSuccess} onRegisterRequired={handleRegisterRequired} />
+      
+      {isAuthenticated && (
+        <AddressSelector
+          open={showAddressSelector}
+          onOpenChange={setShowAddressSelector}
+          onAddressSelect={(address) => {
+            setSelectedAddress({
+              label: address.label,
+              address: address.address
+            });
+            setShowAddressSelector(false);
+            loadSelectedAddress();
+          }}
+          selectedAddress={selectedAddress ? {
+            id: '',
+            label: selectedAddress.label,
+            address: selectedAddress.address
+          } : undefined}
+        />
+      )}
     </header>;
 };
