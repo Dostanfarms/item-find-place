@@ -278,7 +278,6 @@ export const Header = () => {
               address: address.address
             });
             setShowAddressSelector(false);
-            loadSelectedAddress();
           }}
           selectedAddress={selectedAddress ? {
             id: '',
