@@ -3,17 +3,15 @@ import { UniversalSearchBar } from "@/components/UniversalSearchBar";
 import { FeaturedRestaurants } from "@/components/FeaturedRestaurants";
 import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
-
 const Restaurants = () => {
-  return (
-    <div className="min-h-screen bg-background pb-16">
+  return <div className="min-h-screen bg-background pb-16">
       <Header />
       <main>
         <UniversalSearchBar />
         <section className="py-8 bg-gradient-subtle">
           <div className="container mx-auto px-4">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-foreground">Top Restaurants</h2>
+              
             </div>
             <FeaturedRestaurants />
           </div>
@@ -21,8 +19,6 @@ const Restaurants = () => {
       </main>
       <Footer />
       <BottomNav />
-    </div>
-  );
+    </div>;
 };
-
 export default Restaurants;
