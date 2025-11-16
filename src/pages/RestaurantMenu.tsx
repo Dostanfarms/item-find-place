@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Star, Clock, MapPin, Plus, ChevronRight } from "lucide-react";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { useCart } from "@/contexts/CartContext";
+import OrderTrackingButton from "@/components/OrderTrackingButton";
+import OrderTrackingModal from "@/components/OrderTrackingModal";
 import restaurant1 from "@/assets/restaurant-1.jpg";
 import { calculateDistance, getDeliveryTime, formatDistance } from "@/lib/distanceUtils";
 interface Restaurant {
@@ -44,6 +46,7 @@ const RestaurantMenu = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [similarRestaurants, setSimilarRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -325,6 +328,10 @@ const RestaurantMenu = () => {
         </main>
 
         <Footer />
+        
+        {/* Order Tracking Button */}
+        <OrderTrackingButton onClick={() => setShowTrackingModal(true)} />
+        <OrderTrackingModal isOpen={showTrackingModal} onClose={() => setShowTrackingModal(false)} />
         
         {/* Floating Cart Button */}
         {getTotalItems() > 0 && <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">

@@ -186,9 +186,15 @@ export const Checkout = () => {
         status: 'pending'
       };
       const {
+        data,
         error
-      } = await supabase.from('orders').insert([orderData]);
+      } = await supabase.from('orders').insert([orderData]).select().single();
       if (error) throw error;
+
+      // Set active order for tracking
+      if (data) {
+        localStorage.setItem('activeOrderId', data.id);
+      }
 
       // Clear cart after successful order
       clearCart();
@@ -197,7 +203,7 @@ export const Checkout = () => {
         description: "Your order has been placed and will be processed soon."
       });
 
-      // Navigate to home page or order confirmation page
+      // Navigate to home page
       navigate('/');
     } catch (error) {
       console.error('Error placing order:', error);

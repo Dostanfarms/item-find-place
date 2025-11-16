@@ -2,12 +2,16 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import OrderTrackingButton from "@/components/OrderTrackingButton";
+import OrderTrackingModal from "@/components/OrderTrackingModal";
 import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const CartPage = () => {
   const { cartItems, updateQuantity, getTotalPrice, cartRestaurantName } = useCart();
   const navigate = useNavigate();
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
 
   const itemTotal = getTotalPrice();
   const deliveryFee = itemTotal >= 499 ? 0 : 19;
@@ -29,6 +33,8 @@ const CartPage = () => {
           <Button onClick={() => navigate(-1)}>Go Back</Button>
         </main>
         <Footer />
+        <OrderTrackingButton onClick={() => setShowTrackingModal(true)} />
+        <OrderTrackingModal isOpen={showTrackingModal} onClose={() => setShowTrackingModal(false)} />
       </div>
     );
   }
@@ -101,6 +107,8 @@ const CartPage = () => {
         </section>
       </main>
       <Footer />
+      <OrderTrackingButton onClick={() => setShowTrackingModal(true)} />
+      <OrderTrackingModal isOpen={showTrackingModal} onClose={() => setShowTrackingModal(false)} />
     </div>
   );
 };

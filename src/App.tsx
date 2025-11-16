@@ -22,6 +22,7 @@ import CartPage from "./pages/CartPage";
 import { SellerAuthProvider } from "./contexts/SellerAuthContext";
 import { UserAuthProvider } from "./contexts/UserAuthContext";
 import { CartProvider } from "./contexts/CartContext";
+import { OrderTrackingProvider } from "./contexts/OrderTrackingContext";
 
 const queryClient = new QueryClient();
 
@@ -30,32 +31,34 @@ const App = () => (
     <UserAuthProvider>
       <SellerAuthProvider>
         <CartProvider>
-          <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/restaurants" element={<Restaurants />} />
-            <Route path="/restaurant/:restaurantId" element={<RestaurantMenu />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/my-orders" element={<MyOrders />} />
-            <Route path="/seller-login" element={<SellerLogin />} />
-            <Route path="/seller-dashboard" element={<SellerDashboard />} />
-            <Route path="/delivery-login" element={<DeliveryPartnerLogin />} />
-            <Route path="/delivery-dashboard" element={<DeliveryPartnerDashboard />} />
-            <Route path="/dashboard" element={<Dashboard />}>
-              <Route path="users" element={<Users />} />
-              <Route path="sellers" element={<Sellers />} />
-              <Route path="orders" element={<Orders />} />
-              <Route path="delivery-partners" element={<DeliveryPartners />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-          </TooltipProvider>
+          <OrderTrackingProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/restaurants" element={<Restaurants />} />
+                  <Route path="/restaurant/:restaurantId" element={<RestaurantMenu />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/my-orders" element={<MyOrders />} />
+                  <Route path="/seller-login" element={<SellerLogin />} />
+                  <Route path="/seller-dashboard" element={<SellerDashboard />} />
+                  <Route path="/delivery-login" element={<DeliveryPartnerLogin />} />
+                  <Route path="/delivery-dashboard" element={<DeliveryPartnerDashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />}>
+                    <Route path="users" element={<Users />} />
+                    <Route path="sellers" element={<Sellers />} />
+                    <Route path="orders" element={<Orders />} />
+                    <Route path="delivery-partners" element={<DeliveryPartners />} />
+                  </Route>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </OrderTrackingProvider>
         </CartProvider>
       </SellerAuthProvider>
     </UserAuthProvider>
