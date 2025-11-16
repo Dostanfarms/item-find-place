@@ -18,13 +18,22 @@ interface AddressDetailsFormProps {
     longitude: number;
     address: string;
   } | null;
+  editingAddress?: {
+    id: string;
+    label: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+    mobile?: string;
+  } | null;
 }
 
 const AddressDetailsForm = ({ 
   open, 
   onOpenChange, 
   onAddressSaved,
-  selectedLocation 
+  selectedLocation,
+  editingAddress
 }: AddressDetailsFormProps) => {
   const { user } = useUserAuth();
   const [houseNumber, setHouseNumber] = useState('');
@@ -44,7 +53,29 @@ const AddressDetailsForm = ({
     if (open && user) {
       loadExistingLabels();
     }
-  }, [user, open]);
+    
+    // Pre-fill form when editing an address
+    if (editingAddress) {
+      // Parse the address to extract house number and area
+      const addressParts = editingAddress.address.split(',');
+      if (addressParts.length > 0) {
+        setHouseNumber(addressParts[0].trim());
+      }
+      if (addressParts.length > 1) {
+        setApartmentArea(addressParts[1].trim());
+      }
+      setSelectedLabel(editingAddress.label);
+      if (editingAddress.mobile) {
+        setMobileNumber(editingAddress.mobile);
+      }
+    } else {
+      // Reset form when not editing
+      setHouseNumber('');
+      setApartmentArea('');
+      setDirections('');
+      setSelectedLabel('Home');
+    }
+  }, [user, open, editingAddress]);
 
   const loadExistingLabels = async () => {
     if (!user) return;
@@ -96,7 +127,7 @@ const AddressDetailsForm = ({
       return;
     }
 
-    if (!selectedLocation) {
+    if (!selectedLocation && !editingAddress) {
       toast({
         title: "Location Required",
         description: "Please select a location first.",
@@ -117,23 +148,58 @@ const AddressDetailsForm = ({
     try {
       setIsSaving(true);
 
-      const fullAddress = `${houseNumber}${apartmentArea ? ', ' + apartmentArea : ''}, ${selectedLocation.address}`;
+      const locationData = selectedLocation || {
+        latitude: editingAddress?.latitude!,
+        longitude: editingAddress?.longitude!,
+        address: editingAddress?.address!
+      };
 
-      const { data, error } = await supabase
-        .from('user_addresses')
-        .insert([{
-          user_id: user.id,
-          label: selectedLabel,
-          house_number: houseNumber,
-          apartment_area: apartmentArea || null,
-          directions: directions || null,
-          mobile: mobileNumber,
-          full_address: fullAddress,
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-        }])
-        .select()
-        .single();
+      const fullAddress = `${houseNumber}${apartmentArea ? ', ' + apartmentArea : ''}, ${locationData.address}`;
+
+      let data, error;
+
+      if (editingAddress) {
+        // Update existing address
+        const result = await supabase
+          .from('user_addresses')
+          .update({
+            label: selectedLabel,
+            house_number: houseNumber,
+            apartment_area: apartmentArea || null,
+            directions: directions || null,
+            mobile: mobileNumber,
+            full_address: fullAddress,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+          })
+          .eq('id', editingAddress.id)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Insert new address
+        const result = await supabase
+          .from('user_addresses')
+          .insert([{
+            user_id: user.id,
+            label: selectedLabel,
+            house_number: houseNumber,
+            apartment_area: apartmentArea || null,
+            directions: directions || null,
+            mobile: mobileNumber,
+            full_address: fullAddress,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+          }])
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
@@ -157,8 +223,8 @@ const AddressDetailsForm = ({
       setSelectedLabel('Home');
 
       toast({
-        title: "Address Saved",
-        description: "Your address has been saved successfully.",
+        title: editingAddress ? "Address Updated" : "Address Saved",
+        description: editingAddress ? "Your address has been updated successfully." : "Your address has been saved successfully.",
       });
     } catch (error) {
       console.error('Error saving address:', error);
@@ -188,10 +254,10 @@ const AddressDetailsForm = ({
             </Button>
             <div className="flex-1">
               <DialogTitle className="text-lg font-semibold">
-                {selectedLocation?.address?.split(',')[0] || 'Address Details'}
+                {editingAddress ? 'Edit Address' : (selectedLocation?.address?.split(',')[0] || 'Address Details')}
               </DialogTitle>
               <p className="text-sm text-muted-foreground line-clamp-1">
-                {selectedLocation?.address}
+                {editingAddress ? editingAddress.address : selectedLocation?.address}
               </p>
             </div>
           </div>
@@ -325,7 +391,7 @@ const AddressDetailsForm = ({
             disabled={isSaving || !houseNumber.trim() || !mobileNumber.trim()}
             className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium uppercase tracking-wide"
           >
-            {isSaving ? 'Saving...' : `ENTER HOUSE / FLAT / BLOCK NO.`}
+            {isSaving ? (editingAddress ? 'Updating...' : 'Saving...') : (editingAddress ? 'UPDATE ADDRESS' : 'SAVE ADDRESS')}
           </Button>
         </div>
       </DialogContent>

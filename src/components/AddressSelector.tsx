@@ -65,6 +65,7 @@ const AddressSelector = ({
     address: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
 
   // Load saved addresses when component opens
   useEffect(() => {
@@ -179,8 +180,24 @@ const AddressSelector = ({
   };
 
   const handleAddressSelect = (address: SavedAddress) => {
+    // Store in localStorage for persistence across pages
+    localStorage.setItem('selectedAddress', JSON.stringify({
+      label: address.label,
+      address: address.address
+    }));
     onAddressSelect(address);
     onOpenChange(false);
+  };
+
+  const handleEditAddress = (address: SavedAddress, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingAddress(address);
+    setSelectedLocation({
+      latitude: address.latitude!,
+      longitude: address.longitude!,
+      address: address.address
+    });
+    setShowAddressForm(true);
   };
 
   return (
@@ -311,6 +328,12 @@ const AddressSelector = ({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
+                              onClick={(e) => handleEditAddress(address, e)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Address
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={(e) => handleDeleteAddress(address.id, e)}
                               className="text-destructive"
                             >
@@ -340,9 +363,13 @@ const AddressSelector = ({
       {/* Address Details Form Modal */}
       <AddressDetailsForm
         open={showAddressForm}
-        onOpenChange={setShowAddressForm}
+        onOpenChange={(open) => {
+          setShowAddressForm(open);
+          if (!open) setEditingAddress(null);
+        }}
         onAddressSaved={handleAddressSaved}
         selectedLocation={selectedLocation}
+        editingAddress={editingAddress}
       />
     </Dialog>
   );

@@ -45,21 +45,40 @@ export const Header = () => {
       loadSelectedAddress();
     }
   }, [isAuthenticated]);
+  
   const loadSelectedAddress = async () => {
     if (!user) return;
+    
+    // First check localStorage for selected address
+    const storedAddress = localStorage.getItem('selectedAddress');
+    if (storedAddress) {
+      try {
+        setSelectedAddress(JSON.parse(storedAddress));
+        return;
+      } catch (error) {
+        console.error('Error parsing stored address:', error);
+      }
+    }
+    
+    // Fallback to loading from database
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('user_addresses').select('label, full_address').eq('user_id', user.id).order('updated_at', {
-        ascending: false
-      }).limit(1).single();
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('label, full_address')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
       if (error) throw error;
+      
       if (data) {
-        setSelectedAddress({
+        const addressData = {
           label: data.label,
           address: data.full_address
-        });
+        };
+        setSelectedAddress(addressData);
+        localStorage.setItem('selectedAddress', JSON.stringify(addressData));
       }
     } catch (error) {
       console.error('No saved addresses found');
@@ -273,10 +292,13 @@ export const Header = () => {
           open={showAddressSelector}
           onOpenChange={setShowAddressSelector}
           onAddressSelect={(address) => {
-            setSelectedAddress({
+            const addressData = {
               label: address.label,
               address: address.address
-            });
+            };
+            setSelectedAddress(addressData);
+            // Store selected address in localStorage for persistence across pages
+            localStorage.setItem('selectedAddress', JSON.stringify(addressData));
             setShowAddressSelector(false);
           }}
           selectedAddress={selectedAddress ? {
