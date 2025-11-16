@@ -51,14 +51,49 @@ export const Checkout = () => {
   // Load user's default address
   const loadDefaultAddress = async () => {
     if (!user) return;
+    
+    // First check localStorage for selected address
+    const storedAddress = localStorage.getItem('selectedAddress');
+    if (storedAddress) {
+      try {
+        const parsed = JSON.parse(storedAddress);
+        // Need to get full details from DB for this address
+        const { data } = await supabase
+          .from('user_addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('label', parsed.label)
+          .eq('full_address', parsed.address)
+          .single();
+        
+        if (data) {
+          setSelectedAddress({
+            id: data.id,
+            label: data.label,
+            address: data.full_address,
+            latitude: parseFloat(data.latitude.toString()),
+            longitude: parseFloat(data.longitude.toString()),
+            mobile: data.mobile
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading stored address:', error);
+      }
+    }
+    
+    // Fallback to loading most recent address from database
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('user_addresses').select('*').eq('user_id', user.id).order('updated_at', {
-        ascending: false
-      }).limit(1).single();
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
       if (error) throw error;
+      
       if (data) {
         setSelectedAddress({
           id: data.id,
