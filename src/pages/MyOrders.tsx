@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { Package, Clock, CheckCircle, Truck, AlertCircle, ArrowLeft, Star } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, AlertCircle, ArrowLeft, Star, MapPin } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { RatingModal } from "@/components/RatingModal";
+import OrderTrackingModal from "@/components/OrderTrackingModal";
+import { useOrderTracking } from "@/contexts/OrderTrackingContext";
 interface Order {
   id: string;
   seller_id: string;
@@ -36,10 +38,12 @@ export const MyOrders = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
   const {
     user,
     isAuthenticated
   } = useUserAuth();
+  const { setActiveOrder } = useOrderTracking();
   const navigate = useNavigate();
   const fetchMyOrders = async () => {
     if (!user) return;
@@ -218,6 +222,34 @@ export const MyOrders = () => {
                     <span className="text-right line-clamp-1">{order.delivery_address.split(',')[0]}</span>
                   </div>
 
+                  {/* Track Order Button - Show for non-delivered orders */}
+                  {order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'rejected' && (
+                    <div className="mt-3 pt-3 border-t">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          // Load full order details and set as active order
+                          const { data } = await supabase
+                            .from('orders')
+                            .select('*, delivery_partners(id, name, mobile, profile_photo_url), sellers(seller_latitude, seller_longitude, seller_name)')
+                            .eq('id', order.id)
+                            .single();
+                          
+                          if (data) {
+                            setActiveOrder(data);
+                            setShowTrackingModal(true);
+                          }
+                        }}
+                      >
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Track Order
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Rate Order Button */}
                   {order.status === 'delivered' && !order.is_rated && (
                     <div className="mt-3 pt-3 border-t">
@@ -263,5 +295,11 @@ export const MyOrders = () => {
           onRatingSubmit={fetchMyOrders}
         />
       )}
+
+      {/* Order Tracking Modal */}
+      <OrderTrackingModal
+        isOpen={showTrackingModal}
+        onClose={() => setShowTrackingModal(false)}
+      />
     </div>;
 };

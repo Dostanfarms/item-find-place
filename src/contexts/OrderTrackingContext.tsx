@@ -18,7 +18,14 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
   // Check for active orders on mount
   useEffect(() => {
     if (user) {
-      checkForActiveOrders();
+      // Check localStorage for active order ID first
+      const storedOrderId = localStorage.getItem('activeOrderId');
+      if (storedOrderId && !activeOrder) {
+        // Load the order from database
+        loadOrderById(storedOrderId);
+      } else {
+        checkForActiveOrders();
+      }
       
       // Set up real-time subscription
       const channel = supabase
@@ -44,7 +51,33 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
         supabase.removeChannel(channel);
       };
     }
-  }, [user, activeOrder?.id]);
+  }, [user]);
+
+  const loadOrderById = async (orderId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, delivery_partners(id, name, mobile, profile_photo_url), sellers(seller_latitude, seller_longitude, seller_name)')
+        .eq('id', orderId)
+        .single();
+
+      if (data && !error) {
+        // Check if order is still active
+        const activeStatuses = ['pending', 'accepted', 'preparing', 'packed', 'assigned', 'going_for_pickup', 'picked_up', 'going_for_delivery'];
+        if (activeStatuses.includes(data.status)) {
+          setActiveOrderState(data);
+        } else {
+          // Order is no longer active, clear it
+          clearActiveOrder();
+        }
+      } else {
+        clearActiveOrder();
+      }
+    } catch (error) {
+      console.error('Error loading order:', error);
+      clearActiveOrder();
+    }
+  };
 
   const checkForActiveOrders = async () => {
     if (!user) return;
