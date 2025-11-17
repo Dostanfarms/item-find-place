@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, Minus, Tag, CreditCard, Wallet, Building2, MapPin, Che
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useUserAuth } from "@/contexts/UserAuthContext";
+import { useOrderTracking } from "@/contexts/OrderTrackingContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +24,7 @@ export const Checkout = () => {
     user,
     isAuthenticated
   } = useUserAuth();
+  const { setActiveOrder } = useOrderTracking();
   const navigate = useNavigate();
   const [selectedPayment, setSelectedPayment] = useState("upi");
   const [instructions, setInstructions] = useState("");
@@ -193,7 +195,16 @@ export const Checkout = () => {
 
       // Set active order for tracking
       if (data) {
-        localStorage.setItem('activeOrderId', data.id);
+        // Fetch full order details with related data
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('*, delivery_partners(id, name, mobile, profile_photo_url), sellers(seller_latitude, seller_longitude, seller_name)')
+          .eq('id', data.id)
+          .single();
+        
+        if (orderData) {
+          setActiveOrder(orderData);
+        }
       }
 
       // Clear cart after successful order

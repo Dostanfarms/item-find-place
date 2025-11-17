@@ -63,9 +63,33 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
         .addTo(map.current);
     }
 
-    // If order is out for delivery, show route
-    if (activeOrder.status === 'going_for_delivery' && activeOrder.sellers?.seller_latitude) {
+    // If order is out for delivery, show route and track delivery partner
+    if (activeOrder.status === 'going_for_delivery' || activeOrder.status === 'going_for_pickup') {
       fetchRoute();
+      
+      // Set up real-time tracking for delivery partner location
+      const channel = supabase
+        .channel('delivery-partner-location')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'delivery_partners',
+            filter: `id=eq.${activeOrder.assigned_delivery_partner_id}`,
+          },
+          (payload) => {
+            // Update delivery partner marker position in real-time
+            // Note: Requires delivery_partners table to have latitude/longitude columns
+            console.log('Delivery partner location updated:', payload);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+        map.current?.remove();
+      };
     }
 
     return () => {
