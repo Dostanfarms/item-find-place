@@ -15,44 +15,6 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLDivElement>(null);
 
-  const getStatusText = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      pending: 'Order Placed',
-      accepted: 'Order Accepted',
-      preparing: 'Preparing Order',
-      packed: 'Order Packed',
-      assigned: 'Partner Assigned',
-      going_for_pickup: 'Going for Pickup',
-      picked_up: 'Order Picked Up',
-      going_for_delivery: 'Out for Delivery',
-      delivered: 'Delivered'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getProgress = (status: string) => {
-    const progressMap: { [key: string]: number } = {
-      pending: 10,
-      accepted: 25,
-      preparing: 40,
-      packed: 55,
-      assigned: 60,
-      going_for_pickup: 70,
-      picked_up: 80,
-      going_for_delivery: 90,
-      delivered: 100
-    };
-    return progressMap[status] || 0;
-  };
-
-  const getEstimatedDeliveryTime = () => {
-    const createdAt = new Date(activeOrder.created_at);
-    const estimatedTime = new Date(createdAt.getTime() + 30 * 60000); // 30 minutes
-    return estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
-
-  const items = Array.isArray(activeOrder.items) ? activeOrder.items : [];
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.drag-handle')) {
       setIsDragging(true);
@@ -138,6 +100,45 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
 
   // Early return after all hooks
   if (!activeOrder) return null;
+
+  // Helper functions that use activeOrder - moved here after null check
+  const getStatusText = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      pending: 'Order Placed',
+      accepted: 'Order Accepted',
+      preparing: 'Preparing Order',
+      packed: 'Order Packed',
+      assigned: 'Partner Assigned',
+      going_for_pickup: 'Going for Pickup',
+      picked_up: 'Order Picked Up',
+      going_for_delivery: 'Out for Delivery',
+      delivered: 'Delivered'
+    };
+    return statusMap[status] || status;
+  };
+
+  const getProgress = (status: string) => {
+    const progressMap: { [key: string]: number } = {
+      pending: 10,
+      accepted: 25,
+      preparing: 40,
+      packed: 55,
+      assigned: 60,
+      going_for_pickup: 70,
+      picked_up: 80,
+      going_for_delivery: 90,
+      delivered: 100
+    };
+    return progressMap[status] || 0;
+  };
+
+  const getEstimatedDeliveryTime = () => {
+    const createdAt = new Date(activeOrder.created_at);
+    const estimatedTime = new Date(createdAt.getTime() + 30 * 60000); // 30 minutes
+    return estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const items = Array.isArray(activeOrder.items) ? activeOrder.items : [];
 
   return (
     <div 
