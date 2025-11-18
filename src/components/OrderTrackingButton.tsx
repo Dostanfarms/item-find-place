@@ -15,8 +15,6 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLDivElement>(null);
 
-  if (!activeOrder) return null;
-
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
       pending: 'Order Placed',
@@ -137,6 +135,9 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
       };
     }
   }, [isDragging, dragStart]);
+
+  // Early return after all hooks
+  if (!activeOrder) return null;
 
   return (
     <div 
