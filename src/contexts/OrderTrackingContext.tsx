@@ -15,7 +15,7 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
   const [activeOrder, setActiveOrderState] = useState<any | null>(null);
   const { user } = useUserAuth();
 
-  // Check for active orders on mount
+  // Check for active orders on mount and set up real-time subscription
   useEffect(() => {
     if (user) {
       // Check localStorage for active order ID first
@@ -27,9 +27,14 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
         checkForActiveOrders();
       }
       
-      // Set up real-time subscription
+      // Set up real-time subscription for immediate updates
       const channel = supabase
-        .channel('order-tracking')
+        .channel('order-tracking-realtime', {
+          config: {
+            broadcast: { self: true },
+            presence: { key: user.id },
+          },
+        })
         .on(
           'postgres_changes',
           {
@@ -38,10 +43,12 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
             table: 'orders',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          async (payload) => {
+            console.log('Real-time order update:', payload);
             const newOrder = payload.new as any;
             if (newOrder && activeOrder && newOrder.id === activeOrder.id) {
-              setActiveOrderState(newOrder);
+              // Refresh full order data with relations for instant updates
+              await loadOrderById(newOrder.id);
             }
           }
         )
@@ -62,9 +69,12 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
         .single();
 
       if (data && !error) {
-        // Check if order is still active
+        // Include delivered orders for 30 minutes after delivery
         const activeStatuses = ['pending', 'accepted', 'preparing', 'packed', 'assigned', 'going_for_pickup', 'picked_up', 'going_for_delivery'];
-        if (activeStatuses.includes(data.status)) {
+        const isDeliveredRecently = data.status === 'delivered' && data.delivered_at && 
+          (new Date().getTime() - new Date(data.delivered_at).getTime()) < 30 * 60000;
+        
+        if (activeStatuses.includes(data.status) || isDeliveredRecently) {
           setActiveOrderState(data);
         } else {
           // Order is no longer active, clear it

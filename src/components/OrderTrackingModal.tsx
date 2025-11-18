@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CheckCircle2, Clock, Package, Truck, Phone, Navigation } from 'lucide-react';
+import { CheckCircle2, Clock, Package, Truck, Phone, Star } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
+import { RatingModal } from './RatingModal';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   useEffect(() => {
     const fetchMapboxToken = async () => {
@@ -63,8 +65,8 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
         .addTo(map.current);
     }
 
-    // If order is out for delivery, show route and track delivery partner
-    if (activeOrder.status === 'going_for_delivery' || activeOrder.status === 'going_for_pickup') {
+    // If order is picked up or out for delivery, show route and track delivery partner
+    if (activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery' || activeOrder.status === 'going_for_pickup') {
       fetchRoute();
       
       // Set up real-time tracking for delivery partner location
@@ -196,8 +198,22 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
   };
 
   const getDeliveryTime = () => {
+    if (activeOrder.status === 'delivered' && activeOrder.delivered_at) {
+      const deliveredAt = new Date(activeOrder.delivered_at);
+      const now = new Date();
+      const diffInMinutes = Math.ceil((now.getTime() - deliveredAt.getTime()) / 60000);
+      return `${diffInMinutes} min ago`;
+    }
+    
     const createdAt = new Date(activeOrder.created_at);
     const estimatedTime = new Date(createdAt.getTime() + 30 * 60000); // 30 minutes
+    
+    if (activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery') {
+      const now = new Date();
+      const diffInMinutes = Math.ceil((estimatedTime.getTime() - now.getTime()) / 60000);
+      return `${diffInMinutes} min`;
+    }
+    
     return estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
@@ -215,20 +231,53 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
           </p>
         </DialogHeader>
 
-        {/* Map */}
-        <div ref={mapContainer} className="h-64 w-full" />
+        {/* Map - Show when picked up or out for delivery */}
+        {(activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery' || activeOrder.status === 'going_for_pickup') && (
+          <div ref={mapContainer} className="h-64 w-full" />
+        )}
 
         <div className="p-6 space-y-6">
-          {/* Delivery Guarantee */}
-          <Card className="bg-green-50 border-green-200 p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-semibold text-green-900">On-Time Guarantee</p>
-                <p className="text-sm text-green-700">Delivery on or before {getDeliveryTime()}</p>
+          {/* Delivery Status Card */}
+          {activeOrder.status === 'delivered' ? (
+            <Card className="bg-green-50 border-green-200 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-semibold text-green-900">Delivered</p>
+                    <p className="text-sm text-green-700">Delivered {getDeliveryTime()}</p>
+                  </div>
+                </div>
+                {!activeOrder.is_rated && (
+                  <Button 
+                    onClick={() => setShowRatingModal(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    Rate Order
+                  </Button>
+                )}
               </div>
-            </div>
-          </Card>
+            </Card>
+          ) : (
+            <Card className="bg-green-50 border-green-200 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-semibold text-green-900">
+                    {activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery' 
+                      ? 'Arriving Soon' 
+                      : 'On-Time Guarantee'}
+                  </p>
+                  <p className="text-sm text-green-700">
+                    {activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery'
+                      ? `Arriving in ${getDeliveryTime()}`
+                      : `Delivery on or before ${getDeliveryTime()}`}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Order Status */}
           <div>
@@ -319,6 +368,21 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
           </div>
         </div>
       </DialogContent>
+
+      {/* Rating Modal */}
+      {activeOrder && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          orderId={activeOrder.id}
+          sellerId={activeOrder.seller_id}
+          sellerName={activeOrder.seller_name}
+          userId={activeOrder.user_id}
+          onRatingSubmit={() => {
+            setShowRatingModal(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 };

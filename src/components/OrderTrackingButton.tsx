@@ -117,6 +117,13 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
   };
 
   const getEstimatedDeliveryTime = () => {
+    if (activeOrder.status === 'delivered' && activeOrder.delivered_at) {
+      const deliveredAt = new Date(activeOrder.delivered_at);
+      const now = new Date();
+      const diffInMinutes = Math.ceil((now.getTime() - deliveredAt.getTime()) / 60000);
+      return `${diffInMinutes} min ago`;
+    }
+    
     const createdAt = new Date(activeOrder.created_at);
     const estimatedTime = new Date(createdAt.getTime() + 30 * 60000); // 30 minutes
     const now = new Date();
@@ -164,7 +171,7 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
             {activeOrder.seller_name} • {items.length} {items.length === 1 ? 'item' : 'items'}
           </p>
           <p className="text-xs text-orange-600 font-medium mt-1">
-            Est. delivery: {getEstimatedDeliveryTime()}
+            {activeOrder.status === 'delivered' ? 'Delivered: ' : 'Est. delivery: '}{getEstimatedDeliveryTime()}
           </p>
         </button>
       </div>
