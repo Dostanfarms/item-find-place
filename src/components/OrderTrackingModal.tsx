@@ -162,21 +162,37 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
 
   const getStatusSteps = () => {
     const steps = [
-      { key: 'pending', label: 'Order Placed', icon: CheckCircle2 },
-      { key: 'accepted', label: 'Accepted', icon: CheckCircle2 },
-      { key: 'preparing', label: 'Preparing', icon: Package },
-      { key: 'packed', label: 'Packed', icon: Package },
-      { key: 'going_for_delivery', label: 'Out for Delivery', icon: Truck },
-      { key: 'delivered', label: 'Delivered', icon: CheckCircle2 },
+      { key: 'pending', label: 'Order Placed', icon: CheckCircle2, color: 'green' },
+      { key: 'accepted', label: 'Accepted', icon: CheckCircle2, color: 'green' },
+      { key: 'preparing', label: 'Preparing', icon: Package, color: 'orange' },
+      { key: 'packed', label: 'Packed', icon: Package, color: 'green' },
+      { key: 'going_for_delivery', label: 'Out for Delivery', icon: Truck, color: 'green' },
+      { key: 'delivered', label: 'Delivered', icon: CheckCircle2, color: 'green' },
     ];
 
     const statusOrder = ['pending', 'accepted', 'preparing', 'packed', 'assigned', 'going_for_pickup', 'picked_up', 'going_for_delivery', 'delivered'];
     const currentIndex = statusOrder.indexOf(activeOrder.status);
 
-    return steps.map((step, index) => ({
-      ...step,
-      completed: statusOrder.indexOf(step.key) <= currentIndex,
-    }));
+    return steps.map((step) => {
+      const stepIndex = statusOrder.indexOf(step.key);
+      let completed = stepIndex <= currentIndex;
+      let color = 'gray';
+      
+      if (completed) {
+        // Preparing shows orange only when currently in preparing status
+        if (step.key === 'preparing' && activeOrder.status === 'preparing') {
+          color = 'orange';
+        } else {
+          color = step.color;
+        }
+      }
+      
+      return {
+        ...step,
+        completed,
+        color,
+      };
+    });
   };
 
   const getDeliveryTime = () => {
@@ -229,9 +245,13 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
 
             {/* Status Timeline */}
             <div className="space-y-4">
-              {getStatusSteps().map((step, index) => (
+              {getStatusSteps().map((step) => (
                 <div key={step.key} className="flex items-start gap-3">
-                  <div className={`mt-1 ${step.completed ? 'text-green-600' : 'text-gray-300'}`}>
+                  <div className={`mt-1 ${
+                    step.color === 'green' ? 'text-green-600' : 
+                    step.color === 'orange' ? 'text-orange-600' : 
+                    'text-gray-300'
+                  }`}>
                     <step.icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
@@ -240,7 +260,16 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
                     </p>
                   </div>
                   {step.completed && (
-                    <Badge variant="secondary" className="text-xs">Done</Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${
+                        step.color === 'green' ? 'bg-green-100 text-green-700' : 
+                        step.color === 'orange' ? 'bg-orange-100 text-orange-700' : 
+                        ''
+                      }`}
+                    >
+                      Done
+                    </Badge>
                   )}
                 </div>
               ))}
