@@ -1,7 +1,6 @@
 import { Package, ChevronUp, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrderTracking } from '@/contexts/OrderTrackingContext';
-import { Progress } from '@/components/ui/progress';
 import { useState, useRef, useEffect } from 'react';
 
 interface OrderTrackingButtonProps {
@@ -117,25 +116,16 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
     return statusMap[status] || status;
   };
 
-  const getProgress = (status: string) => {
-    const progressMap: { [key: string]: number } = {
-      pending: 10,
-      accepted: 25,
-      preparing: 40,
-      packed: 55,
-      assigned: 60,
-      going_for_pickup: 70,
-      picked_up: 80,
-      going_for_delivery: 90,
-      delivered: 100
-    };
-    return progressMap[status] || 0;
-  };
-
   const getEstimatedDeliveryTime = () => {
     const createdAt = new Date(activeOrder.created_at);
     const estimatedTime = new Date(createdAt.getTime() + 30 * 60000); // 30 minutes
-    return estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const now = new Date();
+    const diffInMinutes = Math.ceil((estimatedTime.getTime() - now.getTime()) / 60000);
+    
+    if (diffInMinutes <= 0) {
+      return 'Arriving soon';
+    }
+    return `${diffInMinutes} min`;
   };
 
   const items = Array.isArray(activeOrder.items) ? activeOrder.items : [];
@@ -173,10 +163,9 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
           <p className="text-xs text-muted-foreground">
             {activeOrder.seller_name} • {items.length} {items.length === 1 ? 'item' : 'items'}
           </p>
-          <p className="text-xs text-primary font-medium mt-1">
+          <p className="text-xs text-orange-600 font-medium mt-1">
             Est. delivery: {getEstimatedDeliveryTime()}
           </p>
-          <Progress value={getProgress(activeOrder.status)} className="h-1 mt-2" />
         </button>
       </div>
     </div>
