@@ -229,6 +229,13 @@ export type Database = {
             referencedRelation: "delivery_partners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ratings: {
