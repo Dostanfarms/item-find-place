@@ -47,6 +47,8 @@ export type Database = {
           id: string
           is_active: boolean
           is_online: boolean
+          latitude: number | null
+          longitude: number | null
           mobile: string
           name: string
           password_hash: string | null
@@ -58,6 +60,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_online?: boolean
+          latitude?: number | null
+          longitude?: number | null
           mobile: string
           name: string
           password_hash?: string | null
@@ -69,6 +73,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_online?: boolean
+          latitude?: number | null
+          longitude?: number | null
           mobile?: string
           name?: string
           password_hash?: string | null

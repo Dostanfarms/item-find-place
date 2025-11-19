@@ -20,6 +20,7 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
   const { activeOrder } = useOrderTracking();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const deliveryPartnerMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
   const [showRatingModal, setShowRatingModal] = useState(false);
 
@@ -67,11 +68,38 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
 
     // If order is picked up or out for delivery, show route and track delivery partner
     if (activeOrder.status === 'picked_up' || activeOrder.status === 'going_for_delivery' || activeOrder.status === 'going_for_pickup') {
-      fetchRoute();
+      // Initialize delivery partner marker
+      const initializeDeliveryPartnerTracking = async () => {
+        // Fetch initial delivery partner location
+        const { data: partnerData } = await supabase
+          .from('delivery_partners')
+          .select('latitude, longitude, name')
+          .eq('id', activeOrder.assigned_delivery_partner_id)
+          .single();
+
+        if (partnerData?.latitude && partnerData?.longitude) {
+          // Create delivery partner marker
+          deliveryPartnerMarker.current = new mapboxgl.Marker({ 
+            color: '#FF8C42',
+            scale: 1.2 
+          })
+            .setLngLat([partnerData.longitude, partnerData.latitude])
+            .setPopup(new mapboxgl.Popup().setHTML(`<strong>${partnerData.name}</strong><br>Delivery Partner`))
+            .addTo(map.current!);
+
+          // Fetch route from delivery partner to customer
+          await fetchRouteFromPartner(partnerData.longitude, partnerData.latitude);
+        } else {
+          // Fallback to restaurant location if partner location not available
+          fetchRoute();
+        }
+      };
+
+      initializeDeliveryPartnerTracking();
       
       // Set up real-time tracking for delivery partner location
       const channel = supabase
-        .channel('delivery-partner-location')
+        .channel('delivery-partner-location-tracking')
         .on(
           'postgres_changes',
           {
@@ -80,16 +108,24 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
             table: 'delivery_partners',
             filter: `id=eq.${activeOrder.assigned_delivery_partner_id}`,
           },
-          (payload) => {
-            // Update delivery partner marker position in real-time
-            // Note: Requires delivery_partners table to have latitude/longitude columns
-            console.log('Delivery partner location updated:', payload);
+          async (payload) => {
+            const newData = payload.new as any;
+            console.log('Delivery partner location updated:', newData);
+            
+            if (newData.latitude && newData.longitude && deliveryPartnerMarker.current) {
+              // Update marker position
+              deliveryPartnerMarker.current.setLngLat([newData.longitude, newData.latitude]);
+              
+              // Update route from new location to customer
+              await fetchRouteFromPartner(newData.longitude, newData.latitude);
+            }
           }
         )
         .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
+        deliveryPartnerMarker.current?.remove();
         map.current?.remove();
       };
     }
@@ -139,8 +175,8 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
               'line-cap': 'round',
             },
             paint: {
-              'line-color': '#3B82F6',
-              'line-width': 4,
+              'line-color': '#FF6B35',
+              'line-width': 5,
             },
           });
         }
@@ -157,6 +193,67 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
       }
     } catch (error) {
       console.error('Error fetching route:', error);
+    }
+  };
+
+  const fetchRouteFromPartner = async (partnerLng: number, partnerLat: number) => {
+    if (!activeOrder || !map.current) return;
+
+    const start = [partnerLng, partnerLat];
+    const end = [activeOrder.delivery_longitude, activeOrder.delivery_latitude];
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${mapboxToken}`
+      );
+      const data = await response.json();
+
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0].geometry;
+
+        if (map.current.getSource('route')) {
+          (map.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
+            type: 'Feature',
+            properties: {},
+            geometry: route,
+          });
+        } else {
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: route,
+            },
+          });
+
+          map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': '#FF6B35',
+              'line-width': 5,
+            },
+          });
+        }
+
+        // Fit map to show the route
+        const coordinates = route.coordinates;
+        const bounds = coordinates.reduce(
+          (bounds: mapboxgl.LngLatBounds, coord: [number, number]) => {
+            return bounds.extend(coord as [number, number]);
+          },
+          new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
+        );
+        map.current.fitBounds(bounds, { padding: 50 });
+      }
+    } catch (error) {
+      console.error('Error fetching route from partner:', error);
     }
   };
 
@@ -221,7 +318,7 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0 z-50">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-bold">
             {activeOrder.seller_name}
