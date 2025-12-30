@@ -17,8 +17,14 @@ interface Restaurant {
   seller_longitude?: number;
   distance?: number;
   deliveryTime?: string;
+  category?: string;
 }
-export const FeaturedRestaurants = () => {
+
+interface FeaturedRestaurantsProps {
+  category?: string;
+}
+
+export const FeaturedRestaurants = ({ category = 'food_delivery' }: FeaturedRestaurantsProps) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -32,7 +38,7 @@ export const FeaturedRestaurants = () => {
     if (userLocation) {
       fetchRestaurants();
     }
-  }, [userLocation]);
+  }, [userLocation, category]);
 
   const getUserLocation = async () => {
     try {
@@ -51,19 +57,27 @@ export const FeaturedRestaurants = () => {
         return;
       }
 
-      // If no saved address, use browser geolocation
+      // If no saved address, use browser geolocation with timeout
       if (navigator.geolocation) {
+        const timeoutId = setTimeout(() => {
+          // Fallback if geolocation takes too long
+          setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Hyderabad default
+        }, 5000);
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
+            clearTimeout(timeoutId);
             setUserLocation({
               lat: position.coords.latitude,
               lng: position.coords.longitude
             });
           },
           () => {
+            clearTimeout(timeoutId);
             // Default to a location if geolocation fails
             setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Hyderabad
-          }
+          },
+          { timeout: 5000 }
         );
       } else {
         setUserLocation({ lat: 17.385044, lng: 78.486671 }); // Default
@@ -79,10 +93,17 @@ export const FeaturedRestaurants = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('sellers')
-        .select('id, seller_name, profile_photo_url, status, is_online, seller_latitude, seller_longitude')
+        .select('id, seller_name, profile_photo_url, status, is_online, seller_latitude, seller_longitude, category')
         .eq('status', 'approved');
+      
+      // Filter by category
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -114,8 +135,9 @@ export const FeaturedRestaurants = () => {
       );
 
       // Filter restaurants within 10km and sort by distance
+      // Demo Restaurant is always shown regardless of distance
       const nearbyRestaurants = restaurantsWithDetails
-        .filter(r => r.distance <= 10)
+        .filter(r => r.distance <= 10 || r.seller_name === 'Demo Restaurant')
         .sort((a, b) => a.distance - b.distance);
       
       setRestaurants(nearbyRestaurants);
@@ -131,7 +153,7 @@ export const FeaturedRestaurants = () => {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="animate-pulse">Loading restaurants...</div>
+        <div className="animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -146,7 +168,7 @@ export const FeaturedRestaurants = () => {
   if (restaurants.length === 0 && !loading) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No restaurants found within 10km of your location</p>
+        <p className="text-muted-foreground">No sellers found in this category within 10km of your location</p>
       </div>
     );
   }

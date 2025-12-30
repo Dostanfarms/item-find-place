@@ -303,6 +303,7 @@ export type Database = {
         Row: {
           account_number: string
           bank_name: string
+          category: string
           created_at: string
           franchise_percentage: number | null
           id: string
@@ -322,6 +323,7 @@ export type Database = {
         Insert: {
           account_number: string
           bank_name: string
+          category?: string
           created_at?: string
           franchise_percentage?: number | null
           id?: string
@@ -341,6 +343,7 @@ export type Database = {
         Update: {
           account_number?: string
           bank_name?: string
+          category?: string
           created_at?: string
           franchise_percentage?: number | null
           id?: string
@@ -464,12 +467,52 @@ export type Database = {
         }
         Relationships: []
       }
+      zippy_pass_subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          end_date: string
+          id: string
+          is_active: boolean
+          razorpay_payment_id: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          razorpay_payment_id: string
+          start_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          razorpay_payment_id?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       generate_delivery_pin: { Args: never; Returns: string }
+      generate_order_id: {
+        Args: { seller_name_param: string }
+        Returns: string
+      }
       generate_seller_id: { Args: never; Returns: string }
       get_seller_rating: {
         Args: { seller_uuid: string }

@@ -1,12 +1,15 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserAuth } from './UserAuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface OrderTrackingContextType {
   activeOrder: any | null;
   setActiveOrder: (order: any) => void;
   clearActiveOrder: () => void;
   refreshOrder: () => Promise<void>;
+  requestNotificationPermission: () => Promise<boolean>;
+  notificationPermission: NotificationPermission;
 }
 
 const OrderTrackingContext = createContext<OrderTrackingContextType | undefined>(undefined);
@@ -14,54 +17,18 @@ const OrderTrackingContext = createContext<OrderTrackingContextType | undefined>
 export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => {
   const [activeOrder, setActiveOrderState] = useState<any | null>(null);
   const { user } = useUserAuth();
+  const activeOrderIdRef = useRef<string | null>(null);
+  const previousStatusRef = useRef<string | null>(null);
+  const { permission, requestPermission, showOrderStatusNotification } = useNotifications();
 
-  // Check for active orders on mount and set up real-time subscription
+  // Keep ref in sync with state
   useEffect(() => {
-    if (user) {
-      // Check localStorage for active order ID first
-      const storedOrderId = localStorage.getItem('activeOrderId');
-      if (storedOrderId && !activeOrder) {
-        // Load the order from database
-        loadOrderById(storedOrderId);
-      } else {
-        checkForActiveOrders();
-      }
-      
-      // Set up real-time subscription for immediate updates
-      const channel = supabase
-        .channel('order-tracking-realtime', {
-          config: {
-            broadcast: { self: true },
-            presence: { key: user.id },
-          },
-        })
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders',
-            filter: `user_id=eq.${user.id}`,
-          },
-          async (payload) => {
-            console.log('Real-time order update:', payload);
-            const newOrder = payload.new as any;
-            if (newOrder && activeOrder && newOrder.id === activeOrder.id) {
-              // Refresh full order data with relations for instant updates
-              await loadOrderById(newOrder.id);
-            }
-          }
-        )
-        .subscribe();
+    activeOrderIdRef.current = activeOrder?.id || null;
+  }, [activeOrder]);
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user]);
-
-  const loadOrderById = async (orderId: string) => {
+  const loadOrderById = useCallback(async (orderId: string) => {
     try {
+      console.log('Loading order by ID:', orderId);
       const { data, error } = await supabase
         .from('orders')
         .select('*, delivery_partners(id, name, mobile, profile_photo_url), sellers(seller_latitude, seller_longitude, seller_name)')
@@ -75,21 +42,24 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
           (new Date().getTime() - new Date(data.delivered_at).getTime()) < 30 * 60000;
         
         if (activeStatuses.includes(data.status) || isDeliveredRecently) {
+          console.log('Setting active order with status:', data.status);
+          previousStatusRef.current = data.status;
           setActiveOrderState(data);
         } else {
           // Order is no longer active, clear it
           clearActiveOrder();
         }
       } else {
+        console.error('Error loading order:', error);
         clearActiveOrder();
       }
     } catch (error) {
       console.error('Error loading order:', error);
       clearActiveOrder();
     }
-  };
+  }, []);
 
-  const checkForActiveOrders = async () => {
+  const checkForActiveOrders = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -103,31 +73,103 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
         .single();
 
       if (data && !error) {
+        console.log('Found active order:', data.id, data.status);
         setActiveOrderState(data);
+        localStorage.setItem('activeOrderId', data.id);
       }
     } catch (error) {
       console.error('Error checking for active orders:', error);
     }
-  };
+  }, [user]);
 
-  const setActiveOrder = (order: any) => {
-    setActiveOrderState(order);
-    localStorage.setItem('activeOrderId', order.id);
-  };
-
-  const clearActiveOrder = () => {
+  const clearActiveOrder = useCallback(() => {
     setActiveOrderState(null);
+    activeOrderIdRef.current = null;
     localStorage.removeItem('activeOrderId');
-  };
+  }, []);
 
-  const refreshOrder = async () => {
-    if (!activeOrder) return;
+  // Check for active orders on mount
+  useEffect(() => {
+    if (user) {
+      const storedOrderId = localStorage.getItem('activeOrderId');
+      if (storedOrderId) {
+        loadOrderById(storedOrderId);
+      } else {
+        checkForActiveOrders();
+      }
+    }
+  }, [user, loadOrderById, checkForActiveOrders]);
+
+  // Set up real-time subscription separately to avoid stale closures
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time order subscription for user:', user.id);
+    
+    const channel = supabase
+      .channel(`order-tracking-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          console.log('Real-time order update received:', payload);
+          const newOrder = payload.new as any;
+          const currentOrderId = activeOrderIdRef.current;
+          const previousStatus = previousStatusRef.current;
+          
+          if (newOrder) {
+            // If it's the current active order, update it
+            if (currentOrderId && newOrder.id === currentOrderId) {
+              console.log('Updating active order status to:', newOrder.status);
+              
+              // Show notification if status changed
+              if (previousStatus && newOrder.status !== previousStatus) {
+                console.log('Status changed from', previousStatus, 'to', newOrder.status);
+                showOrderStatusNotification(newOrder.status, newOrder.seller_name);
+              }
+              
+              previousStatusRef.current = newOrder.status;
+              await loadOrderById(newOrder.id);
+            }
+            // If no active order but this is a new order, set it
+            else if (!currentOrderId && payload.eventType === 'INSERT') {
+              console.log('New order detected:', newOrder.id);
+              previousStatusRef.current = newOrder.status;
+              await loadOrderById(newOrder.id);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Order tracking subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up order tracking subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user, loadOrderById, showOrderStatusNotification]);
+
+  const setActiveOrder = useCallback((order: any) => {
+    setActiveOrderState(order);
+    activeOrderIdRef.current = order.id;
+    localStorage.setItem('activeOrderId', order.id);
+  }, []);
+
+  const refreshOrder = useCallback(async () => {
+    const orderId = activeOrderIdRef.current;
+    if (!orderId) return;
 
     try {
       const { data, error } = await supabase
         .from('orders')
         .select('*, delivery_partners(id, name, mobile, profile_photo_url), sellers(seller_latitude, seller_longitude, seller_name)')
-        .eq('id', activeOrder.id)
+        .eq('id', orderId)
         .single();
 
       if (data && !error) {
@@ -136,10 +178,17 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
     } catch (error) {
       console.error('Error refreshing order:', error);
     }
-  };
+  }, []);
 
   return (
-    <OrderTrackingContext.Provider value={{ activeOrder, setActiveOrder, clearActiveOrder, refreshOrder }}>
+    <OrderTrackingContext.Provider value={{ 
+      activeOrder, 
+      setActiveOrder, 
+      clearActiveOrder, 
+      refreshOrder,
+      requestNotificationPermission: requestPermission,
+      notificationPermission: permission,
+    }}>
       {children}
     </OrderTrackingContext.Provider>
   );
