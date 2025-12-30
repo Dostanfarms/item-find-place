@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useOrderTracking } from '@/contexts/OrderTrackingContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CheckCircle2, Clock, Package, Truck, Phone, Star } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
+import { CheckCircle2, Package, Truck, Phone, Star } from 'lucide-react';
+import { GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { supabase } from '@/integrations/supabase/client';
 import { RatingModal } from './RatingModal';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -22,31 +23,10 @@ const containerStyle = {
 
 const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
   const { activeOrder } = useOrderTracking();
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>('');
+  const { isLoaded } = useGoogleMaps();
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [deliveryPartnerLocation, setDeliveryPartnerLocation] = useState<{lat: number, lng: number} | null>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-
-  // Fetch Google Maps API key
-  useEffect(() => {
-    const fetchGoogleMapsKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-google-maps-key');
-        if (data?.apiKey) {
-          setGoogleMapsApiKey(data.apiKey);
-        }
-      } catch (error) {
-        console.error('Error fetching Google Maps API key:', error);
-      }
-    };
-    fetchGoogleMapsKey();
-  }, []);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: googleMapsApiKey,
-  });
 
   // Fetch delivery partner location and set up real-time tracking
   useEffect(() => {
@@ -129,10 +109,6 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
       }
     );
   }, [isLoaded, deliveryPartnerLocation, activeOrder?.delivery_latitude, activeOrder?.delivery_longitude]);
-
-  const onMapLoad = useCallback(() => {
-    setMapLoaded(true);
-  }, []);
 
   if (!activeOrder) return null;
 
@@ -231,12 +207,11 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
         </DialogHeader>
 
         {/* Google Map - Show when picked up or out for delivery */}
-        {showMap && isLoaded && googleMapsApiKey && (
+        {showMap && isLoaded && (
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={mapCenter}
             zoom={14}
-            onLoad={onMapLoad}
             options={{
               zoomControl: true,
               streetViewControl: false,
@@ -302,7 +277,7 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
           </GoogleMap>
         )}
 
-        {showMap && (!isLoaded || !googleMapsApiKey) && (
+        {showMap && !isLoaded && (
           <div className="h-64 w-full flex items-center justify-center bg-muted">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>

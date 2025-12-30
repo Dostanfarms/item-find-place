@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import CurrentLocationButton from '@/components/CurrentLocationButton';
-import { supabase } from '@/integrations/supabase/client';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface LocationPickerProps {
   open: boolean;
@@ -28,34 +28,8 @@ const LocationPicker = ({
 }: LocationPickerProps) => {
   const [selectedLat, setSelectedLat] = useState(initialLat);
   const [selectedLng, setSelectedLng] = useState(initialLng);
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
-  const [loading, setLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-
-  // Fetch Google Maps API key
-  useEffect(() => {
-    if (open && !googleMapsApiKey) {
-      const fetchApiKey = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase.functions.invoke('get-google-maps-key');
-          if (data?.apiKey) {
-            setGoogleMapsApiKey(data.apiKey);
-          }
-        } catch (error) {
-          console.error('Failed to fetch Google Maps API key:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchApiKey();
-    }
-  }, [open, googleMapsApiKey]);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: googleMapsApiKey,
-  });
+  const { isLoaded } = useGoogleMaps();
   
   // Get current location when dialog opens
   useEffect(() => {
@@ -130,8 +104,8 @@ const LocationPicker = ({
         </DialogHeader>
         
         <div className="flex-1 relative">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+          {!isLoaded && (
+            <div className="h-96 flex items-center justify-center bg-muted">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                 <p className="text-sm text-muted-foreground">Loading map...</p>
@@ -139,21 +113,7 @@ const LocationPicker = ({
             </div>
           )}
           
-          {!loading && !googleMapsApiKey && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-              <div className="text-center">
-                <p className="text-sm text-destructive mb-2">Failed to load map. Please try again.</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {!loading && googleMapsApiKey && isLoaded && (
+          {isLoaded && (
             <>
               <GoogleMap
                 mapContainerStyle={containerStyle}
@@ -209,15 +169,6 @@ const LocationPicker = ({
                 </Button>
               </div>
             </>
-          )}
-
-          {!loading && googleMapsApiKey && !isLoaded && (
-            <div className="h-96 flex items-center justify-center bg-muted">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Loading Google Maps...</p>
-              </div>
-            </div>
           )}
         </div>
       </DialogContent>
