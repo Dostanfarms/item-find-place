@@ -5,13 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 interface GoogleMapsContextType {
   isLoaded: boolean;
   loadError: Error | undefined;
-  apiKey: string;
 }
 
 const GoogleMapsContext = createContext<GoogleMapsContextType>({
   isLoaded: false,
   loadError: undefined,
-  apiKey: '',
 });
 
 export const useGoogleMaps = () => useContext(GoogleMapsContext);
@@ -20,8 +18,22 @@ interface GoogleMapsProviderProps {
   children: React.ReactNode;
 }
 
+// Inner component that actually loads Google Maps
+const GoogleMapsLoader = ({ children, apiKey }: { children: React.ReactNode; apiKey: string }) => {
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: apiKey,
+  });
+
+  return (
+    <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
+      {children}
+    </GoogleMapsContext.Provider>
+  );
+};
+
 export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
-  const [apiKey, setApiKey] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [keyFetched, setKeyFetched] = useState(false);
 
   // Fetch Google Maps API key once on mount
@@ -41,20 +53,23 @@ export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
     fetchApiKey();
   }, []);
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey,
-    // Only load when we have the API key
-    // The library handles not re-loading if already loaded
-  });
-
-  // Don't render children until we've attempted to fetch the key
+  // Show nothing until we've attempted to fetch the key
   if (!keyFetched) {
-    return null;
+    return <>{children}</>;
   }
 
+  // If we have an API key, use the loader component
+  if (apiKey) {
+    return (
+      <GoogleMapsLoader apiKey={apiKey}>
+        {children}
+      </GoogleMapsLoader>
+    );
+  }
+
+  // No API key available, provide default context
   return (
-    <GoogleMapsContext.Provider value={{ isLoaded: isLoaded && !!apiKey, loadError, apiKey }}>
+    <GoogleMapsContext.Provider value={{ isLoaded: false, loadError: undefined }}>
       {children}
     </GoogleMapsContext.Provider>
   );
