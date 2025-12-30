@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useEffect, useState, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import CurrentLocationButton from '@/components/CurrentLocationButton';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LocationPickerProps {
   open: boolean;
@@ -14,6 +14,11 @@ interface LocationPickerProps {
   initialLng?: number;
 }
 
+const containerStyle = {
+  width: '100%',
+  height: '384px'
+};
+
 const LocationPicker = ({ 
   open, 
   onOpenChange, 
@@ -21,19 +26,40 @@ const LocationPicker = ({
   initialLat = 28.6139, 
   initialLng = 77.2090 
 }: LocationPickerProps) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const marker = useRef<mapboxgl.Marker | null>(null);
   const [selectedLat, setSelectedLat] = useState(initialLat);
   const [selectedLng, setSelectedLng] = useState(initialLng);
-  const [mapboxToken, setMapboxToken] = useState('');
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
   const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  // Fetch Google Maps API key
+  useEffect(() => {
+    if (open && !googleMapsApiKey) {
+      const fetchApiKey = async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+          if (data?.apiKey) {
+            setGoogleMapsApiKey(data.apiKey);
+          }
+        } catch (error) {
+          console.error('Failed to fetch Google Maps API key:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchApiKey();
+    }
+  }, [open, googleMapsApiKey]);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: googleMapsApiKey,
+  });
   
-  // Get current location when dialog opens and when "Use Current Location" is clicked
+  // Get current location when dialog opens
   useEffect(() => {
     if (open && navigator.geolocation) {
-      // Auto-get current location when dialog opens
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
@@ -42,83 +68,33 @@ const LocationPicker = ({
         },
         (error) => {
           console.error('Error getting current location:', error);
-          // Fallback to default location (Delhi) if geolocation fails
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
       );
     }
   }, [open]);
-  
-  // Fetch Mapbox token when dialog opens
-  useEffect(() => {
-    if (open && !mapboxToken) {
-      const fetchToken = async () => {
-        setLoading(true);
-        try {
-          const response = await fetch('https://zgyxybgogjzeuocuoane.supabase.co/functions/v1/get-mapbox-token');
-          const data = await response.json();
-          if (data.token) {
-            setMapboxToken(data.token);
-          }
-        } catch (error) {
-          console.error('Failed to fetch Mapbox token:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchToken();
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      setSelectedLat(e.latLng.lat());
+      setSelectedLng(e.latLng.lng());
     }
-  }, [open, mapboxToken]);
-  
-  useEffect(() => {
-    if (!open || !mapContainer.current || !mapboxToken) return;
+  };
 
-    // Initialize map
-    mapboxgl.accessToken = mapboxToken;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [selectedLng, selectedLat],
-      zoom: 15, // Higher zoom for better location detail
-    });
-
-    // Add marker with red color like Google Maps
-    marker.current = new mapboxgl.Marker({
-      draggable: true,
-      color: '#EA4335' // Google Maps red color
-    })
-      .setLngLat([selectedLng, selectedLat])
-      .addTo(map.current);
-
-    // Update coordinates when marker is dragged
-    marker.current.on('dragend', () => {
-      const lngLat = marker.current!.getLngLat();
-      setSelectedLat(lngLat.lat);
-      setSelectedLng(lngLat.lng);
-    });
-
-    // Add click event to map
-    map.current.on('click', (e) => {
-      const { lng, lat } = e.lngLat;
-      setSelectedLat(lat);
-      setSelectedLng(lng);
-      marker.current!.setLngLat([lng, lat]);
-    });
-
-    // Cleanup
-    return () => {
-      map.current?.remove();
-    };
-  }, [open, mapboxToken]);
-
-  // Update map center and marker when coordinates change
-  useEffect(() => {
-    if (map.current && marker.current) {
-      map.current.setCenter([selectedLng, selectedLat]);
-      marker.current.setLngLat([selectedLng, selectedLat]);
+  const handleMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      setSelectedLat(e.latLng.lat());
+      setSelectedLng(e.latLng.lng());
     }
-  }, [selectedLat, selectedLng]);
+  };
 
   const handleConfirm = () => {
     onLocationSelect(selectedLat, selectedLng);
@@ -129,14 +105,9 @@ const LocationPicker = ({
     setSelectedLat(lat);
     setSelectedLng(lng);
     
-    // Update map and marker if they exist
-    if (map.current && marker.current) {
-      map.current.flyTo({
-        center: [lng, lat],
-        zoom: 16,
-        essential: true
-      });
-      marker.current.setLngLat([lng, lat]);
+    if (map) {
+      map.panTo({ lat, lng });
+      map.setZoom(16);
     }
   };
 
@@ -168,7 +139,7 @@ const LocationPicker = ({
             </div>
           )}
           
-          {!loading && !mapboxToken && (
+          {!loading && !googleMapsApiKey && (
             <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
               <div className="text-center">
                 <p className="text-sm text-destructive mb-2">Failed to load map. Please try again.</p>
@@ -182,9 +153,32 @@ const LocationPicker = ({
             </div>
           )}
           
-          {!loading && mapboxToken && (
+          {!loading && googleMapsApiKey && isLoaded && (
             <>
-              <div ref={mapContainer} className="w-full h-96" />
+              <GoogleMap
+                mapContainerStyle={containerStyle}
+                center={{ lat: selectedLat, lng: selectedLng }}
+                zoom={15}
+                onLoad={onLoad}
+                onUnmount={onUnmount}
+                onClick={handleMapClick}
+                options={{
+                  zoomControl: true,
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                }}
+              >
+                <Marker
+                  position={{ lat: selectedLat, lng: selectedLng }}
+                  draggable={true}
+                  onDragEnd={handleMarkerDragEnd}
+                  icon={{
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    scaledSize: new google.maps.Size(40, 40)
+                  }}
+                />
+              </GoogleMap>
               
               {/* Current Location Button */}
               <CurrentLocationButton
@@ -215,6 +209,15 @@ const LocationPicker = ({
                 </Button>
               </div>
             </>
+          )}
+
+          {!loading && googleMapsApiKey && !isLoaded && (
+            <div className="h-96 flex items-center justify-center bg-muted">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading Google Maps...</p>
+              </div>
+            </div>
           )}
         </div>
       </DialogContent>
