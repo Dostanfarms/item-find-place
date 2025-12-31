@@ -180,10 +180,12 @@ const AddressSelector = ({
   };
 
   const handleAddressSelect = (address: SavedAddress) => {
-    // Store in localStorage for persistence across pages
+    // Store in localStorage for persistence across pages (including coordinates)
     localStorage.setItem('selectedAddress', JSON.stringify({
       label: address.label,
-      address: address.address
+      address: address.address,
+      latitude: address.latitude,
+      longitude: address.longitude
     }));
     onAddressSelect(address);
     onOpenChange(false);

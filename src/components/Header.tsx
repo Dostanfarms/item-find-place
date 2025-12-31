@@ -27,6 +27,8 @@ export const Header = () => {
   const [selectedAddress, setSelectedAddress] = useState<{
     label: string;
     address: string;
+    latitude?: number;
+    longitude?: number;
   } | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -345,11 +347,15 @@ export const Header = () => {
           onAddressSelect={(address) => {
             const addressData = {
               label: address.label,
-              address: address.address
+              address: address.address,
+              latitude: address.latitude,
+              longitude: address.longitude
             };
             setSelectedAddress(addressData);
             // Store selected address in localStorage for persistence across pages
             localStorage.setItem('selectedAddress', JSON.stringify(addressData));
+            // Dispatch custom event to notify other components about address change
+            window.dispatchEvent(new CustomEvent('addressChanged', { detail: addressData }));
             setShowAddressSelector(false);
           }}
           selectedAddress={selectedAddress ? {
