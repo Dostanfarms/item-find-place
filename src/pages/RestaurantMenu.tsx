@@ -58,7 +58,24 @@ const RestaurantMenu = () => {
   } = useCart();
   useEffect(() => {
     getUserLocation();
+    
+    // Listen for address changes from the Header
+    const handleAddressChanged = (event: CustomEvent) => {
+      const { latitude, longitude } = event.detail;
+      if (latitude && longitude) {
+        setUserLocation({
+          lat: parseFloat(latitude.toString()),
+          lng: parseFloat(longitude.toString())
+        });
+      }
+    };
+    
+    window.addEventListener('addressChanged', handleAddressChanged as EventListener);
+    return () => {
+      window.removeEventListener('addressChanged', handleAddressChanged as EventListener);
+    };
   }, []);
+  
   useEffect(() => {
     if (restaurantId && userLocation) {
       fetchRestaurantData();
@@ -66,7 +83,24 @@ const RestaurantMenu = () => {
   }, [restaurantId, userLocation]);
   const getUserLocation = async () => {
     try {
-      // First, try to get user's saved default address
+      // First, check if there's a selected address in localStorage
+      const storedAddress = localStorage.getItem('selectedAddress');
+      if (storedAddress) {
+        try {
+          const parsed = JSON.parse(storedAddress);
+          if (parsed.latitude && parsed.longitude) {
+            setUserLocation({
+              lat: parseFloat(parsed.latitude.toString()),
+              lng: parseFloat(parsed.longitude.toString())
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing stored address:', error);
+        }
+      }
+      
+      // Fallback: try to get user's saved default address from DB
       const {
         data: addresses
       } = await supabase.from('user_addresses').select('latitude, longitude').eq('is_default', true).limit(1);
