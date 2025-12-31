@@ -62,11 +62,15 @@ const RestaurantMenu = () => {
     // Listen for address changes from the Header
     const handleAddressChanged = (event: CustomEvent) => {
       const { latitude, longitude } = event.detail;
+      console.log('Address changed event received:', { latitude, longitude });
       if (latitude && longitude) {
-        setUserLocation({
+        const newLocation = {
           lat: parseFloat(latitude.toString()),
           lng: parseFloat(longitude.toString())
-        });
+        };
+        console.log('Setting new user location:', newLocation);
+        setUserLocation(newLocation);
+        setLoading(true); // Force loading state to show update
       }
     };
     
@@ -78,6 +82,7 @@ const RestaurantMenu = () => {
   
   useEffect(() => {
     if (restaurantId && userLocation) {
+      console.log('Fetching restaurant data with location:', userLocation);
       fetchRestaurantData();
     }
   }, [restaurantId, userLocation]);
