@@ -352,10 +352,7 @@ export const Header = () => {
               longitude: address.longitude
             };
             setSelectedAddress(addressData);
-            // Store selected address in localStorage for persistence across pages
-            localStorage.setItem('selectedAddress', JSON.stringify(addressData));
-            // Dispatch custom event to notify other components about address change
-            window.dispatchEvent(new CustomEvent('addressChanged', { detail: addressData }));
+            // Note: localStorage and event dispatch are handled by AddressSelector
             setShowAddressSelector(false);
           }}
           selectedAddress={selectedAddress ? {
