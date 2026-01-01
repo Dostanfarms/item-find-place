@@ -196,7 +196,7 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0 z-50">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0 bg-background">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-bold">
             {activeOrder.seller_name}
