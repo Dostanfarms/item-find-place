@@ -34,6 +34,8 @@ interface MenuItem {
   franchise_price: number;
   item_photo_url: string | null;
   is_active: boolean;
+  average_rating?: number;
+  total_ratings?: number;
 }
 const RestaurantMenu = () => {
   const {
@@ -188,7 +190,55 @@ const RestaurantMenu = () => {
         error: itemsError
       } = await supabase.from('items').select('*').eq('seller_id', restaurantId);
       if (itemsError) throw itemsError;
-      setMenuItems(itemsData || []);
+      
+      // Fetch item ratings from orders
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('items, id')
+        .eq('seller_id', restaurantId)
+        .eq('is_rated', true);
+      
+      // Get ratings for items
+      const { data: ratingsData } = await supabase
+        .from('ratings')
+        .select('order_id, rating')
+        .eq('seller_id', restaurantId);
+      
+      // Build a map of order_id -> rating
+      const orderRatingMap = new Map<string, number>();
+      ratingsData?.forEach(r => {
+        orderRatingMap.set(r.order_id, r.rating);
+      });
+      
+      // Calculate average rating per item
+      const itemRatingsMap = new Map<string, { total: number; count: number }>();
+      ordersData?.forEach(order => {
+        const orderRating = orderRatingMap.get(order.id);
+        if (orderRating && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            const itemId = item.id;
+            if (itemId) {
+              const existing = itemRatingsMap.get(itemId) || { total: 0, count: 0 };
+              itemRatingsMap.set(itemId, {
+                total: existing.total + orderRating,
+                count: existing.count + 1
+              });
+            }
+          });
+        }
+      });
+      
+      // Merge ratings into items
+      const itemsWithRatings = (itemsData || []).map(item => {
+        const ratingInfo = itemRatingsMap.get(item.id);
+        return {
+          ...item,
+          average_rating: ratingInfo ? Math.round((ratingInfo.total / ratingInfo.count) * 10) / 10 : 0,
+          total_ratings: ratingInfo?.count || 0
+        };
+      });
+      
+      setMenuItems(itemsWithRatings);
 
       // Fetch similar restaurants (other approved sellers)
       const {
@@ -329,10 +379,12 @@ const RestaurantMenu = () => {
                         <span className="text-muted-foreground">No image</span>
                       </div>}
                     {/* Rating Badge Overlay */}
-                    <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs font-semibold">4.2</span>
-                    </div>
+                    {item.average_rating > 0 && (
+                      <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs font-semibold">{item.average_rating}</span>
+                      </div>
+                    )}
                   </div>
                   <CardContent className="p-3 space-y-2">
                     <div>
