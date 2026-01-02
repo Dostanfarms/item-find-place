@@ -45,16 +45,16 @@ export const HomeBanner = () => {
 
   if (loading) {
     return (
-      <div className="h-[33vh] bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse" />
+      <div className="h-[33vh] mx-4 mt-2 bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse rounded-2xl" />
     );
   }
 
   if (banners.length === 0) {
     return (
-      <div className="h-[33vh] bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+      <div className="h-[33vh] mx-4 mt-2 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center rounded-2xl">
         <div className="text-center text-primary-foreground">
-          <h1 className="text-3xl md:text-5xl font-bold mb-2">Welcome to Zippy</h1>
-          <p className="text-lg md:text-xl opacity-90">Fast delivery at your doorstep</p>
+          <h1 className="text-2xl md:text-4xl font-bold mb-2">Welcome to Zippy</h1>
+          <p className="text-base md:text-lg opacity-90">Delivery in minutes at your doorstep</p>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export const HomeBanner = () => {
   const currentBanner = banners[currentIndex];
 
   return (
-    <div className="relative h-[33vh] overflow-hidden">
+    <div className="relative h-[33vh] overflow-hidden mx-4 mt-2 rounded-2xl">
       {/* Banner Content */}
       <div
         className="h-full w-full flex items-center justify-center transition-all duration-500"
