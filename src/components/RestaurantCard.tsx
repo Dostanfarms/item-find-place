@@ -36,9 +36,7 @@ export const RestaurantCard = ({
             <Badge variant="destructive" className="text-white">Currently Offline</Badge>
           </div>}
         {offers.length > 0 && !isOffline && <div className="absolute top-3 left-3">
-            {offers.map((offer, index) => <Badge key={index} variant="secondary" className="mr-1">
-                {offer}
-              </Badge>)}
+            {offers.map((offer, index) => {})}
           </div>}
         {deliveryFee === 0 && !isOffline && <div className="absolute top-3 right-3">
             
