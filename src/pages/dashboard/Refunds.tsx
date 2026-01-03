@@ -75,18 +75,23 @@ const Refunds = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          user:user_id (
-            name,
-            mobile
-          )
-        `)
+        .select('*')
         .eq('seller_status', 'rejected')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders((data || []) as any);
+      
+      // Fetch user details for each order
+      const ordersWithUsers = await Promise.all((data || []).map(async (order) => {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, mobile')
+          .eq('id', order.user_id)
+          .maybeSingle();
+        return { ...order, user: userData };
+      }));
+      
+      setOrders(ordersWithUsers as any);
     } catch (error) {
       console.error('Error fetching rejected orders:', error);
       toast({
