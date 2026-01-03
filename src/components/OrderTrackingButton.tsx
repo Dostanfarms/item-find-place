@@ -9,12 +9,41 @@ interface OrderTrackingButtonProps {
 }
 
 const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
-  const { activeOrder } = useOrderTracking();
+  const { activeOrder, clearActiveOrder } = useOrderTracking();
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isExpanded, setIsExpanded] = useState(false);
+  const [shouldHide, setShouldHide] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-hide after 1 minute for delivered or rejected orders
+  useEffect(() => {
+    if (activeOrder) {
+      const isDelivered = activeOrder.status === 'delivered';
+      const isRejected = activeOrder.seller_status === 'rejected';
+      
+      if (isDelivered || isRejected) {
+        // Clear any existing timer
+        if (hideTimerRef.current) {
+          clearTimeout(hideTimerRef.current);
+        }
+        
+        // Set timer to hide after 1 minute
+        hideTimerRef.current = setTimeout(() => {
+          setShouldHide(true);
+          clearActiveOrder();
+        }, 60000); // 1 minute
+      }
+    }
+
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, [activeOrder?.status, activeOrder?.seller_status, clearActiveOrder]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.drag-handle')) {
@@ -100,7 +129,7 @@ const OrderTrackingButton = ({ onClick }: OrderTrackingButtonProps) => {
   }, [isDragging, dragStart]);
 
   // Early return after all hooks
-  if (!activeOrder) return null;
+  if (!activeOrder || shouldHide) return null;
 
   // Helper functions that use activeOrder - moved here after null check
   const getStatusText = (status: string) => {
