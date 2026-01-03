@@ -8,9 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useSellerAuth } from "@/contexts/SellerAuthContext";
 import { formatDistanceToNow, isToday, isThisWeek, isThisMonth } from "date-fns";
-import { Package, Clock, CheckCircle, Truck, AlertCircle, User, MapPin, Eye, Filter } from "lucide-react";
+import { Package, Clock, CheckCircle, Truck, AlertCircle, User, Eye, Filter, Volume2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
 interface Order {
   id: string;
   user_id: string;
@@ -35,77 +34,176 @@ interface Order {
   delivered_at: string | null;
 }
 
-// Notification sound - using Web Audio API to generate a tone
-const playNotificationSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Create oscillator for the main tone
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Set up the tone (similar to Rapido notification)
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
-    oscillator.type = 'sine';
-    
-    // Gain envelope for smooth start/end
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.1);
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + 0.3);
-    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.5);
-    
-    // Second beep after a short pause
-    setTimeout(() => {
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode2 = audioContext.createGain();
-      
-      oscillator2.connect(gainNode2);
-      gainNode2.connect(audioContext.destination);
-      
-      oscillator2.frequency.setValueAtTime(1046.5, audioContext.currentTime); // C6 note
-      oscillator2.type = 'sine';
-      
-      gainNode2.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode2.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.1);
-      gainNode2.gain.setValueAtTime(0.5, audioContext.currentTime + 0.3);
-      gainNode2.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
-      
-      oscillator2.start(audioContext.currentTime);
-      oscillator2.stop(audioContext.currentTime + 0.5);
-    }, 600);
-    
-    // Third beep for emphasis
-    setTimeout(() => {
-      const oscillator3 = audioContext.createOscillator();
-      const gainNode3 = audioContext.createGain();
-      
-      oscillator3.connect(gainNode3);
-      gainNode3.connect(audioContext.destination);
-      
-      oscillator3.frequency.setValueAtTime(1318.5, audioContext.currentTime); // E6 note
-      oscillator3.type = 'sine';
-      
-      gainNode3.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode3.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.1);
-      gainNode3.gain.setValueAtTime(0.5, audioContext.currentTime + 0.5);
-      gainNode3.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.8);
-      
-      oscillator3.start(audioContext.currentTime);
-      oscillator3.stop(audioContext.currentTime + 0.8);
-    }, 1200);
-    
-    console.log('Notification sound played');
-  } catch (error) {
-    console.error('Error playing notification sound:', error);
+// Create a persistent audio element for background tab support
+let notificationAudio: HTMLAudioElement | null = null;
+let audioIntervalId: NodeJS.Timeout | null = null;
+const ringingOrderIds = new Set<string>();
+
+// Generate notification sound as data URL (works in background tabs)
+const generateNotificationDataUrl = (): string => {
+  // Create audio context to generate sound
+  const sampleRate = 24000;
+  const duration = 2; // 2 seconds
+  const numSamples = sampleRate * duration;
+
+  // Create buffer for WAV file
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+
+  // WAV header
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size
+  view.setUint16(20, 1, true); // AudioFormat (PCM)
+  view.setUint16(22, 1, true); // NumChannels
+  view.setUint32(24, sampleRate, true); // SampleRate
+  view.setUint32(28, sampleRate * 2, true); // ByteRate
+  view.setUint16(32, 2, true); // BlockAlign
+  view.setUint16(34, 16, true); // BitsPerSample
+  writeString(36, 'data');
+  view.setUint32(40, numSamples * 2, true);
+
+  // Generate Rapido-style ringtone pattern
+  const frequencies = [{
+    freq: 784,
+    start: 0,
+    end: 0.15
+  }, {
+    freq: 880,
+    start: 0.15,
+    end: 0.3
+  }, {
+    freq: 988,
+    start: 0.3,
+    end: 0.45
+  }, {
+    freq: 1047,
+    start: 0.45,
+    end: 0.65
+  }, {
+    freq: 988,
+    start: 0.75,
+    end: 0.87
+  }, {
+    freq: 1047,
+    start: 0.87,
+    end: 0.99
+  }, {
+    freq: 1175,
+    start: 0.99,
+    end: 1.11
+  }, {
+    freq: 1319,
+    start: 1.11,
+    end: 1.36
+  }, {
+    freq: 1047,
+    start: 1.45,
+    end: 1.57
+  }, {
+    freq: 1319,
+    start: 1.57,
+    end: 1.69
+  }, {
+    freq: 1568,
+    start: 1.69,
+    end: 1.99
+  }];
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    let sample = 0;
+    for (const tone of frequencies) {
+      if (t >= tone.start && t < tone.end) {
+        const toneT = t - tone.start;
+        const toneDuration = tone.end - tone.start;
+        // Envelope: fade in and out
+        const envelope = Math.min(toneT / 0.02, 1) * Math.min((toneDuration - toneT) / 0.02, 1);
+        sample = Math.sin(2 * Math.PI * tone.freq * t) * 0.5 * envelope;
+        break;
+      }
+    }
+    const int16Sample = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+    view.setInt16(44 + i * 2, int16Sample, true);
+  }
+
+  // Convert to base64 data URL
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return 'data:audio/wav;base64,' + btoa(binary);
+};
+
+// Initialize audio element once
+const getNotificationAudio = (): HTMLAudioElement => {
+  if (!notificationAudio) {
+    notificationAudio = new Audio(generateNotificationDataUrl());
+    notificationAudio.volume = 1;
+  }
+  return notificationAudio;
+};
+
+// Start continuous ringing for an order
+const startRinging = (orderId: string) => {
+  ringingOrderIds.add(orderId);
+  console.log('Started ringing for order:', orderId, 'Total ringing:', ringingOrderIds.size);
+  if (audioIntervalId) return; // Already ringing
+
+  const audio = getNotificationAudio();
+  const playSound = () => {
+    if (ringingOrderIds.size === 0) {
+      if (audioIntervalId) {
+        clearInterval(audioIntervalId);
+        audioIntervalId = null;
+      }
+      return;
+    }
+    audio.currentTime = 0;
+    audio.play().catch(err => console.log('Audio play error:', err));
+  };
+
+  // Play immediately
+  playSound();
+
+  // Repeat every 3 seconds (2 sec sound + 1 sec pause)
+  audioIntervalId = setInterval(playSound, 3000);
+};
+
+// Stop ringing for an order
+const stopRinging = (orderId: string) => {
+  ringingOrderIds.delete(orderId);
+  console.log('Stopped ringing for order:', orderId, 'Remaining:', ringingOrderIds.size);
+  if (ringingOrderIds.size === 0 && audioIntervalId) {
+    clearInterval(audioIntervalId);
+    audioIntervalId = null;
+    if (notificationAudio) {
+      notificationAudio.pause();
+      notificationAudio.currentTime = 0;
+    }
+    console.log('All ringing stopped');
   }
 };
 
+// Stop all ringing
+const stopAllRinging = () => {
+  ringingOrderIds.clear();
+  if (audioIntervalId) {
+    clearInterval(audioIntervalId);
+    audioIntervalId = null;
+  }
+  if (notificationAudio) {
+    notificationAudio.pause();
+    notificationAudio.currentTime = 0;
+  }
+};
 export const SellerOrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,76 +211,74 @@ export const SellerOrderManagement = () => {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("pending");
   const [dateFilter, setDateFilter] = useState("all");
-  const { seller } = useSellerAuth();
+  const {
+    seller
+  } = useSellerAuth();
   const previousOrderIdsRef = useRef<Set<string>>(new Set());
-
-  const dateOptions = [
-    { value: "all", label: "All Time" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" }
-  ];
-
-  const statusOptions = [
-    {
-      label: "All",
-      value: "All", 
-      icon: Package,
-      color: "bg-muted"
-    },
-    {
-      label: "Pending",
-      value: "pending",
-      icon: Clock,
-      color: "bg-yellow-100 text-yellow-800"
-    },
-    {
-      label: "Accepted",
-      value: "accepted",
-      icon: CheckCircle,
-      color: "bg-green-100 text-green-800"
-    },
-    {
-      label: "Packed",
-      value: "packed",
-      icon: Package,
-      color: "bg-blue-100 text-blue-800"
-    },
-    {
-      label: "Delivered",
-      value: "delivered",
-      icon: Truck,
-      color: "bg-purple-100 text-purple-800"
-    }
-  ];
-
+  const processedOrderIdsRef = useRef<Set<string>>(new Set());
+  const dateOptions = [{
+    value: "all",
+    label: "All Time"
+  }, {
+    value: "today",
+    label: "Today"
+  }, {
+    value: "week",
+    label: "This Week"
+  }, {
+    value: "month",
+    label: "This Month"
+  }];
+  const statusOptions = [{
+    label: "All",
+    value: "All",
+    icon: Package,
+    color: "bg-muted"
+  }, {
+    label: "Pending",
+    value: "pending",
+    icon: Clock,
+    color: "bg-yellow-100 text-yellow-800"
+  }, {
+    label: "Accepted",
+    value: "accepted",
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-800"
+  }, {
+    label: "Packed",
+    value: "packed",
+    icon: Package,
+    color: "bg-blue-100 text-blue-800"
+  }, {
+    label: "Delivered",
+    value: "delivered",
+    icon: Truck,
+    color: "bg-purple-100 text-purple-800"
+  }];
   const fetchSellerOrders = useCallback(async () => {
     if (!seller) return;
-    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('seller_id', seller.id)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('orders').select('*').eq('seller_id', seller.id).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
-      
       const ordersData = (data || []) as any;
-      
+
       // Store current order IDs for comparison
       ordersData.forEach((order: Order) => {
         previousOrderIdsRef.current.add(order.id);
       });
-      
       setOrders(ordersData);
     } catch (error) {
       console.error('Error fetching seller orders:', error);
       toast({
         title: "Error",
         description: "Failed to fetch orders",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -194,82 +290,96 @@ export const SellerOrderManagement = () => {
     fetchSellerOrders();
   }, [fetchSellerOrders]);
 
+  // Start ringing for existing pending orders on load
+  useEffect(() => {
+    orders.forEach(order => {
+      const sellerStatus = (order as any).seller_status || 'pending';
+      if (sellerStatus === 'pending' && !processedOrderIdsRef.current.has(order.id)) {
+        processedOrderIdsRef.current.add(order.id);
+        startRinging(order.id);
+      }
+    });
+  }, [orders]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopAllRinging();
+    };
+  }, []);
+
   // Real-time subscription for new orders
   useEffect(() => {
     if (!seller) return;
-
     console.log('Setting up real-time subscription for seller:', seller.id);
+    const channel = supabase.channel('seller-orders-realtime').on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'orders',
+      filter: `seller_id=eq.${seller.id}`
+    }, payload => {
+      console.log('New order received:', payload);
+      const newOrder = payload.new as Order;
 
-    const channel = supabase
-      .channel('seller-orders-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-          filter: `seller_id=eq.${seller.id}`
-        },
-        (payload) => {
-          console.log('New order received:', payload);
-          const newOrder = payload.new as Order;
-          
-          // Check if this is truly a new order we haven't seen
-          if (!previousOrderIdsRef.current.has(newOrder.id)) {
-            previousOrderIdsRef.current.add(newOrder.id);
-            
-            // Add new order to the list
-            setOrders(prev => [newOrder, ...prev]);
-            
-            // Play notification sound
-            playNotificationSound();
-            
-            // Show toast notification
-            toast({
-              title: "🔔 New Order Received!",
-              description: `Order #${newOrder.id.slice(-4)} - ₹${newOrder.total_amount}`,
-            });
-            
-            // Auto-switch to pending tab to show new order
-            setSelectedStatus("pending");
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `seller_id=eq.${seller.id}`
-        },
-        (payload) => {
-          console.log('Order updated:', payload);
-          const updatedOrder = payload.new as Order;
-          
-          // Update the order in the list
-          setOrders(prev => prev.map(order => 
-            order.id === updatedOrder.id ? updatedOrder : order
-          ));
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      // Check if this is truly a new order we haven't seen
+      if (!previousOrderIdsRef.current.has(newOrder.id)) {
+        previousOrderIdsRef.current.add(newOrder.id);
 
+        // Add new order to the list
+        setOrders(prev => [newOrder, ...prev]);
+
+        // Start continuous ringing for pending order
+        const sellerStatus = (newOrder as any).seller_status || 'pending';
+        if (sellerStatus === 'pending') {
+          startRinging(newOrder.id);
+        }
+
+        // Show toast notification
+        toast({
+          title: "🔔 New Order Received!",
+          description: `Order #${newOrder.id.slice(-4)} - ₹${newOrder.total_amount}`
+        });
+
+        // Auto-switch to pending tab to show new order
+        setSelectedStatus("pending");
+      }
+    }).on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'orders',
+      filter: `seller_id=eq.${seller.id}`
+    }, payload => {
+      console.log('Order updated:', payload);
+      const updatedOrder = payload.new as Order;
+      const sellerStatus = (updatedOrder as any).seller_status || 'pending';
+
+      // Stop ringing if order is no longer pending
+      if (sellerStatus !== 'pending') {
+        stopRinging(updatedOrder.id);
+      }
+
+      // Update the order in the list
+      setOrders(prev => prev.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+    }).subscribe(status => {
+      console.log('Subscription status:', status);
+    });
     return () => {
       console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [seller]);
-
   const generatePickupPin = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
   };
-
   const updateOrderStatus = async (orderId: string, newStatus: string, timestampField?: string) => {
     try {
-      const updateData: any = { seller_status: newStatus };
+      // Stop ringing immediately when accepting or rejecting
+      if (newStatus === 'accepted' || newStatus === 'rejected') {
+        stopRinging(orderId);
+      }
+      const updateData: any = {
+        seller_status: newStatus
+      };
       if (timestampField) {
         updateData[timestampField] = new Date().toISOString();
       }
@@ -281,17 +391,13 @@ export const SellerOrderManagement = () => {
         console.log('Generating pickup PIN:', pickupPin, 'for order:', orderId);
         console.log('Update data:', updateData);
       }
-
-      const { error } = await supabase
-        .from('orders')
-        .update(updateData)
-        .eq('id', orderId);
-
+      const {
+        error
+      } = await supabase.from('orders').update(updateData).eq('id', orderId);
       if (error) throw error;
-
       toast({
         title: "Order Updated",
-        description: `Order has been ${newStatus.replace('_', ' ')}`,
+        description: `Order has been ${newStatus.replace('_', ' ')}`
       });
 
       // Close the order details dialog after accepting or rejecting
@@ -299,111 +405,103 @@ export const SellerOrderManagement = () => {
         setShowOrderDetails(false);
         setSelectedOrder(null);
       }
-
       fetchSellerOrders();
     } catch (error) {
       console.error('Error updating order:', error);
       toast({
         title: "Error",
         description: "Failed to update order",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <Clock className="h-4 w-4" />;
-      case 'seller_accepted': 
-      case 'preparing': return <Package className="h-4 w-4" />;
+      case 'pending':
+        return <Clock className="h-4 w-4" />;
+      case 'seller_accepted':
+      case 'preparing':
+        return <Package className="h-4 w-4" />;
       case 'packed':
-      case 'out_for_delivery': return <Truck className="h-4 w-4" />;
-      case 'delivered': return <CheckCircle className="h-4 w-4" />;
-      case 'rejected': return <AlertCircle className="h-4 w-4" />;
-      default: return <Package className="h-4 w-4" />;
+      case 'out_for_delivery':
+        return <Truck className="h-4 w-4" />;
+      case 'delivered':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'rejected':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Package className="h-4 w-4" />;
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'accepted':
       case 'seller_accepted':
-      case 'preparing': return 'bg-blue-100 text-blue-800';
+      case 'preparing':
+        return 'bg-blue-100 text-blue-800';
       case 'packed':
-      case 'out_for_delivery': return 'bg-purple-100 text-purple-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'out_for_delivery':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'New Order';
-      case 'accepted': 
-      case 'seller_accepted': return 'Accepted';
-      case 'preparing': return 'Preparing';
-      case 'packed': return 'Packed';
-      case 'out_for_delivery': return 'Out for Delivery';
-      case 'delivered': return 'Delivered';
-      case 'rejected': return 'Rejected';
-      default: return status;
+      case 'pending':
+        return 'New Order';
+      case 'accepted':
+      case 'seller_accepted':
+        return 'Accepted';
+      case 'preparing':
+        return 'Preparing';
+      case 'packed':
+        return 'Packed';
+      case 'out_for_delivery':
+        return 'Out for Delivery';
+      case 'delivered':
+        return 'Delivered';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return status;
     }
   };
-
   const getActionButtons = (order: Order) => {
     const sellerStatus = (order as any).seller_status || 'pending';
-    
     switch (sellerStatus) {
       case 'pending':
-        return (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => updateOrderStatus(order.id, 'accepted', 'seller_accepted_at')}
-              className="bg-green-600 hover:bg-green-700"
-            >
+        return <div className="flex gap-2">
+            <Button size="sm" onClick={() => updateOrderStatus(order.id, 'accepted', 'seller_accepted_at')} className="bg-green-600 hover:bg-green-700">
               Accept Order
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => updateOrderStatus(order.id, 'rejected')}
-            >
+            <Button size="sm" variant="destructive" onClick={() => updateOrderStatus(order.id, 'rejected')}>
               Reject
             </Button>
-          </div>
-        );
+          </div>;
       case 'accepted':
-        return (
-          <Button
-            size="sm"
-            onClick={() => updateOrderStatus(order.id, 'packed', 'seller_packed_at')}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
+        return <Button size="sm" onClick={() => updateOrderStatus(order.id, 'packed', 'seller_packed_at')} className="bg-purple-600 hover:bg-purple-700">
             Mark as Packed
-          </Button>
-        );
+          </Button>;
       default:
         return null;
     }
   };
-
   if (loading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
+    return <div className="space-y-4">
+        {[1, 2, 3].map(i => <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
               <div className="h-24 bg-muted rounded"></div>
             </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+          </Card>)}
+      </div>;
   }
-
   const filteredOrders = selectedStatus === "All" ? orders : orders.filter(order => {
     const sellerStatus = (order as any).seller_status || 'pending';
     if (selectedStatus === "delivered") {
@@ -428,9 +526,7 @@ export const SellerOrderManagement = () => {
     }
     return true;
   });
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       <CardHeader className="px-0">
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
@@ -441,22 +537,17 @@ export const SellerOrderManagement = () => {
       {/* Status Filter Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statusOptions.map(status => {
-          const Icon = status.icon;
-          const count = status.value === "All" ? orders.length : (() => {
-            if (status.value === "delivered") {
-              return orders.filter(order => order.status === "delivered" || (order as any).seller_status === "delivered").length;
-            }
-            return orders.filter(order => {
-              const sellerStatus = (order as any).seller_status || 'pending';
-              return sellerStatus === status.value;
-            }).length;
-          })();
-          return (
-            <Card 
-              key={status.value} 
-              className={`cursor-pointer transition-all hover:shadow-md ${selectedStatus === status.value ? 'ring-2 ring-primary shadow-md' : ''}`}
-              onClick={() => setSelectedStatus(status.value)}
-            >
+        const Icon = status.icon;
+        const count = status.value === "All" ? orders.length : (() => {
+          if (status.value === "delivered") {
+            return orders.filter(order => order.status === "delivered" || (order as any).seller_status === "delivered").length;
+          }
+          return orders.filter(order => {
+            const sellerStatus = (order as any).seller_status || 'pending';
+            return sellerStatus === status.value;
+          }).length;
+        })();
+        return <Card key={status.value} className={`cursor-pointer transition-all hover:shadow-md ${selectedStatus === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} onClick={() => setSelectedStatus(status.value)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -466,32 +557,26 @@ export const SellerOrderManagement = () => {
                   <Icon className="h-6 w-6 text-muted-foreground" />
                 </div>
               </CardContent>
-            </Card>
-          );
-        })}
+            </Card>;
+      })}
       </div>
 
       {/* Date Filter for Delivered Orders */}
-      {selectedStatus === "delivered" && (
-        <div className="flex items-center gap-2">
+      {selectedStatus === "delivered" && <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by date" />
             </SelectTrigger>
             <SelectContent>
-              {dateOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
+              {dateOptions.map(option => <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
-      )}
+        </div>}
 
-      {filteredOrders.length === 0 ? (
-        <Card>
+      {filteredOrders.length === 0 ? <Card>
           <CardContent className="p-8 text-center">
             <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Orders Found</h3>
@@ -499,11 +584,8 @@ export const SellerOrderManagement = () => {
               No orders found for {selectedStatus.toLowerCase()} status.
             </p>
           </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => (
-            <Card key={order.id} className="border-l-4 border-l-primary">
+        </Card> : <div className="space-y-4">
+          {filteredOrders.map(order => <Card key={order.id} className="border-l-4 border-l-primary">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div className="space-y-1">
@@ -516,25 +598,19 @@ export const SellerOrderManagement = () => {
                     </div>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(order.created_at), {
+                  addSuffix: true
+                })}
                     </p>
                   </div>
                   <div className="text-right space-y-1">
-                    {(order as any).pickup_pin && (
-                      <Badge variant="secondary" className="font-mono text-xs">
+                    {(order as any).pickup_pin && <Badge variant="secondary" className="font-mono text-xs">
                         PIN {(order as any).pickup_pin}
-                      </Badge>
-                    )}
-                    {(order as any).seller_status === 'packed' && !(order as any).pickup_pin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateOrderStatus(order.id, 'packed')}
-                      >
+                      </Badge>}
+                    {(order as any).seller_status === 'packed' && !(order as any).pickup_pin && <Button size="sm" variant="outline" onClick={() => updateOrderStatus(order.id, 'packed')}>
                         Generate PIN
-                      </Button>
-                    )}
-                    <p className="font-semibold text-lg">₹{order.total_amount}</p>
+                      </Button>}
+                    
                     <p className="text-xs text-muted-foreground">
                       {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
                     </p>
@@ -542,8 +618,7 @@ export const SellerOrderManagement = () => {
                 </div>
 
                 {/* Show Pickup PIN if order is packed */}
-                {(order as any).seller_status === 'packed' && (order as any).pickup_pin && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                {(order as any).seller_status === 'packed' && (order as any).pickup_pin && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-yellow-800">Pickup PIN</p>
@@ -553,22 +628,17 @@ export const SellerOrderManagement = () => {
                         {(order as any).pickup_pin}
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 <div className="flex justify-between items-center">
                   <div className="text-xs text-muted-foreground">
                     Payment: {order.payment_method.toUpperCase()}
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setShowOrderDetails(true);
-                      }}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => {
+                setSelectedOrder(order);
+                setShowOrderDetails(true);
+              }}>
                       <Eye className="w-4 h-4 mr-1" />
                       View Details
                     </Button>
@@ -576,10 +646,8 @@ export const SellerOrderManagement = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+            </Card>)}
+        </div>}
 
       {/* Order Details Dialog */}
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
@@ -587,14 +655,13 @@ export const SellerOrderManagement = () => {
           <DialogHeader>
             <DialogTitle>Order Details - #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
           </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-4">
+          {selectedOrder && <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <Badge className={getStatusColor((selectedOrder as any).seller_status || 'pending')}>
                   {getStatusIcon((selectedOrder as any).seller_status || 'pending')}
                   <span className="ml-1">{getStatusText((selectedOrder as any).seller_status || 'pending')}</span>
                 </Badge>
-                <p className="font-semibold text-lg">₹{selectedOrder.total_amount}</p>
+                
               </div>
               
               <Separator />
@@ -602,34 +669,27 @@ export const SellerOrderManagement = () => {
               <div>
                 <h4 className="font-medium mb-2">Order Items:</h4>
                 <div className="space-y-1">
-                  {selectedOrder.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm bg-muted/50 p-2 rounded">
+                  {selectedOrder.items.map((item, index) => <div key={index} className="flex justify-between text-sm bg-muted/50 p-2 rounded">
                       <span>{item.item_name} x{item.quantity}</span>
                       <span className="font-medium">₹{item.seller_price * item.quantity}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </div>
               
               <Separator />
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span className="font-medium">Delivery Address:</span>
-                </div>
-                <p className="text-sm">{selectedOrder.delivery_address}</p>
+                
+                
               </div>
               
-              {selectedOrder.instructions && (
-                <div className="space-y-2">
+              {selectedOrder.instructions && <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <User className="h-4 w-4" />
                     <span className="font-medium">Special Instructions:</span>
                   </div>
                   <p className="text-sm">{selectedOrder.instructions}</p>
-                </div>
-              )}
+                </div>}
               
               <Separator />
               
@@ -639,10 +699,8 @@ export const SellerOrderManagement = () => {
                 </div>
                 {getActionButtons(selectedOrder)}
               </div>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };

@@ -139,8 +139,8 @@ export const Checkout = () => {
 
   const itemTotal = getTotalPrice();
   
-  // Calculate fees based on Zippy Pass status
-  const smallOrderFee = (!hasActivePass && itemTotal < 100) ? 10 : 0;
+  // Calculate fees - Zippy Pass only waives delivery fee, small order fee is separate
+  const smallOrderFee = itemTotal < 100 ? 10 : 0;
   const deliveryFee = hasActivePass ? 0 : (itemTotal >= 499 ? 0 : 19);
   const platformFee = Math.round(itemTotal * 0.05);
   const totalAmount = itemTotal + deliveryFee + platformFee + smallOrderFee;

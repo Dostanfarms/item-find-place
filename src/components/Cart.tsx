@@ -44,12 +44,6 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
   };
 
   const itemTotal = getTotalPrice();
-  
-  // Calculate fees based on Zippy Pass status
-  const smallOrderFee = (!hasActivePass && itemTotal < 100) ? 10 : 0;
-  const deliveryFee = hasActivePass ? 0 : (itemTotal >= 499 ? 0 : 19);
-  const platformFee = Math.round(itemTotal * 0.05);
-  const totalAmount = itemTotal + deliveryFee + platformFee + smallOrderFee;
 
   if (!isOpen) {
     return null;
@@ -102,7 +96,7 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
             className="w-full mb-6 bg-green-600 hover:bg-green-700 text-white" 
             size="lg"
           >
-            Proceed to Checkout • ₹{totalAmount}
+            Proceed to Checkout • ₹{itemTotal}
           </Button>
 
           {/* Cart Items */}
@@ -151,39 +145,9 @@ export const Cart = ({ isOpen, onClose }: CartProps) => {
 
           {/* Bill Summary */}
           <div className="border rounded-lg p-4 space-y-2 mb-4">
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between font-medium">
               <span>Item Total</span>
               <span>₹{itemTotal}</span>
-            </div>
-            {smallOrderFee > 0 && (
-              <div className="flex justify-between text-sm">
-                <span>Small Order Fee</span>
-                <span>₹{smallOrderFee}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm items-center">
-              <div className="flex items-center gap-2">
-                <span>Delivery Fee</span>
-                {!hasActivePass && deliveryFee > 0 && (
-                  <button 
-                    onClick={() => setShowZippyPassModal(true)}
-                    className="text-xs text-orange-500 font-medium hover:underline"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-              <span className={hasActivePass ? 'text-green-600' : ''}>
-                {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Platform Fee</span>
-              <span>₹{platformFee}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between font-medium">
-              <span>TO PAY</span>
-              <span>₹{totalAmount}</span>
             </div>
           </div>
         </div>
