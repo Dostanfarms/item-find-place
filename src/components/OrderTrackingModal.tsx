@@ -437,7 +437,16 @@ const OrderTrackingModal = ({ isOpen, onClose }: OrderTrackingModalProps) => {
                     <p className="text-sm text-muted-foreground">Delivery Partner</p>
                   </div>
                 </div>
-                <Button size="icon" variant="outline">
+                <Button 
+                  size="icon" 
+                  variant="outline"
+                  onClick={() => {
+                    const mobile = activeOrder.delivery_partners?.mobile;
+                    if (mobile) {
+                      window.location.href = `tel:${mobile}`;
+                    }
+                  }}
+                >
                   <Phone className="h-4 w-4" />
                 </Button>
               </div>
