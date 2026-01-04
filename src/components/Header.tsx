@@ -188,7 +188,7 @@ export const Header = () => {
         console.log('Google Maps geocoding failed, falling back to Nominatim:', gmError);
       }
       
-      // Fallback to Nominatim API
+      // Fallback to Nominatim API with better address formatting
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
@@ -197,9 +197,8 @@ export const Header = () => {
       if (response.ok) {
         const data = await response.json();
         const address = data.address;
-        const displayParts = data.display_name?.split(',');
-        const firstPart = displayParts?.[0]?.trim();
         
+        // Build Swiggy-like address format: "Area, State Postcode, Country"
         const areaName = address?.village || 
                          address?.hamlet || 
                          address?.locality ||
@@ -207,12 +206,29 @@ export const Header = () => {
                          address?.suburb || 
                          address?.town ||
                          address?.county ||
-                         firstPart ||
                          address?.city ||
                          address?.state_district ||
                          "Select Location";
+        
+        const stateName = address?.state || '';
+        const postcode = address?.postcode || '';
+        const countryName = address?.country || '';
+        
+        // Format full location like Swiggy: "Dudyala, Andhra Pradesh 518422, India"
+        const fullLocationParts = [areaName];
+        if (stateName || postcode) {
+          fullLocationParts.push(`${stateName} ${postcode}`.trim());
+        }
+        if (countryName) {
+          fullLocationParts.push(countryName);
+        }
+        const fullLocation = fullLocationParts.filter(Boolean).join(', ');
+        
         setCurrentLocation(areaName);
         localStorage.setItem('currentLocationName', areaName);
+        localStorage.setItem('currentFullLocation', fullLocation);
+        localStorage.setItem('currentLat', lat.toString());
+        localStorage.setItem('currentLng', lng.toString());
       } else {
         setCurrentLocation("Select Location");
       }
