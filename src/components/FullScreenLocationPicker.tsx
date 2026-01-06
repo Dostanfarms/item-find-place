@@ -35,20 +35,25 @@ const FullScreenLocationPicker = ({
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log(`FullScreenLocationPicker: Location acquired: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
           setSelectedLat(latitude);
           setSelectedLng(longitude);
           reverseGeocode(latitude, longitude);
+          if (map) {
+            map.panTo({ lat: latitude, lng: longitude });
+            map.setZoom(17);
+          }
           setIsLocating(false);
         },
         (error) => {
           console.error("Error getting current location:", error);
           setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
-  }, [open]);
+  }, [open, map]);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -162,14 +167,15 @@ const FullScreenLocationPicker = ({
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log(`Current location button: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
           setSelectedLat(latitude);
           setSelectedLng(longitude);
           reverseGeocode(latitude, longitude);
           
           if (map) {
             map.panTo({ lat: latitude, lng: longitude });
-            map.setZoom(16);
+            map.setZoom(17);
           }
           setIsLocating(false);
         },
@@ -177,7 +183,7 @@ const FullScreenLocationPicker = ({
           console.error('Error getting current location:', error);
           setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
   };
