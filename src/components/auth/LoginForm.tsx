@@ -11,8 +11,9 @@ interface LoginFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (user: any) => void;
-  onRegisterRequired: () => void;
+  onRegisterRequired?: (mobile: string) => void;
 }
+
 
 export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: LoginFormProps) => {
   const [step, setStep] = useState<'login' | 'verify'>('login');
@@ -106,9 +107,10 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
         });
         setIsLoading(false);
         onClose();
-        onRegisterRequired();
+        onRegisterRequired?.(mobile);
         return;
       }
+
 
       // TEST MODE: skip SMS and use default OTP
       toast({
