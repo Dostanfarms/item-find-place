@@ -100,14 +100,17 @@ export const LoginForm = ({ isOpen, onClose, onSuccess, onRegisterRequired }: Lo
         .maybeSingle();
 
       if (!existingUser) {
+        setIsLoading(false);
         toast({
           title: "User not found",
           description: "This mobile number is not registered. Please register first.",
           variant: "destructive",
         });
-        setIsLoading(false);
-        onClose();
-        onRegisterRequired?.(mobile);
+        // Keep modal open briefly to show message, then open register
+        setTimeout(() => {
+          onClose();
+          onRegisterRequired?.(mobile);
+        }, 100);
         return;
       }
 
