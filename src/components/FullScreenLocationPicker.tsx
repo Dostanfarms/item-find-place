@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, MapPin, Search, Crosshair } from 'lucide-react';
+import { ArrowLeft, MapPin, Search } from 'lucide-react';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
+
 
 interface FullScreenLocationPickerProps {
   open: boolean;
@@ -17,26 +18,63 @@ const FullScreenLocationPicker = ({
   open, 
   onClose, 
   onLocationSelect, 
-  initialLat = 28.6139, 
-  initialLng = 77.2090 
+  initialLat,
+  initialLng 
 }: FullScreenLocationPickerProps) => {
-  const [selectedLat, setSelectedLat] = useState(initialLat);
-  const [selectedLng, setSelectedLng] = useState(initialLng);
+  const [selectedLat, setSelectedLat] = useState(initialLat ?? 17.385044);
+  const [selectedLng, setSelectedLng] = useState(initialLng ?? 78.486671);
   const [locationName, setLocationName] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  const [searchResults, setSearchResults] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const { isLoaded, loadError } = useGoogleMaps();
   
-  // Get current location when component opens
+  // When the picker opens, get current location immediately
   useEffect(() => {
-    if (open && navigator.geolocation) {
-      setIsLocating(true);
+    if (!open) return;
+
+    setSearchQuery("");
+    setIsLocating(true);
+
+    // Start with stored location or initial coords immediately (no waiting)
+    const storedLat = localStorage.getItem("currentLat");
+    const storedLng = localStorage.getItem("currentLng");
+    
+    let startLat = 17.385044;
+    let startLng = 78.486671;
+    
+    if (storedLat && storedLng) {
+      startLat = parseFloat(storedLat);
+      startLng = parseFloat(storedLng);
+    } else if (initialLat != null && initialLng != null) {
+      startLat = initialLat;
+      startLng = initialLng;
+    }
+    
+    setSelectedLat(startLat);
+    setSelectedLng(startLng);
+    reverseGeocode(startLat, startLng);
+
+    // Now try to get fresh device location (don't block UI)
+    if (navigator.geolocation) {
+      const timeoutId = window.setTimeout(() => {
+        setIsLocating(false);
+      }, 3000);
+
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          console.log(`FullScreenLocationPicker: Location acquired: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
+        (pos) => {
+          window.clearTimeout(timeoutId);
+          const { latitude, longitude, accuracy } = pos.coords;
+          // Only use location if accuracy is reasonable (< 5km)
+          if (accuracy && accuracy > 5000) {
+            console.warn('Location accuracy too low:', accuracy, 'm');
+            setIsLocating(false);
+            return;
+          }
           setSelectedLat(latitude);
           setSelectedLng(longitude);
           reverseGeocode(latitude, longitude);
@@ -46,14 +84,18 @@ const FullScreenLocationPicker = ({
           }
           setIsLocating(false);
         },
-        (error) => {
-          console.error("Error getting current location:", error);
+        (err) => {
+          window.clearTimeout(timeoutId);
+          console.error('Error getting current location:', err);
           setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
+    } else {
+      setIsLocating(false);
     }
-  }, [open, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -130,8 +172,13 @@ const FullScreenLocationPicker = ({
     }
   };
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
+  const onLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+    // Initialize places service for search
+    if (window.google?.maps?.places) {
+      autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
+      placesServiceRef.current = new google.maps.places.PlacesService(mapInstance);
+    }
   }, []);
 
   const onUnmount = useCallback(() => {
@@ -159,46 +206,75 @@ const FullScreenLocationPicker = ({
   };
 
   const handleConfirm = () => {
-    onLocationSelect(selectedLat, selectedLng, locationAddress || `${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`);
+    onLocationSelect(
+      selectedLat,
+      selectedLng,
+      locationAddress || `${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`
+    );
+    onClose();
   };
 
-  const handleCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          console.log(`Current location button: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
-          setSelectedLat(latitude);
-          setSelectedLng(longitude);
-          reverseGeocode(latitude, longitude);
+  // Handle search input
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    
+    if (!value.trim() || !autocompleteServiceRef.current) {
+      setSearchResults([]);
+      return;
+    }
+
+    autocompleteServiceRef.current.getPlacePredictions(
+      { 
+        input: value,
+        componentRestrictions: { country: 'in' }
+      },
+      (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSearchResults(predictions);
+        } else {
+          setSearchResults([]);
+        }
+      }
+    );
+  };
+
+  // Handle place selection from search
+  const handlePlaceSelect = (placeId: string) => {
+    if (!placesServiceRef.current) return;
+
+    placesServiceRef.current.getDetails(
+      { placeId, fields: ['geometry', 'formatted_address', 'name'] },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
           
+          setSelectedLat(lat);
+          setSelectedLng(lng);
+          setSearchQuery('');
+          setSearchResults([]);
+          reverseGeocode(lat, lng);
+
           if (map) {
-            map.panTo({ lat: latitude, lng: longitude });
+            map.panTo({ lat, lng });
             map.setZoom(17);
           }
-          setIsLocating(false);
-        },
-        (error) => {
-          console.error('Error getting current location:', error);
-          setIsLocating(false);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    }
+        }
+      }
+    );
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
+    <div className="fixed inset-0 z-[9999] bg-background flex flex-col touch-auto">
       {/* Header with Search */}
-      <div className="bg-background p-4 flex items-center gap-3 border-b">
-        <Button 
-          variant="ghost" 
-          size="icon" 
+      <div className="relative z-20 bg-background p-3 flex items-center gap-3 border-b">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="h-10 w-10 rounded-full"
+          className="h-10 w-10 rounded-full shrink-0"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -207,14 +283,32 @@ const FullScreenLocationPicker = ({
           <Input
             placeholder="Search an area or address"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-full bg-muted/50"
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-10 h-11 rounded-full bg-muted/50"
           />
+          {/* Search Results Dropdown */}
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto z-30">
+              {searchResults.map((result) => (
+                <button
+                  key={result.place_id}
+                  onClick={() => handlePlaceSelect(result.place_id)}
+                  className="w-full text-left px-4 py-3 hover:bg-muted border-b last:border-b-0 flex items-start gap-3"
+                >
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{result.structured_formatting.main_text}</p>
+                    <p className="text-xs text-muted-foreground truncate">{result.structured_formatting.secondary_text}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       
-      {/* Map Container */}
-      <div className="flex-1 relative">
+      {/* Map Container - 75% height */}
+      <div className="h-[60vh] relative">
         {loadError ? (
           <div className="h-full flex items-center justify-center bg-muted p-6">
             <div className="text-center max-w-sm">
@@ -242,10 +336,13 @@ const FullScreenLocationPicker = ({
         ) : (
           <>
             <GoogleMap
-              mapContainerStyle={{ width: "100%", height: "100%" }}
+              mapContainerClassName="w-full h-full touch-auto"
               center={{ lat: selectedLat, lng: selectedLng }}
               zoom={16}
-              onLoad={onLoad}
+              onLoad={(m) => {
+                onLoad(m);
+                m.setOptions({ gestureHandling: 'greedy' });
+              }}
               onUnmount={onUnmount}
               onClick={handleMapClick}
               options={{
@@ -254,6 +351,8 @@ const FullScreenLocationPicker = ({
                 mapTypeControl: false,
                 fullscreenControl: false,
                 clickableIcons: false,
+                gestureHandling: 'greedy',
+                draggable: true,
               }}
             >
               <Marker
@@ -266,40 +365,27 @@ const FullScreenLocationPicker = ({
                 }}
               />
             </GoogleMap>
-
-            {/* Current Location Button */}
-            <Button
-              onClick={handleCurrentLocation}
-              disabled={isLocating}
-              variant="outline"
-              className="absolute bottom-44 left-1/2 -translate-x-1/2 bg-background shadow-lg rounded-full px-4 h-10"
-            >
-              <Crosshair
-                className={`h-4 w-4 mr-2 ${isLocating ? "animate-pulse" : ""}`}
-                style={{ color: "hsl(var(--primary))" }}
-              />
-              <span>Current location</span>
-            </Button>
           </>
         )}
       </div>
       
-      {/* Bottom Sheet */}
-      <div className="bg-background rounded-t-3xl shadow-2xl p-5 pb-8">
-        <p className="text-sm text-muted-foreground mb-1">Place the pin at exact delivery location</p>
-        <p className="text-xs text-muted-foreground mb-3">Order will be delivered here</p>
-        
-        <div className="flex items-start gap-3 mb-5">
-          <MapPin className="h-6 w-6 shrink-0" style={{ color: 'hsl(var(--primary))' }} />
+      {/* Bottom Sheet - remaining 25% */}
+      <div className="flex-1 relative z-20 bg-background rounded-t-3xl shadow-2xl p-4 pointer-events-auto flex flex-col">
+        <p className="text-sm text-muted-foreground">Place the pin at exact delivery location</p>
+        <p className="text-xs text-muted-foreground mb-2">Order will be delivered here</p>
+
+        <div className="flex items-start gap-3 mb-4">
+          <MapPin className="h-5 w-5 shrink-0 text-primary mt-0.5" />
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg">{locationName || 'Loading...'}</h3>
+            <h3 className="font-semibold">{locationName || 'Loading...'}</h3>
             <p className="text-sm text-muted-foreground line-clamp-2">{locationAddress}</p>
           </div>
         </div>
-        
-        <Button 
+
+        <Button
+          type="button"
           onClick={handleConfirm}
-          className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground text-lg font-medium rounded-xl"
+          className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl mt-auto"
         >
           Confirm & proceed
         </Button>

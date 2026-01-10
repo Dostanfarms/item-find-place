@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, User, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu, Crown } from "lucide-react";
+import { MapPin, User, LogOut, CreditCard, Heart, FileText, Settings, ChevronDown, AlertCircle, Menu, Crown, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RegisterForm } from "@/components/auth/RegisterForm";
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useUserAuth } from "@/contexts/UserAuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useZippyPass } from "@/hooks/useZippyPass";
+import { useUserWallet } from "@/hooks/useUserWallet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
@@ -33,6 +34,10 @@ export const Header = () => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Prevent rapid re-dispatch of the same device location (causes re-fetch loops)
+  const lastDispatchedLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+
   const {
     user,
     login,
@@ -43,6 +48,7 @@ export const Header = () => {
     getTotalItems
   } = useCart();
   const { hasActivePass, getDaysRemaining } = useZippyPass();
+  const { balance: walletBalance } = useUserWallet();
   const navigateToPage = useNavigate();
 
   useEffect(() => {
@@ -54,37 +60,70 @@ export const Header = () => {
   
   const loadSelectedAddress = async () => {
     if (!user) return;
-    
-    // First check localStorage for selected address
+
+    const dispatchAddressChanged = (latitude?: number, longitude?: number) => {
+      if (latitude == null || longitude == null) return;
+
+      const last = lastDispatchedLocationRef.current;
+      const next = { lat: latitude, lng: longitude };
+      const changed =
+        !last ||
+        Math.abs(last.lat - next.lat) > 0.0001 ||
+        Math.abs(last.lng - next.lng) > 0.0001;
+
+      if (changed) {
+        lastDispatchedLocationRef.current = next;
+        window.dispatchEvent(
+          new CustomEvent('addressChanged', {
+            detail: { latitude, longitude },
+          })
+        );
+      }
+    };
+
+    // First check localStorage for selected address (preferred; includes coordinates)
+    // Note: older stored values may miss latitude/longitude; in that case we fall back to DB.
     const storedAddress = localStorage.getItem('selectedAddress');
     if (storedAddress) {
       try {
-        setSelectedAddress(JSON.parse(storedAddress));
-        return;
+        const parsed = JSON.parse(storedAddress);
+        setSelectedAddress(parsed);
+
+        if (parsed?.latitude != null && parsed?.longitude != null) {
+          dispatchAddressChanged(parsed.latitude, parsed.longitude);
+          return;
+        }
+
+        // Stored address without coordinates can't be used for filtering; refresh from DB.
+        localStorage.removeItem('selectedAddress');
       } catch (error) {
         console.error('Error parsing stored address:', error);
+        localStorage.removeItem('selectedAddress');
       }
     }
-    
+
     // Fallback to loading from database
     try {
       const { data, error } = await supabase
         .from('user_addresses')
-        .select('label, full_address')
+        .select('label, full_address, latitude, longitude')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (error) throw error;
-      
+
       if (data) {
         const addressData = {
           label: data.label,
-          address: data.full_address
+          address: data.full_address,
+          latitude: data.latitude,
+          longitude: data.longitude,
         };
         setSelectedAddress(addressData);
         localStorage.setItem('selectedAddress', JSON.stringify(addressData));
+        dispatchAddressChanged(data.latitude, data.longitude);
       }
     } catch (error) {
       console.error('No saved addresses found');
@@ -130,8 +169,23 @@ export const Header = () => {
         setLocationGranted(true);
         const { latitude, longitude, accuracy } = position.coords;
         console.log(`Location acquired: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
+
+        // Update listings only when device location actually changes (prevents blinking loops)
+        const last = lastDispatchedLocationRef.current;
+        const next = { lat: latitude, lng: longitude };
+        const changed = !last || Math.abs(last.lat - next.lat) > 0.0001 || Math.abs(last.lng - next.lng) > 0.0001;
+
+        if (changed) {
+          lastDispatchedLocationRef.current = next;
+          window.dispatchEvent(
+            new CustomEvent('addressChanged', {
+              detail: { latitude, longitude },
+            })
+          );
+        }
+
         reverseGeocode(latitude, longitude);
-      }, 
+      },
       (error) => {
         console.error('Error getting location:', error);
         if (error.code === error.PERMISSION_DENIED) {
@@ -145,9 +199,9 @@ export const Header = () => {
           setCurrentLocation("Select Location");
         }
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 15000, 
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
         maximumAge: 0 // Always get fresh location
       }
     );
@@ -256,10 +310,24 @@ export const Header = () => {
   };
 
   const handleLogout = () => {
+    // Clear saved address so logged-out users fall back to device/current location
+    localStorage.removeItem('selectedAddress');
+    setSelectedAddress(null);
+
+    const lat = localStorage.getItem('currentLat');
+    const lng = localStorage.getItem('currentLng');
+    if (lat && lng) {
+      window.dispatchEvent(
+        new CustomEvent('addressChanged', {
+          detail: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
+        })
+      );
+    }
+
     logout();
   };
 
-  return <header className="sticky top-0 z-[100] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  return <header className="sticky top-0 z-[100] w-full border-b bg-background pt-[env(safe-area-inset-top)]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -346,6 +414,17 @@ export const Header = () => {
                   <DropdownMenuItem className="flex items-center space-x-2 py-2" onClick={() => navigateToPage('/my-orders')}>
                     <FileText className="h-4 w-4" />
                     <span>My Orders</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-center justify-between py-2" onClick={() => navigateToPage('/my-wallet')}>
+                    <div className="flex items-center space-x-2">
+                      <Wallet className="h-4 w-4" />
+                      <span>My Wallet</span>
+                    </div>
+                    {walletBalance > 0 && (
+                      <Badge className="bg-green-500 text-white text-xs px-1.5 py-0">
+                        ₹{walletBalance}
+                      </Badge>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center space-x-2 py-2">
                     <Settings className="h-4 w-4" />

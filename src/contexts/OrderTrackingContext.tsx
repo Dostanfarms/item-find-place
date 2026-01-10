@@ -21,6 +21,13 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
   const previousStatusRef = useRef<string | null>(null);
   const { permission, requestPermission, showOrderStatusNotification } = useNotifications();
 
+  const getDisplayStatus = useCallback((order: any) => {
+    if (!order) return null;
+    if (order.status === 'refunded') return 'refunded';
+    if (order.status === 'rejected' || order.seller_status === 'rejected') return 'rejected';
+    return order.status;
+  }, []);
+
   // Keep ref in sync with state
   useEffect(() => {
     activeOrderIdRef.current = activeOrder?.id || null;
@@ -36,14 +43,17 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
         .single();
 
       if (data && !error) {
-        // Include delivered orders for 30 minutes after delivery
+        const displayStatus = getDisplayStatus(data);
+
+        // Include delivered orders for 30 minutes after delivery, exclude refunded orders
         const activeStatuses = ['pending', 'accepted', 'preparing', 'packed', 'assigned', 'going_for_pickup', 'picked_up', 'going_for_delivery'];
+        const isRefunded = data.status === 'refunded';
         const isDeliveredRecently = data.status === 'delivered' && data.delivered_at && 
           (new Date().getTime() - new Date(data.delivered_at).getTime()) < 30 * 60000;
         
-        if (activeStatuses.includes(data.status) || isDeliveredRecently) {
+        if (!isRefunded && (activeStatuses.includes(data.status) || isDeliveredRecently)) {
           console.log('Setting active order with status:', data.status);
-          previousStatusRef.current = data.status;
+          previousStatusRef.current = displayStatus;
           setActiveOrderState(data);
         } else {
           // Order is no longer active, clear it
@@ -126,19 +136,21 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
             if (currentOrderId && newOrder.id === currentOrderId) {
               console.log('Updating active order status to:', newOrder.status);
               
-              // Show notification if status changed
-              if (previousStatus && newOrder.status !== previousStatus) {
-                console.log('Status changed from', previousStatus, 'to', newOrder.status);
-                showOrderStatusNotification(newOrder.status, newOrder.seller_name);
+              const displayStatus = getDisplayStatus(newOrder);
+
+              // Show notification if status changed (including seller_status based rejection)
+              if (previousStatus && displayStatus && displayStatus !== previousStatus) {
+                console.log('Status changed from', previousStatus, 'to', displayStatus);
+                showOrderStatusNotification(displayStatus, newOrder.seller_name);
               }
               
-              previousStatusRef.current = newOrder.status;
+              previousStatusRef.current = displayStatus;
               await loadOrderById(newOrder.id);
             }
             // If no active order but this is a new order, set it
             else if (!currentOrderId && payload.eventType === 'INSERT') {
               console.log('New order detected:', newOrder.id);
-              previousStatusRef.current = newOrder.status;
+              previousStatusRef.current = getDisplayStatus(newOrder);
               await loadOrderById(newOrder.id);
             }
           }

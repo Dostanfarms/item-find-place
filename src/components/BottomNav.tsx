@@ -1,43 +1,38 @@
 import { UtensilsCrossed, ShoppingBasket, Milk, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 export const BottomNav = () => {
   const navigate = useNavigate();
-
-  const handleComingSoon = () => {
-    toast.info("Coming soon! This feature is under development.");
-  };
 
   const navItems = [
     {
       icon: UtensilsCrossed,
       label: "Food",
-      onClick: () => navigate("/restaurants"),
+      onClick: () => navigate("/restaurants?category=food_delivery"),
       color: "text-primary"
     },
     {
       icon: ShoppingBasket,
       label: "Instamart",
-      onClick: handleComingSoon,
+      onClick: () => navigate("/restaurants?category=instamart"),
       color: "text-green-600"
     },
     {
       icon: Milk,
       label: "Dairy",
-      onClick: handleComingSoon,
+      onClick: () => navigate("/restaurants?category=dairy"),
       color: "text-blue-600"
     },
     {
       icon: Package,
       label: "Services",
-      onClick: handleComingSoon,
+      onClick: () => navigate("/restaurants?category=services"),
       color: "text-purple-600"
     }
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="flex justify-around items-center h-16 max-w-screen-xl mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon;

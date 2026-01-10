@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,13 +8,22 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSellerAuth } from '@/contexts/SellerAuthContext';
 
-interface SellerItemsFormProps {
+interface Item {
+  id: string;
+  item_name: string;
+  item_photo_url?: string;
+  seller_price: number;
+  item_info?: string | null;
+}
+
+interface EditItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  item: Item | null;
   onSuccess?: () => void;
 }
 
-const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps) => {
+const EditItemModal = ({ open, onOpenChange, item, onSuccess }: EditItemModalProps) => {
   const [formData, setFormData] = useState({
     item_name: '',
     seller_price: '',
@@ -26,6 +34,18 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { seller } = useSellerAuth();
+
+  useEffect(() => {
+    if (item && open) {
+      setFormData({
+        item_name: item.item_name,
+        seller_price: item.seller_price.toString(),
+        item_info: item.item_info || ''
+      });
+      setImagePreview(item.item_photo_url || null);
+      setImageFile(null);
+    }
+  }, [item, open]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -73,55 +93,48 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!item) return;
     setLoading(true);
 
     try {
-      if (!seller) {
-        throw new Error('No seller found');
-      }
-
-      let imageUrl = null;
+      let imageUrl = item.item_photo_url;
+      
       if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-        if (!imageUrl) {
+        const uploadedUrl = await uploadImage(imageFile);
+        if (!uploadedUrl) {
           throw new Error('Failed to upload image');
         }
+        imageUrl = uploadedUrl;
+      } else if (!imagePreview) {
+        imageUrl = null;
       }
 
       const { error } = await supabase
         .from('items')
-        .insert({
-          seller_id: seller.id,
+        .update({
           item_name: formData.item_name,
           item_photo_url: imageUrl,
           seller_price: parseFloat(formData.seller_price),
-          franchise_price: parseFloat(formData.seller_price), // Set same as seller_price (required field)
+          franchise_price: parseFloat(formData.seller_price),
           item_info: formData.item_info || null
-        });
+        })
+        .eq('id', item.id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Item added successfully!",
+        description: "Item updated successfully!",
       });
 
-      // Reset form
-      setFormData({
-        item_name: '',
-        seller_price: '',
-        item_info: ''
-      });
-      setImageFile(null);
-      setImagePreview(null);
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error('Error adding item:', error);
+      console.error('Error updating item:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add item",
+        description: "Failed to update item",
       });
     } finally {
       setLoading(false);
@@ -132,7 +145,7 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Item</DialogTitle>
+          <DialogTitle>Edit Item</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -198,7 +211,7 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
             <textarea
               id="item_info"
               className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Add description about this item (e.g., ingredients, serving size, etc.)"
+              placeholder="Add description about this item"
               value={formData.item_info}
               onChange={(e) => handleInputChange('item_info', e.target.value)}
             />
@@ -214,7 +227,7 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
               Cancel
             </Button>
             <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Adding...' : 'Add Item'}
+              {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>
@@ -223,4 +236,4 @@ const SellerItemsForm = ({ open, onOpenChange, onSuccess }: SellerItemsFormProps
   );
 };
 
-export default SellerItemsForm;
+export default EditItemModal;
