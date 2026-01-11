@@ -3,25 +3,35 @@ import { useNavigate } from "react-router-dom";
 
 interface ServiceCategoryProps {
   title: string;
+  subtitle: string;
   icon: React.ReactNode;
+  badge?: string;
   onClick: () => void;
 }
 
 const ServiceCategoryCard = ({
   title,
+  subtitle,
   icon,
+  badge,
   onClick
 }: ServiceCategoryProps) => {
   return (
     <div 
-      className="relative bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden group flex-1 min-h-0" 
+      className="relative bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden group" 
       onClick={onClick}
     >
-      <div className="h-full flex flex-col items-center justify-center p-4">
-        <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3">
-          {icon}
+      <div className="p-3 flex flex-col">
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex-1">
+            <h3 className="font-bold text-sm text-foreground mb-0.5">{title}</h3>
+            <p className="text-[10px] text-muted-foreground uppercase">{subtitle}</p>
+            {badge && <p className="text-xs font-semibold text-primary mt-1">{badge}</p>}
+          </div>
+          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+            {icon}
+          </div>
         </div>
-        <h3 className="font-bold text-sm text-foreground text-center">{title}</h3>
       </div>
     </div>
   );
@@ -41,30 +51,38 @@ export const ServiceCategories = ({
   };
 
   return (
-    <section className="flex-1 bg-background flex flex-col min-h-0">
-      <div className="container mx-auto px-4 flex-1 flex flex-col min-h-0">
-        <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto flex-1 min-h-0">
+    <section className="py-4 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
           <ServiceCategoryCard 
-            title="Food Delivery" 
-            icon={<UtensilsCrossed className="h-6 w-6" />} 
+            title="FOOD DELIVERY" 
+            subtitle="YESVEMBER: LIVE NOW" 
+            badge="GET 65% OFF" 
+            icon={<UtensilsCrossed className="h-5 w-5" />} 
             onClick={() => handleCategoryClick('food_delivery')} 
           />
           
           <ServiceCategoryCard 
-            title="Instamart" 
-            icon={<ShoppingBasket className="h-6 w-6" />} 
+            title="INSTAMART" 
+            subtitle="GROCERY DELIVERY" 
+            badge="FREE ₹125" 
+            icon={<ShoppingBasket className="h-5 w-5" />} 
             onClick={() => handleCategoryClick('instamart')} 
           />
           
           <ServiceCategoryCard 
-            title="Dairy Products" 
-            icon={<Milk className="h-6 w-6" />} 
+            title="DAIRY PRODUCTS" 
+            subtitle="FRESH DAILY" 
+            badge="UP TO 50% OFF" 
+            icon={<Milk className="h-5 w-5" />} 
             onClick={() => handleCategoryClick('dairy')} 
           />
           
           <ServiceCategoryCard 
-            title="Services" 
-            icon={<Package className="h-6 w-6" />} 
+            title="SERVICES" 
+            subtitle="OTHERS" 
+            badge="GET SERVICES IN MINS" 
+            icon={<Package className="h-5 w-5" />} 
             onClick={() => handleCategoryClick('services')} 
           />
         </div>
