@@ -324,34 +324,30 @@ const UserWallet = () => {
             <CardTitle className="text-lg">Transaction History</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Date Filter */}
-            <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <div className="flex items-center gap-2">
-                <Label htmlFor="filterFrom" className="text-xs">From</Label>
-                <Input 
-                  id="filterFrom" 
-                  type="date" 
-                  value={filterFrom} 
-                  onChange={e => setFilterFrom(e.target.value)} 
-                  className="h-8 w-32 text-xs" 
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="filterTo" className="text-xs">To</Label>
-                <Input 
-                  id="filterTo" 
-                  type="date" 
-                  value={filterTo} 
-                  onChange={e => setFilterTo(e.target.value)} 
-                  className="h-8 w-32 text-xs" 
-                />
-              </div>
-              <Button onClick={handleApplyFilter} size="sm" className="h-8">
+            {/* Date Filter - Compact Horizontal */}
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg overflow-x-auto">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <Label htmlFor="filterFrom" className="text-[10px] text-muted-foreground flex-shrink-0">From</Label>
+              <Input 
+                id="filterFrom" 
+                type="date" 
+                value={filterFrom} 
+                onChange={e => setFilterFrom(e.target.value)} 
+                className="h-7 w-[100px] text-[10px] px-1.5" 
+              />
+              <Label htmlFor="filterTo" className="text-[10px] text-muted-foreground flex-shrink-0">To</Label>
+              <Input 
+                id="filterTo" 
+                type="date" 
+                value={filterTo} 
+                onChange={e => setFilterTo(e.target.value)} 
+                className="h-7 w-[100px] text-[10px] px-1.5" 
+              />
+              <Button onClick={handleApplyFilter} size="sm" className="h-7 px-2 text-xs flex-shrink-0">
                 Apply
               </Button>
               {(filterFrom || filterTo) && (
-                <Button onClick={handleClearFilter} variant="outline" size="sm" className="h-8">
+                <Button onClick={handleClearFilter} variant="outline" size="sm" className="h-7 px-2 text-xs flex-shrink-0">
                   Clear
                 </Button>
               )}
