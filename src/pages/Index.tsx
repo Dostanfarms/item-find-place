@@ -15,14 +15,13 @@ const Index = () => {
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   
   return (
-    <div className="min-h-screen bg-background pb-[calc(4rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <NotificationPermissionBanner />
       <Header />
-      <main>
+      <main className="flex-1 flex flex-col min-h-0 pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <HomeBanner />
         <ServiceCategories onFoodDeliveryClick={() => navigate('/restaurants')} />
       </main>
-      <Footer />
       <BottomNav />
       <OrderTrackingButton onClick={() => setShowTrackingModal(true)} />
       <OrderTrackingModal isOpen={showTrackingModal} onClose={() => setShowTrackingModal(false)} />

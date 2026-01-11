@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -13,10 +13,22 @@ export const HomeBanner = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     fetchBanners();
   }, []);
+
+  // Auto-scroll every 2 seconds
+  useEffect(() => {
+    if (banners.length <= 1 || isPaused) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [banners.length, isPaused]);
 
   const fetchBanners = async () => {
     try {
@@ -35,26 +47,33 @@ export const HomeBanner = () => {
     }
   };
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % banners.length);
-  };
+  }, [banners.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
+  }, [banners.length]);
+
+  const handleManualNavigation = (action: () => void) => {
+    setIsPaused(true);
+    action();
+    // Resume auto-scroll after 5 seconds of inactivity
+    setTimeout(() => setIsPaused(false), 5000);
   };
 
   if (loading) {
     return (
-      <div className="h-[33vh] mx-4 mt-2 bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse rounded-2xl" />
+      <div className="h-40 mx-4 mt-2 bg-gradient-to-br from-primary/20 to-primary/5 animate-pulse rounded-2xl shrink-0" />
     );
   }
 
   if (banners.length === 0) {
     return (
-      <div className="h-[33vh] mx-4 mt-2 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center rounded-2xl">
+      <div className="h-40 mx-4 mt-2 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center rounded-2xl shrink-0">
         <div className="text-center text-primary-foreground">
-          <h1 className="text-2xl md:text-4xl font-bold mb-2">Welcome to Zippy</h1>
-          <p className="text-base md:text-lg opacity-90">Delivery in minutes at your doorstep</p>
+          <h1 className="text-xl md:text-2xl font-bold mb-1">Welcome to Zippy</h1>
+          <p className="text-sm md:text-base opacity-90">Delivery in minutes at your doorstep</p>
         </div>
       </div>
     );
@@ -63,7 +82,7 @@ export const HomeBanner = () => {
   const currentBanner = banners[currentIndex];
 
   return (
-    <div className="relative h-[33vh] overflow-hidden mx-4 mt-2 rounded-2xl">
+    <div className="relative h-40 overflow-hidden mx-4 mt-2 rounded-2xl shrink-0">
       {/* Banner Content */}
       <div
         className="h-full w-full flex items-center justify-center transition-all duration-500"
@@ -89,13 +108,13 @@ export const HomeBanner = () => {
       {banners.length > 1 && (
         <>
           <button
-            onClick={prevSlide}
+            onClick={() => handleManualNavigation(prevSlide)}
             className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition-colors"
           >
             <ChevronLeft className="h-6 w-6 text-white" />
           </button>
           <button
-            onClick={nextSlide}
+            onClick={() => handleManualNavigation(nextSlide)}
             className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full p-2 transition-colors"
           >
             <ChevronRight className="h-6 w-6 text-white" />
@@ -106,7 +125,9 @@ export const HomeBanner = () => {
             {banners.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => {
+                  handleManualNavigation(() => setCurrentIndex(index));
+                }}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   index === currentIndex ? 'bg-white' : 'bg-white/50'
                 }`}
