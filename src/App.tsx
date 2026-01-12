@@ -36,6 +36,7 @@ import { OrderTrackingProvider } from "./contexts/OrderTrackingContext";
 import { GoogleMapsProvider } from "./contexts/GoogleMapsContext";
 import { useAndroidBackButton } from "./hooks/useAndroidBackButton";
 import { useLocationPermission } from "./hooks/useLocationPermission";
+import { useStatusBar } from "./hooks/useStatusBar";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   useAndroidBackButton();
   useLocationPermission(); // Request location permission on app load
+  useStatusBar(); // Configure status bar for Android
   
   return (
     <Routes>
