@@ -55,7 +55,7 @@ const ServiceCategoryCard = ({
             <p className="text-[10px] text-muted-foreground uppercase">{subtitle}</p>
             {badge && <p className="text-xs font-semibold text-primary mt-1">{badge}</p>}
           </div>
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden">
+          <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary overflow-hidden">
             {imageUrl ? (
               <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
             ) : (
