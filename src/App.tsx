@@ -18,6 +18,7 @@ import SellerSalesPage from "./pages/dashboard/SellerSalesPage";
 import Banners from "./pages/dashboard/Banners";
 import Modules from "./pages/dashboard/Modules";
 import SupportChats from "./pages/dashboard/SupportChats";
+import Revenue from "./pages/dashboard/Revenue";
 import Help from "./pages/Help";
 import SellerLogin from "./pages/SellerLogin";
 import SellerDashboard from "./pages/SellerDashboard";
@@ -63,6 +64,7 @@ const AppContent = () => {
       <Route path="/delivery-dashboard" element={<DeliveryPartnerDashboard />} />
       <Route path="/dashboard" element={<Dashboard />}>
         <Route index element={<DashboardHome />} />
+        <Route path="revenue" element={<Revenue />} />
         <Route path="users" element={<Users />} />
         <Route path="sellers" element={<Sellers />} />
         <Route path="sellers/:sellerId/sales" element={<SellerSalesPage />} />
