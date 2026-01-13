@@ -140,7 +140,7 @@ const Revenue = () => {
       title: "Total Profit",
       value: stats.totalProfit,
       icon: TrendingUp,
-      description: "Platform fees + Delivery fees + GST",
+      description: "Platform fees + Delivery fees + Commission + Zippy Pass",
       color: "bg-purple-500",
       textColor: "text-purple-600",
       trend: "up",
