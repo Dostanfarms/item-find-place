@@ -17,6 +17,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import SellerSalesPage from "./pages/dashboard/SellerSalesPage";
 import Banners from "./pages/dashboard/Banners";
 import Modules from "./pages/dashboard/Modules";
+import Subcategories from "./pages/dashboard/Subcategories";
 import SupportChats from "./pages/dashboard/SupportChats";
 import Revenue from "./pages/dashboard/Revenue";
 import Help from "./pages/Help";
@@ -28,6 +29,7 @@ import DeliveryPartnerDashboard from "./pages/DeliveryPartnerDashboard";
 import RestaurantMenu from "./pages/RestaurantMenu";
 import { Checkout } from "./pages/Checkout";
 import { MyOrders } from "./pages/MyOrders";
+import OrderDetails from "./pages/OrderDetails";
 import CartPage from "./pages/CartPage";
 import UserWallet from "./pages/UserWallet";
 import { SellerAuthProvider } from "./contexts/SellerAuthContext";
@@ -55,6 +57,7 @@ const AppContent = () => {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/order/:orderId" element={<OrderDetails />} />
       <Route path="/my-wallet" element={<UserWallet />} />
       <Route path="/help" element={<Help />} />
       <Route path="/seller-login" element={<SellerLogin />} />
@@ -74,6 +77,7 @@ const AppContent = () => {
         <Route path="delivery-partners" element={<DeliveryPartners />} />
         <Route path="banners" element={<Banners />} />
         <Route path="modules" element={<Modules />} />
+        <Route path="subcategories" element={<Subcategories />} />
         <Route path="support-chats" element={<SupportChats />} />
       </Route>
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
