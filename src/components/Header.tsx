@@ -403,6 +403,10 @@ export const Header = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center space-x-2 py-2" onClick={() => navigateToPage('/profile')}>
+                    <User className="h-4 w-4" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center space-x-2 py-2" onClick={() => navigateToPage('/my-orders')}>
                     <FileText className="h-4 w-4" />
                     <span>My Orders</span>
