@@ -236,7 +236,7 @@ const Subcategories = () => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {modules.map(module => (
                       <SelectItem key={module.id} value={module.slug}>
                         {module.title}
@@ -368,7 +368,7 @@ const Subcategories = () => {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {modules.map(module => (
                     <SelectItem key={module.id} value={module.slug}>
                       {module.title}
