@@ -266,16 +266,19 @@ const FullScreenLocationPicker = ({
         ) : (
           <>
             <GoogleMap
-              mapContainerClassName="w-full h-full touch-auto"
+              mapContainerClassName="w-full h-full"
+              mapContainerStyle={{ touchAction: 'pan-x pan-y' }}
               center={{ lat: selectedLat, lng: selectedLng }}
-              zoom={16}
+              zoom={17}
               onLoad={(m) => {
                 onLoad(m);
-                m.setOptions({ gestureHandling: 'greedy' });
+                // Pan to current location immediately
+                m.panTo({ lat: selectedLat, lng: selectedLng });
               }}
               onUnmount={onUnmount}
               onClick={handleMapClick}
               options={{
+                disableDefaultUI: false,
                 zoomControl: true,
                 zoomControlOptions: {
                   position: google.maps.ControlPosition.RIGHT_CENTER
@@ -286,6 +289,10 @@ const FullScreenLocationPicker = ({
                 clickableIcons: false,
                 gestureHandling: 'greedy',
                 draggable: true,
+                draggableCursor: 'grab',
+                draggingCursor: 'grabbing',
+                scrollwheel: true,
+                disableDoubleClickZoom: false,
               }}
             >
               <Marker
@@ -294,7 +301,8 @@ const FullScreenLocationPicker = ({
                 onDragEnd={handleMarkerDragEnd}
                 icon={{
                   url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                  scaledSize: new google.maps.Size(50, 50),
+                  scaledSize: new google.maps.Size(60, 60),
+                  anchor: new google.maps.Point(30, 60),
                 }}
               />
             </GoogleMap>

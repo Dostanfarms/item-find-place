@@ -804,6 +804,7 @@ export type Database = {
           is_verified: boolean
           mobile: string
           name: string
+          profile_photo_url: string | null
           updated_at: string
         }
         Insert: {
@@ -812,6 +813,7 @@ export type Database = {
           is_verified?: boolean
           mobile: string
           name: string
+          profile_photo_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -820,6 +822,7 @@ export type Database = {
           is_verified?: boolean
           mobile?: string
           name?: string
+          profile_photo_url?: string | null
           updated_at?: string
         }
         Relationships: []

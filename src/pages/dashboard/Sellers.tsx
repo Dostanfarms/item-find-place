@@ -133,8 +133,8 @@ const Sellers = () => {
               </TableHeader>
               <TableBody>
                 {filteredSellers.map(seller => <TableRow key={seller.id}>
-                    <TableCell>
-                      
+                    <TableCell className="font-mono text-sm">
+                      {seller.seller_id || '-'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-3">
