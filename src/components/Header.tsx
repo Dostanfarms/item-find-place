@@ -366,7 +366,7 @@ export const Header = () => {
                   <Button variant="ghost" className="flex items-center space-x-2 h-10 px-3">
                     <div className={`relative ${hasActivePass ? 'p-0.5 rounded-full bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500' : ''}`}>
                       <Avatar className={`h-8 w-8 ${hasActivePass ? 'border-2 border-background' : ''}`}>
-                        <AvatarImage src="" alt={user?.name} />
+                        <AvatarImage src={user?.profile_photo_url || ''} alt={user?.name} />
                         <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                           {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>

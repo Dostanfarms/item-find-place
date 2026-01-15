@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useUserAuth();
+  const { user, isAuthenticated, updateUser } = useUserAuth();
   const { toast } = useToast();
   
   const [name, setName] = useState('');
@@ -59,12 +59,13 @@ const Profile = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}.${fileExt}`;
       const filePath = `profile-photos/${fileName}`;
 
+      // Use upsert to replace existing photo
       const { error: uploadError } = await supabase.storage
         .from('user-profiles')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -72,26 +73,39 @@ const Profile = () => {
         .from('user-profiles')
         .getPublicUrl(filePath);
 
-      setProfilePhotoUrl(publicUrl);
+      // Add cache-buster to force refresh
+      const photoUrlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+      setProfilePhotoUrl(photoUrlWithCacheBust);
       
       // Update user record with new photo URL
       const { error: updateError } = await supabase
         .from('users')
-        .update({ profile_photo_url: publicUrl })
+        .update({ profile_photo_url: photoUrlWithCacheBust })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('DB update error:', updateError);
+        toast({
+          variant: "destructive",
+          title: "Database update failed",
+          description: updateError.message,
+        });
+        return;
+      }
+
+      // Update local context so header refreshes immediately
+      updateUser({ profile_photo_url: photoUrlWithCacheBust });
 
       toast({
         title: "Photo uploaded",
         description: "Your profile photo has been updated!",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading photo:', error);
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: "Failed to upload profile photo. Please try again.",
+        description: error?.message || "Failed to upload profile photo. Please try again.",
       });
     } finally {
       setIsUploading(false);
