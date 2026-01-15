@@ -6,12 +6,14 @@ interface User {
   name: string;
   mobile: string;
   is_verified: boolean;
+  profile_photo_url?: string;
 }
 
 interface UserAuthContextType {
   user: User | null;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -70,7 +72,26 @@ export const UserAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           .update({ last_active_at: new Date().toISOString() })
           .eq('id', sessionData.id);
         
-        setUser(userData);
+        // Fetch fresh user data including profile_photo_url
+        const { data: freshUserData } = await supabase
+          .from('users')
+          .select('id, name, mobile, is_verified, profile_photo_url')
+          .eq('id', userData.id)
+          .single();
+        
+        if (freshUserData) {
+          const updatedUser = {
+            id: freshUserData.id,
+            name: freshUserData.name,
+            mobile: freshUserData.mobile,
+            is_verified: freshUserData.is_verified,
+            profile_photo_url: freshUserData.profile_photo_url || undefined,
+          };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        } else {
+          setUser(userData);
+        }
       }
     } catch (error) {
       console.error('Error validating session:', error);
@@ -170,10 +191,19 @@ export const UserAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.removeItem('session_token');
   };
 
+  // Update user data locally (e.g., after profile photo upload)
+  const updateUser = (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const value = {
     user,
     login,
     logout,
+    updateUser,
     isAuthenticated: !!user,
     isLoading
   };

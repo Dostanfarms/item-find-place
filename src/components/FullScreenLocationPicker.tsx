@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin, Locate } from 'lucide-react';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
@@ -27,6 +27,7 @@ const FullScreenLocationPicker = ({
   const [isLocating, setIsLocating] = useState(false);
   const { isLoaded, loadError } = useGoogleMaps();
   const mapInitialized = useRef(false);
+  const isUserDragging = useRef(false);
   
   // When the picker opens, get current location immediately
   useEffect(() => {
@@ -70,7 +71,7 @@ const FullScreenLocationPicker = ({
           setSelectedLat(latitude);
           setSelectedLng(longitude);
           reverseGeocode(latitude, longitude);
-          if (map) {
+          if (map && !isUserDragging.current) {
             map.panTo({ lat: latitude, lng: longitude });
           }
         },
@@ -167,25 +168,24 @@ const FullScreenLocationPicker = ({
     setMap(null);
   }, []);
 
-  const handleMapClick = (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
+  // When map stops moving (idle), update the selected location to map center
+  const handleMapIdle = useCallback(() => {
+    if (!map || !mapInitialized.current) return;
+    
+    const center = map.getCenter();
+    if (center) {
+      const lat = center.lat();
+      const lng = center.lng();
       setSelectedLat(lat);
       setSelectedLng(lng);
       reverseGeocode(lat, lng);
     }
-  };
+    isUserDragging.current = false;
+  }, [map, isLoaded]);
 
-  const handleMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      setSelectedLat(lat);
-      setSelectedLng(lng);
-      reverseGeocode(lat, lng);
-    }
-  };
+  const handleDragStart = useCallback(() => {
+    isUserDragging.current = true;
+  }, []);
 
   const handleConfirm = () => {
     onLocationSelect(
@@ -223,7 +223,7 @@ const FullScreenLocationPicker = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-background flex flex-col touch-auto">
+    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
       {/* Header */}
       <div className="relative z-20 bg-background pt-[env(safe-area-inset-top)] px-3 pb-2 flex items-center gap-3 border-b">
         <Button
@@ -267,7 +267,7 @@ const FullScreenLocationPicker = ({
           <>
             <GoogleMap
               mapContainerClassName="w-full h-full"
-              mapContainerStyle={{ touchAction: 'pan-x pan-y' }}
+              mapContainerStyle={{ touchAction: 'none' }}
               center={{ lat: selectedLat, lng: selectedLng }}
               zoom={17}
               onLoad={(m) => {
@@ -276,7 +276,8 @@ const FullScreenLocationPicker = ({
                 m.panTo({ lat: selectedLat, lng: selectedLng });
               }}
               onUnmount={onUnmount}
-              onClick={handleMapClick}
+              onIdle={handleMapIdle}
+              onDragStart={handleDragStart}
               options={{
                 disableDefaultUI: false,
                 zoomControl: true,
@@ -289,23 +290,22 @@ const FullScreenLocationPicker = ({
                 clickableIcons: false,
                 gestureHandling: 'greedy',
                 draggable: true,
-                draggableCursor: 'grab',
-                draggingCursor: 'grabbing',
                 scrollwheel: true,
                 disableDoubleClickZoom: false,
               }}
+            />
+            
+            {/* Fixed Center Pin Overlay - Always in the middle of the map */}
+            <div 
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-10"
+              style={{ marginTop: '-4px' }} // Fine-tune to align pin tip with center
             >
-              <Marker
-                position={{ lat: selectedLat, lng: selectedLng }}
-                draggable={true}
-                onDragEnd={handleMarkerDragEnd}
-                icon={{
-                  url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                  scaledSize: new google.maps.Size(60, 60),
-                  anchor: new google.maps.Point(30, 60),
-                }}
-              />
-            </GoogleMap>
+              <div className="relative">
+                <MapPin className="h-12 w-12 text-primary drop-shadow-lg" fill="hsl(var(--primary))" />
+                {/* Pulse effect under pin */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-1 bg-black/30 rounded-full animate-pulse" />
+              </div>
+            </div>
             
             {/* Locate Me Button */}
             <Button
