@@ -37,10 +37,10 @@ const ChangePasswordModal = ({ open, onOpenChange, userType, userId, currentPass
     try {
       setLoading(true);
 
-      // Verify current password
+      // Verify current password - note: verify_password takes (hash, password) order
       const { data: isValidCurrentPassword, error: verifyError } = await supabase.rpc('verify_password', {
-        password: data.currentPassword,
-        hash: currentPasswordHash
+        hash: currentPasswordHash,
+        password: data.currentPassword
       });
 
       if (verifyError || !isValidCurrentPassword) {

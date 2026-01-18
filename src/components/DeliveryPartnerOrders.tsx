@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow, isToday, format, isSameDay } from "date-fns";
+import { formatDistanceToNow, format, isSameDay } from "date-fns";
 import { Package, MapPin, Phone, CreditCard, AlertCircle, Navigation, Clock, CheckCircle, MessageSquare, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PinVerificationModal } from "./PinVerificationModal";
 import { DeliveryPinVerificationModal } from "./DeliveryPinVerificationModal";
 import DeliveryCustomerChat from "./DeliveryCustomerChat";
+import VoiceCallModal from "./VoiceCallModal";
+import { useVoiceCall } from "@/hooks/useVoiceCall";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -59,9 +61,21 @@ const DeliveryPartnerOrders = ({
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [chatOrderId, setChatOrderId] = useState("");
   const [chatUserId, setChatUserId] = useState("");
+  const [callChatId, setCallChatId] = useState<string | null>(null);
+  const [callUserId, setCallUserId] = useState("");
   const {
     toast
   } = useToast();
+
+  // Voice call hook
+  const voiceCall = useVoiceCall({
+    chatId: callChatId,
+    myId: partnerId,
+    myType: 'delivery_partner',
+    partnerId: callUserId,
+    partnerName: 'Customer',
+  });
+
   const statusOptions = [{
     value: "all",
     label: "All Orders",
@@ -401,128 +415,160 @@ const DeliveryPartnerOrders = ({
       {/* Horizontal Stats */}
       <StatsRow />
       
-      {filteredOrders.map(order => <Card key={order.id} className="border-l-4 border-l-primary">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>Order #{order.id.slice(0, -4)}<span className="font-bold text-lg">{order.id.slice(-4)}</span></span>
-                
-              </div>
+      {filteredOrders.map(order => {
+        const handleDirectCall = async () => {
+          try {
+            // Get or create chat for this order
+            const { data: existingChat, error: chatError } = await supabase
+              .from('delivery_customer_chats')
+              .select('id')
+              .eq('order_id', order.id)
+              .eq('delivery_partner_id', partnerId)
+              .eq('user_id', order.user_id)
+              .maybeSingle();
+
+            let chatId = existingChat?.id;
+            
+            if (!chatId) {
+              const { data: newChat, error: createError } = await supabase
+                .from('delivery_customer_chats')
+                .insert({
+                  order_id: order.id,
+                  delivery_partner_id: partnerId,
+                  user_id: order.user_id,
+                })
+                .select('id')
+                .single();
               
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Restaurant</p>
-              <p className="font-medium">{order.seller_name}</p>
-            </div>
+              if (createError) throw createError;
+              chatId = newChat?.id;
+            }
 
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Items ({order.items.length})</p>
-              <div className="space-y-1">
-                {order.items.map((item, index) => <div key={index} className="flex justify-between text-sm">
-                    <span>{item.item_name} × {item.quantity}</span>
-                    
-                  </div>)}
+            if (chatId) {
+              setCallChatId(chatId);
+              setCallUserId(order.user_id);
+              voiceCall.startCall();
+            }
+          } catch (error) {
+            console.error('Error starting call:', error);
+            toast({
+              title: "Call Failed",
+              description: "Could not start the call. Please try again.",
+              variant: "destructive",
+            });
+          }
+        };
+
+        return (
+          <Card key={order.id} className="border-l-4 border-l-primary">
+            <CardContent className="p-3 space-y-2">
+              {/* Compact Header Row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">#{order.id.slice(0, -4)}</span>
+                  <span className="font-bold text-sm">{order.id.slice(-4)}</span>
+                  <Badge className={cn("text-[10px] px-1.5 py-0", getStatusBadgeColor(order.status, order.pickup_status))}>
+                    {getPickupStatusText(order.pickup_status || 'assigned')}
+                  </Badge>
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {formatDistanceToNow(new Date(order.assigned_at), { addSuffix: true })}
+                </span>
               </div>
-            </div>
 
-            {/* Show delivery address only after pickup */}
-            {(order.pickup_status === 'picked_up' || order.pickup_status === 'going_for_delivery' || order.status === 'delivered') && (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Delivery Address</p>
-                  <p className="text-sm">{order.delivery_address}</p>
+              {/* Restaurant & Items Row */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{order.seller_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.items.map(i => `${i.item_name}×${i.quantity}`).join(', ')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-xs">
+                  <CreditCard className="h-3 w-3" />
+                  <span>{order.payment_method.toUpperCase()}</span>
                 </div>
               </div>
-            )}
 
-            {order.instructions && <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Special Instructions</p>
-                  <p className="text-sm">{order.instructions}</p>
+              {/* Delivery Address - only after pickup */}
+              {(order.pickup_status === 'picked_up' || order.pickup_status === 'going_for_delivery' || order.status === 'delivered') && (
+                <div className="flex items-start gap-1.5 text-xs bg-muted/50 rounded p-1.5">
+                  <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground line-clamp-2">{order.delivery_address}</span>
                 </div>
-              </div>}
+              )}
 
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Payment: {order.payment_method.toUpperCase()}</span>
-            </div>
+              {/* Instructions if any */}
+              {order.instructions && (
+                <div className="flex items-start gap-1.5 text-xs">
+                  <AlertCircle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground line-clamp-1">{order.instructions}</span>
+                </div>
+              )}
 
-            <div className="text-xs text-muted-foreground">
-              Assigned {formatDistanceToNow(new Date(order.assigned_at), {
-            addSuffix: true
-          })}
-            </div>
-
-            <div className="flex gap-2 pt-2 flex-wrap">
-              {/* Pickup Workflow States */}
-              {(!order.pickup_status || order.pickup_status === 'assigned') && order.seller_status === 'packed' && <Button size="sm" onClick={() => navigateToSeller(order)} className="bg-blue-600 hover:bg-blue-700">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  Go for Pickup
-                </Button>}
-
-              {order.pickup_status === 'going_for_pickup' && <>
-                  <Button size="sm" onClick={() => openPinModal(order)} className="bg-green-600 hover:bg-green-700">
-                    <Package className="h-4 w-4 mr-1" />
+              {/* Action Buttons - Compact */}
+              <div className="flex gap-1.5 pt-1 flex-wrap">
+                {(!order.pickup_status || order.pickup_status === 'assigned') && order.seller_status === 'packed' && (
+                  <Button size="sm" className="h-7 text-xs px-2 bg-blue-600 hover:bg-blue-700" onClick={() => navigateToSeller(order)}>
+                    <MapPin className="h-3 w-3 mr-1" />
                     Pickup
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigateToSeller(order)} className="border-blue-600 text-blue-600 hover:bg-blue-50">
-                    <Navigation className="h-4 w-4 mr-1" />
-                    Navigate
-                  </Button>
-                </>}
+                )}
 
-              {order.pickup_status === 'picked_up' && order.status === 'out_for_delivery' && <>
-                  <Button size="sm" onClick={() => navigateToCustomer(order)} className="bg-orange-600 hover:bg-orange-700">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    Go to Delivery
-                  </Button>
-                </>}
+                {order.pickup_status === 'going_for_pickup' && (
+                  <>
+                    <Button size="sm" className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700" onClick={() => openPinModal(order)}>
+                      <Package className="h-3 w-3 mr-1" />
+                      Verify
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => navigateToSeller(order)}>
+                      <Navigation className="h-3 w-3 mr-1" />
+                      Nav
+                    </Button>
+                  </>
+                )}
 
-              {order.pickup_status === 'going_for_delivery' && order.status === 'out_for_delivery' && <>
-                  <Button size="sm" onClick={() => openDeliveryPinModal(order)} className="bg-green-600 hover:bg-green-700">
-                    Mark Delivered
+                {order.pickup_status === 'picked_up' && order.status === 'out_for_delivery' && (
+                  <Button size="sm" className="h-7 text-xs px-2 bg-orange-600 hover:bg-orange-700" onClick={() => navigateToCustomer(order)}>
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Deliver
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigateToCustomer(order)} className="border-green-600 text-green-600 hover:bg-green-50">
-                    <Navigation className="h-4 w-4 mr-1" />
-                    Navigate
-                  </Button>
-                </>}
+                )}
 
-              <Button variant="outline" size="sm" onClick={() => {
-                setChatOrderId(order.id);
-                setChatUserId(order.user_id);
-                setChatModalOpen(true);
-              }}>
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Chat
-              </Button>
+                {order.pickup_status === 'going_for_delivery' && order.status === 'out_for_delivery' && (
+                  <>
+                    <Button size="sm" className="h-7 text-xs px-2 bg-green-600 hover:bg-green-700" onClick={() => openDeliveryPinModal(order)}>
+                      Done
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => navigateToCustomer(order)}>
+                      <Navigation className="h-3 w-3 mr-1" />
+                      Nav
+                    </Button>
+                  </>
+                )}
 
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-amber-500 text-white hover:bg-amber-600 border-amber-500"
-                onClick={() => {
-                  // Open chat modal which has in-app call functionality
+                <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => {
                   setChatOrderId(order.id);
                   setChatUserId(order.user_id);
                   setChatModalOpen(true);
-                  // Show toast to inform user about call option in chat
-                  toast({
-                    title: "Call from Chat",
-                    description: "Use the call button in chat to make an in-app call",
-                  });
-                }}
-              >
-                <Phone className="h-4 w-4 mr-1" />
-                Call
-              </Button>
-            </div>
-          </CardContent>
-        </Card>)}
+                }}>
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Chat
+                </Button>
+
+                <Button 
+                  size="sm" 
+                  className="h-7 text-xs px-2 bg-amber-500 hover:bg-amber-600"
+                  onClick={handleDirectCall}
+                >
+                  <Phone className="h-3 w-3 mr-1" />
+                  Call
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
       
       {/* PIN Verification Modal */}
       {selectedOrder && <PinVerificationModal open={pinModalOpen} onOpenChange={setPinModalOpen} expectedPin={expectedPin || (selectedOrder?.pickup_pin ?? '')} onSuccess={handlePickupSuccess} orderNumber={selectedOrder.id} />}
@@ -538,6 +584,21 @@ const DeliveryPartnerOrders = ({
         deliveryPartnerId={partnerId}
         userId={chatUserId}
         deliveryPartnerName={partnerName}
+      />
+
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        open={voiceCall.state.status !== 'idle'}
+        status={voiceCall.state.status}
+        partnerName="Zippy Delivery Partner"
+        duration={voiceCall.state.duration}
+        isMuted={voiceCall.state.isMuted}
+        isIncoming={false}
+        onAnswer={() => {}}
+        onDecline={voiceCall.declineCall}
+        onEnd={voiceCall.endCall}
+        onToggleMute={voiceCall.toggleMute}
+        onClose={() => voiceCall.endCall()}
       />
     </div>
   );
