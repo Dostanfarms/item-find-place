@@ -410,53 +410,90 @@ const DeliveryPartnerOrders = ({
     }
     return true;
   });
+  // Shared filter UI component
+  const renderFilters = () => (
+    <>
+      {/* Date (compact) */}
+      <Card>
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{format(new Date(), 'MMMM do, yyyy')}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Status Filter Cards (horizontal + compact) */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {statusOptions.map(status => {
+          const Icon = status.icon;
+          const count = status.value === "all" 
+            ? orders.length 
+            : status.value === "pending" 
+              ? orders.filter(o => o.status !== "delivered").length 
+              : orders.filter(o => o.status === "delivered").length;
+          return (
+            <Card 
+              key={status.value} 
+              className={`min-w-[110px] cursor-pointer transition-all ${statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} 
+              onClick={() => setStatusFilter(status.value)}
+            >
+              <CardContent className="p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground leading-tight">{status.label}</p>
+                    <p className="text-lg font-bold leading-tight">{count}</p>
+                  </div>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Date Filter for Delivered Orders */}
+      {statusFilter === "delivered" && (
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              {dateOptions.map(option => (
+                <SelectItem key={option.value} value={option.value} className="text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </>
+  );
+
   if (filteredOrders.length === 0) {
-    return <div className="space-y-4">
-        {/* Date (compact) */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{format(new Date(), 'MMMM do, yyyy')}</span>
-            </div>
+    return (
+      <div className="space-y-4">
+        {renderFilters()}
+        <Card className="text-center border-dashed">
+          <CardContent className="py-6">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3 opacity-50" />
+            <p className="text-muted-foreground">No orders found</p>
+            <p className="text-xs text-muted-foreground mt-1">Check back later for new assignments</p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
 
-        {/* Status Filter Cards (horizontal + compact) */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {statusOptions.map(status => {
-            const Icon = status.icon;
-            const count = status.value === "all" ? orders.length : status.value === "pending" ? orders.filter(o => o.status !== "delivered").length : orders.filter(o => o.status === "delivered").length;
-            return <Card key={status.value} className={`min-w-[140px] cursor-pointer transition-all ${statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} onClick={() => setStatusFilter(status.value)}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">{status.label}</p>
-                        <p className="text-lg font-bold leading-tight">{count}</p>
-                      </div>
-                      <Icon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>;
-          })}
-        </div>
+  return (
+    <div className="space-y-4">
+      {renderFilters()}
 
-        {/* Date Filter for Delivered Orders */}
-        {statusFilter === "delivered" && <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="h-9 w-48">
-                <SelectValue placeholder="Filter by date" />
-              </SelectTrigger>
-              <SelectContent>
-                {dateOptions.map(option => <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>}
-      
-      {filteredOrders.map(order => <Card key={order.id} className="border-l-4 border-l-primary">
+      {filteredOrders.map(order => (
+        <Card key={order.id} className="border-l-4 border-l-primary">
           <CardHeader className="py-3 px-4">
             <CardTitle className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
@@ -489,10 +526,12 @@ const DeliveryPartnerOrders = ({
               </div>
             )}
 
-            {order.instructions && <div className="flex items-start gap-1.5">
+            {order.instructions && (
+              <div className="flex items-start gap-1.5">
                 <AlertCircle className="h-3 w-3 text-orange-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground line-clamp-1">{order.instructions}</p>
-              </div>}
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
               <span>{order.payment_method.toUpperCase()}</span>
@@ -501,12 +540,15 @@ const DeliveryPartnerOrders = ({
 
             <div className="flex gap-1.5 pt-2 flex-wrap">
               {/* Pickup Workflow States */}
-              {(!order.pickup_status || order.pickup_status === 'assigned') && order.seller_status === 'packed' && <Button size="sm" onClick={() => navigateToSeller(order)} className="bg-blue-600 hover:bg-blue-700 h-7 text-xs px-2">
+              {(!order.pickup_status || order.pickup_status === 'assigned') && order.seller_status === 'packed' && (
+                <Button size="sm" onClick={() => navigateToSeller(order)} className="bg-blue-600 hover:bg-blue-700 h-7 text-xs px-2">
                   <MapPin className="h-3 w-3 mr-1" />
                   Go for Pickup
-                </Button>}
+                </Button>
+              )}
 
-              {order.pickup_status === 'going_for_pickup' && <>
+              {order.pickup_status === 'going_for_pickup' && (
+                <>
                   <Button size="sm" onClick={() => openPinModal(order)} className="bg-green-600 hover:bg-green-700 h-7 text-xs px-2">
                     <Package className="h-3 w-3 mr-1" />
                     Pickup
@@ -515,16 +557,18 @@ const DeliveryPartnerOrders = ({
                     <Navigation className="h-3 w-3 mr-1" />
                     Navigate
                   </Button>
-                </>}
+                </>
+              )}
 
-              {order.pickup_status === 'picked_up' && order.status === 'out_for_delivery' && <>
-                  <Button size="sm" onClick={() => navigateToCustomer(order)} className="bg-orange-600 hover:bg-orange-700 h-7 text-xs px-2">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    Go to Delivery
-                  </Button>
-                </>}
+              {order.pickup_status === 'picked_up' && order.status === 'out_for_delivery' && (
+                <Button size="sm" onClick={() => navigateToCustomer(order)} className="bg-orange-600 hover:bg-orange-700 h-7 text-xs px-2">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  Go to Delivery
+                </Button>
+              )}
 
-              {order.pickup_status === 'going_for_delivery' && order.status === 'out_for_delivery' && <>
+              {order.pickup_status === 'going_for_delivery' && order.status === 'out_for_delivery' && (
+                <>
                   <Button size="sm" onClick={() => openDeliveryPinModal(order)} className="bg-green-600 hover:bg-green-700 h-7 text-xs px-2">
                     Delivered
                   </Button>
@@ -532,7 +576,8 @@ const DeliveryPartnerOrders = ({
                     <Navigation className="h-3 w-3 mr-1" />
                     Navigate
                   </Button>
-                </>}
+                </>
+              )}
 
               <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => {
                 setChatOrderId(order.id);
@@ -549,13 +594,30 @@ const DeliveryPartnerOrders = ({
               </Button>
             </div>
           </CardContent>
-        </Card>)}
+        </Card>
+      ))}
       
       {/* PIN Verification Modal */}
-      {selectedOrder && <PinVerificationModal open={pinModalOpen} onOpenChange={setPinModalOpen} expectedPin={expectedPin || (selectedOrder?.pickup_pin ?? '')} onSuccess={handlePickupSuccess} orderNumber={selectedOrder.id} />}
+      {selectedOrder && (
+        <PinVerificationModal 
+          open={pinModalOpen} 
+          onOpenChange={setPinModalOpen} 
+          expectedPin={expectedPin || (selectedOrder?.pickup_pin ?? '')} 
+          onSuccess={handlePickupSuccess} 
+          orderNumber={selectedOrder.id} 
+        />
+      )}
       
       {/* Delivery PIN Verification Modal */}
-      {selectedOrder && <DeliveryPinVerificationModal open={deliveryPinModalOpen} onOpenChange={setDeliveryPinModalOpen} expectedPin={expectedDeliveryPin || (selectedOrder?.delivery_pin ?? '')} onSuccess={handleDeliverySuccess} orderNumber={selectedOrder.id} />}
+      {selectedOrder && (
+        <DeliveryPinVerificationModal 
+          open={deliveryPinModalOpen} 
+          onOpenChange={setDeliveryPinModalOpen} 
+          expectedPin={expectedDeliveryPin || (selectedOrder?.delivery_pin ?? '')} 
+          onSuccess={handleDeliverySuccess} 
+          orderNumber={selectedOrder.id} 
+        />
+      )}
 
       {/* Chat Modal */}
       <DeliveryCustomerChat
@@ -584,6 +646,8 @@ const DeliveryPartnerOrders = ({
         onToggleSpeaker={voiceCall.toggleSpeaker}
         onClose={() => {}}
       />
-    </div>;
+    </div>
+  );
 };
+
 export default DeliveryPartnerOrders;
