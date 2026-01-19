@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
-import { format, formatDistanceToNow, isToday, isThisWeek, isThisMonth } from "date-fns";
-import { Package, MapPin, Phone, AlertCircle, Navigation, Filter, Clock, CheckCircle, MessageSquare, Calendar } from "lucide-react";
+import { format, formatDistanceToNow, isSameDay } from "date-fns";
+import { Package, MapPin, Phone, AlertCircle, Navigation, Clock, CheckCircle, MessageSquare, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PinVerificationModal } from "./PinVerificationModal";
 import { DeliveryPinVerificationModal } from "./DeliveryPinVerificationModal";
@@ -13,6 +15,7 @@ import DeliveryCustomerChat from "./DeliveryCustomerChat";
 import { useVoiceCall } from "@/hooks/useVoiceCall";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
 import VoiceCallModal from "./VoiceCallModal";
+import { cn } from "@/lib/utils";
 
 interface Order {
   id: string;
@@ -57,7 +60,8 @@ const DeliveryPartnerOrders = ({
   const [expectedPin, setExpectedPin] = useState("");
   const [expectedDeliveryPin, setExpectedDeliveryPin] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [chatOrderId, setChatOrderId] = useState("");
   const [chatUserId, setChatUserId] = useState("");
@@ -143,29 +147,16 @@ const DeliveryPartnerOrders = ({
 
   const statusOptions = [{
     value: "all",
-    label: "All Orders",
+    label: "All",
     icon: Package
   }, {
     value: "pending",
-    label: "Pending Orders",
+    label: "Pending",
     icon: Clock
   }, {
     value: "delivered",
-    label: "Delivered Orders",
+    label: "Delivered",
     icon: CheckCircle
-  }];
-  const dateOptions = [{
-    value: "all",
-    label: "All Time"
-  }, {
-    value: "today",
-    label: "Today"
-  }, {
-    value: "week",
-    label: "This Week"
-  }, {
-    value: "month",
-    label: "This Month"
   }];
   const fetchAssignedOrders = async () => {
     try {
@@ -383,94 +374,87 @@ const DeliveryPartnerOrders = ({
           </Card>)}
       </div>;
   }
-  const filteredOrders = orders.filter(order => {
+  // Filter orders by selected date
+  const getOrdersForSelectedDate = (ordersToFilter: Order[]) => {
+    return ordersToFilter.filter(order => {
+      const orderDate = new Date(order.delivered_at || order.assigned_at || order.created_at);
+      return isSameDay(orderDate, selectedDate);
+    });
+  };
+
+  const ordersForSelectedDate = getOrdersForSelectedDate(orders);
+
+  const filteredOrders = ordersForSelectedDate.filter(order => {
     // Status filtering
     if (statusFilter === "pending") {
       return order.status !== "delivered";
     } else if (statusFilter === "delivered") {
       return order.status === "delivered";
     }
-
-    // If "all" is selected, don't filter by status
-    return true;
-  }).filter(order => {
-    // Date filtering for delivered orders
-    if (statusFilter === "delivered" && dateFilter !== "all") {
-      const orderDate = new Date(order.delivered_at || order.created_at);
-      switch (dateFilter) {
-        case "today":
-          return isToday(orderDate);
-        case "week":
-          return isThisWeek(orderDate);
-        case "month":
-          return isThisMonth(orderDate);
-        default:
-          return true;
-      }
-    }
     return true;
   });
+  // Stats for selected date only
+  const allOrdersCount = ordersForSelectedDate.length;
+  const pendingOrdersCount = ordersForSelectedDate.filter(o => o.status !== "delivered").length;
+  const deliveredOrdersCount = ordersForSelectedDate.filter(o => o.status === "delivered").length;
+
   // Shared filter UI component
   const renderFilters = () => (
-    <>
-      {/* Date (compact) */}
-      <Card>
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{format(new Date(), 'MMMM do, yyyy')}</span>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-3">
+      {/* Date Picker */}
+      <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal h-10",
+              !selectedDate && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {selectedDate ? format(selectedDate, "MMMM do, yyyy") : <span>Pick a date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => {
+              if (date) {
+                setSelectedDate(date);
+                setDatePickerOpen(false);
+              }
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
 
       {/* Status Filter Cards (horizontal + compact) */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="grid grid-cols-3 gap-2">
         {statusOptions.map(status => {
           const Icon = status.icon;
           const count = status.value === "all" 
-            ? orders.length 
+            ? allOrdersCount 
             : status.value === "pending" 
-              ? orders.filter(o => o.status !== "delivered").length 
-              : orders.filter(o => o.status === "delivered").length;
+              ? pendingOrdersCount 
+              : deliveredOrdersCount;
           return (
             <Card 
               key={status.value} 
-              className={`min-w-[110px] cursor-pointer transition-all ${statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} 
+              className={`cursor-pointer transition-all ${statusFilter === status.value ? 'ring-2 ring-primary shadow-md' : ''}`} 
               onClick={() => setStatusFilter(status.value)}
             >
-              <CardContent className="p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground leading-tight">{status.label}</p>
-                    <p className="text-lg font-bold leading-tight">{count}</p>
-                  </div>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
+              <CardContent className="p-2 text-center">
+                <p className="text-[10px] font-medium text-muted-foreground leading-tight">{status.label}</p>
+                <p className="text-xl font-bold leading-tight">{count}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      {/* Date Filter for Delivered Orders */}
-      {statusFilter === "delivered" && (
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue placeholder="Filter by date" />
-            </SelectTrigger>
-            <SelectContent>
-              {dateOptions.map(option => (
-                <SelectItem key={option.value} value={option.value} className="text-xs">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-    </>
+    </div>
   );
 
   if (filteredOrders.length === 0) {
@@ -629,12 +613,13 @@ const DeliveryPartnerOrders = ({
         deliveryPartnerName={partnerName}
       />
 
-      {/* Voice Call Modal */}
+      {/* Voice Call Modal - No avatar for delivery partner calls */}
       <VoiceCallModal
         open={voiceCall.state.status !== 'idle'}
         status={voiceCall.state.status}
         partnerName={voiceCallCustomerName}
         partnerAvatar={null}
+        showAvatar={false}
         duration={voiceCall.state.duration}
         isMuted={voiceCall.state.isMuted}
         isSpeaker={voiceCall.state.isSpeaker}
