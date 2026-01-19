@@ -25,7 +25,6 @@ const FullScreenLocationPicker = ({
   const [locationAddress, setLocationAddress] = useState('');
   const mapRef = useRef<google.maps.Map | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [pinBounce, setPinBounce] = useState(false);
   const { isLoaded, loadError } = useGoogleMaps();
   
   // Track if map has been initialized (to stop controlling center after first render)
@@ -175,10 +174,6 @@ const FullScreenLocationPicker = ({
       setSelectedLat(lat);
       setSelectedLng(lng);
       reverseGeocode(lat, lng);
-      
-      // Trigger bounce animation
-      setPinBounce(true);
-      setTimeout(() => setPinBounce(false), 400);
     }
   }, [isLoaded]);
 
@@ -293,15 +288,8 @@ const FullScreenLocationPicker = ({
               style={{ transform: 'translate(-50%, -100%)' }}
             >
               <div className="relative">
-                <MapPin 
-                  className={`h-12 w-12 text-primary drop-shadow-lg transition-transform duration-300 ${
-                    pinBounce ? 'animate-[bounce-pin_0.4s_ease-out]' : ''
-                  }`} 
-                  fill="hsl(var(--primary))" 
-                />
-                <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-1 bg-black/30 rounded-full transition-all duration-300 ${
-                  pinBounce ? 'scale-75' : 'scale-100'
-                }`} />
+                <MapPin className="h-12 w-12 text-primary drop-shadow-lg" fill="hsl(var(--primary))" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-1 bg-black/30 rounded-full" />
               </div>
             </div>
             
