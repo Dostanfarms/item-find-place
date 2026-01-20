@@ -148,6 +148,7 @@ const VoiceCallModal = ({
               <div className="flex items-center justify-center gap-12">
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="destructive"
                     size="lg"
                     className="h-20 w-20 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30"
@@ -159,6 +160,7 @@ const VoiceCallModal = ({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="default"
                     size="lg"
                     className="h-20 w-20 rounded-full bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 animate-pulse"
@@ -176,6 +178,7 @@ const VoiceCallModal = ({
               <div className="flex items-center justify-center gap-8">
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="lg"
                     className={`h-16 w-16 rounded-full border-0 ${
@@ -191,6 +194,7 @@ const VoiceCallModal = ({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="destructive"
                     size="lg"
                     className="h-20 w-20 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30"
@@ -202,6 +206,7 @@ const VoiceCallModal = ({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="lg"
                     className={`h-16 w-16 rounded-full border-0 ${
@@ -223,6 +228,7 @@ const VoiceCallModal = ({
               <div className="flex items-center justify-center gap-8">
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="lg"
                     className={`h-16 w-16 rounded-full border-0 ${
@@ -238,6 +244,7 @@ const VoiceCallModal = ({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="destructive"
                     size="lg"
                     className="h-20 w-20 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30"
@@ -249,6 +256,7 @@ const VoiceCallModal = ({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="lg"
                     className={`h-16 w-16 rounded-full border-0 ${
@@ -268,6 +276,7 @@ const VoiceCallModal = ({
             {/* Call ended states - Close */}
             {(status === 'ended' || status === 'declined' || status === 'missed') && (
               <Button
+                type="button"
                 variant="outline"
                 size="lg"
                 className="h-14 px-12 rounded-full bg-slate-700 hover:bg-slate-600 border-0 text-white"

@@ -28,33 +28,38 @@ export const useIncomingCall = ({
   }, [dismissIncomingCallNotification]);
 
   useEffect(() => {
-    if (!chatId || !myId) return;
+    if (!myId) return;
 
-    // Listen to database changes for voice_calls
+    console.log('useIncomingCall: Setting up listener for myId:', myId, 'myType:', myType, 'chatId:', chatId);
+
+    // Listen to database changes for voice_calls - listen for calls where I am the receiver
+    // We use receiver_id filter to catch ALL incoming calls regardless of chatId
     const dbChannel = supabase
-      .channel(`voice-calls-db-${chatId}-${myId}`)
+      .channel(`voice-calls-receiver-${myId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'voice_calls',
-          filter: `chat_id=eq.${chatId}`,
+          filter: `receiver_id=eq.${myId}`,
         },
         async (payload) => {
           const call = payload.new as any;
           
+          console.log('Incoming call INSERT detected:', call);
+          
           // Only handle calls where we are the receiver and haven't processed this call
-          if (call.receiver_id === myId && call.status === 'ringing' && !processedCallsRef.current.has(call.id)) {
+          if (call.status === 'ringing' && !processedCallsRef.current.has(call.id)) {
             console.log('New incoming call detected from database:', call.id);
             processedCallsRef.current.add(call.id);
             
             // Subscribe to this call's signaling channel to get the offer
-            const callChannel = supabase.channel(`call-incoming-${call.id}`);
+            const callChannel = supabase.channel(`call-${call.id}`);
             
             callChannel
               .on('broadcast', { event: 'offer' }, async ({ payload: offerPayload }) => {
-                console.log('Received offer for incoming call');
+                console.log('Received offer for incoming call:', offerPayload);
                 if (offerPayload.from !== myId) {
                   const callerName = offerPayload.callerName || 'Unknown';
                   
@@ -71,10 +76,10 @@ export const useIncomingCall = ({
                     call.caller_type
                   );
                 }
-                // Unsubscribe after receiving the offer
-                supabase.removeChannel(callChannel);
               })
-              .subscribe();
+              .subscribe((status) => {
+                console.log('Call channel subscription status:', status);
+              });
           }
         }
       )
@@ -84,24 +89,29 @@ export const useIncomingCall = ({
           event: 'UPDATE',
           schema: 'public',
           table: 'voice_calls',
-          filter: `chat_id=eq.${chatId}`,
+          filter: `receiver_id=eq.${myId}`,
         },
         async (payload) => {
           const call = payload.new as any;
           
+          console.log('Call UPDATE detected:', call);
+          
           // Dismiss notification when call is answered, declined, or ended
-          if (call.receiver_id === myId && ['connected', 'declined', 'ended', 'missed'].includes(call.status)) {
+          if (['connected', 'declined', 'ended', 'missed'].includes(call.status)) {
             await dismissActiveNotification();
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Incoming call DB channel subscription status:', status);
+      });
 
     return () => {
+      console.log('useIncomingCall: Cleaning up listener for myId:', myId);
       supabase.removeChannel(dbChannel);
       dismissActiveNotification();
     };
-  }, [chatId, myId, myType, onIncomingCall, isNative, showIncomingCallNotification, dismissActiveNotification]);
+  }, [myId, myType, onIncomingCall, isNative, showIncomingCallNotification, dismissActiveNotification]);
 
   return {
     dismissActiveNotification,
