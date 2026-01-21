@@ -43,7 +43,11 @@ export const useVoiceCall = ({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+  const ringbackRef = useRef<HTMLAudioElement | null>(null); // Ringback tone for caller
   const missedCallTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Store pending offer using ref instead of window globals
+  const pendingOfferRef = useRef<{offer: RTCSessionDescriptionInit, callId: string} | null>(null);
 
   // Create peer connection with ICE servers
   const createPeerConnection = useCallback(() => {
@@ -83,6 +87,7 @@ export const useVoiceCall = ({
       console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'connected') {
         stopRingtone();
+        stopRingback();
         clearMissedCallTimeout();
         setState(prev => ({ ...prev, status: 'ongoing' }));
         startDurationTimer();
@@ -104,11 +109,12 @@ export const useVoiceCall = ({
     }, 1000);
   }, []);
 
-  // Play ringtone
+  // Play ringtone for receiver
   const playRingtone = useCallback(() => {
     if (!ringtoneRef.current) {
       ringtoneRef.current = new Audio('/ringtone.mp3');
       ringtoneRef.current.loop = true;
+      ringtoneRef.current.volume = 1.0;
     }
     ringtoneRef.current.play().catch(console.error);
   }, []);
@@ -118,6 +124,24 @@ export const useVoiceCall = ({
     if (ringtoneRef.current) {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
+    }
+  }, []);
+
+  // Play ringback tone for caller (the sound you hear when calling someone)
+  const playRingback = useCallback(() => {
+    if (!ringbackRef.current) {
+      ringbackRef.current = new Audio('/ringtone.mp3'); // Using same file, could use different tone
+      ringbackRef.current.loop = true;
+      ringbackRef.current.volume = 0.5; // Lower volume for ringback
+    }
+    ringbackRef.current.play().catch(console.error);
+  }, []);
+
+  // Stop ringback tone
+  const stopRingback = useCallback(() => {
+    if (ringbackRef.current) {
+      ringbackRef.current.pause();
+      ringbackRef.current.currentTime = 0;
     }
   }, []);
 
@@ -153,13 +177,29 @@ export const useVoiceCall = ({
   // Initialize call - the caller initiates
   // NOTE: To avoid mobile "user gesture" issues, callers can pass a micPromise that was created
   // synchronously inside the button click handler.
-  const startCall = useCallback(async (options?: { chatId?: string | null; micPromise?: Promise<MediaStream> }) => {
+  const startCall = useCallback(async (options?: { 
+    chatId?: string | null; 
+    micPromise?: Promise<MediaStream>;
+    partnerId?: string;
+    callerName?: string;
+  }) => {
     const effectiveChatId = options?.chatId ?? chatId;
+    const effectivePartnerId = options?.partnerId ?? partnerId;
+    const effectiveCallerName = options?.callerName ?? (myType === 'delivery_partner' ? 'Zippy Delivery Partner' : 'Customer');
 
     if (!effectiveChatId) {
       toast({
         title: "Cannot Start Call",
         description: "Chat not ready. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!effectivePartnerId) {
+      toast({
+        title: "Cannot Start Call",
+        description: "Receiver not ready. Please try again.",
         variant: "destructive",
       });
       return;
@@ -178,7 +218,7 @@ export const useVoiceCall = ({
           chat_id: effectiveChatId,
           caller_type: myType,
           caller_id: myId,
-          receiver_id: partnerId,
+          receiver_id: effectivePartnerId,
           status: 'ringing',
         })
         .select('id')
@@ -189,9 +229,12 @@ export const useVoiceCall = ({
       const callId = callData.id;
       setState(prev => ({ ...prev, callId }));
 
-      // Set up signaling channel
+      // Set up signaling channel - caller uses main channel
       const channel = supabase.channel(`call-${callId}`);
       channelRef.current = channel;
+
+      // Also set up receiver channel for bidirectional offer sending
+      const receiverChannel = supabase.channel(`call-${callId}-receiver`);
 
       // Create peer connection
       const pc = createPeerConnection();
@@ -208,10 +251,30 @@ export const useVoiceCall = ({
         remoteAudioRef.current.autoplay = true;
       }
 
-      // Listen for events
+      // Create offer upfront so we can resend it
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // Function to send offer
+      const sendOffer = (targetChannel: ReturnType<typeof supabase.channel>) => {
+        console.log('Sending offer to receiver');
+        targetChannel.send({
+          type: 'broadcast',
+          event: 'offer',
+          payload: {
+            offer: pc.localDescription,
+            from: myId,
+            callerName: effectiveCallerName,
+            callId,
+          },
+        });
+      };
+
+      // Listen for events on main channel
       channel
         .on('broadcast', { event: 'answer' }, async ({ payload }) => {
           console.log('Received answer');
+          stopRingback(); // Stop ringback when call is answered
           if (payload.from !== myId && pc.signalingState !== 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
 
@@ -233,16 +296,19 @@ export const useVoiceCall = ({
           }
         })
         .on('broadcast', { event: 'call-ringing' }, () => {
-          // Partner's phone is ringing - update status
+          // Partner's phone is ringing - update status and play ringback
           console.log('Partner phone is ringing');
+          playRingback(); // Caller hears ringback tone
           setState(prev => ({ ...prev, status: 'ringing' }));
         })
         .on('broadcast', { event: 'call-declined' }, () => {
           console.log('Call declined');
           stopRingtone();
+          stopRingback();
           clearMissedCallTimeout();
           setState(prev => ({ ...prev, status: 'declined' }));
           cleanup();
+          receiverChannel.unsubscribe();
 
           // Reset after showing declined state
           setTimeout(() => {
@@ -251,50 +317,76 @@ export const useVoiceCall = ({
         })
         .on('broadcast', { event: 'call-ended' }, () => {
           console.log('Call ended by partner');
+          stopRingback();
+          receiverChannel.unsubscribe();
           endCall();
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            // Create and send offer
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            channel.send({
-              type: 'broadcast',
-              event: 'offer',
-              payload: {
-                offer: pc.localDescription,
-                from: myId,
-                callerName: partnerName,
-                callId,
-              },
-            });
-
-            playRingtone();
+            // Send offer immediately on main channel
+            sendOffer(channel);
 
             // Auto-mark as missed after 30 seconds
             missedCallTimeoutRef.current = setTimeout(async () => {
-              // Use the latest state via functional setState patterns elsewhere; here we only guard by checking status value at execution time.
-              if (state.status === 'calling' || state.status === 'ringing') {
-                stopRingtone();
-                cleanup();
+              // Check current state at execution time
+              setState(prev => {
+                if (prev.status === 'calling' || prev.status === 'ringing') {
+                  stopRingtone();
+                  stopRingback();
+                  cleanup();
+                  receiverChannel.unsubscribe();
 
-                // Update call status in database
-                await supabase
-                  .from('voice_calls')
-                  .update({ status: 'missed', ended_at: new Date().toISOString() })
-                  .eq('id', callId);
+                  // Update call status in database
+                  supabase
+                    .from('voice_calls')
+                    .update({ status: 'missed', ended_at: new Date().toISOString() })
+                    .eq('id', callId)
+                    .then(() => console.log('Call marked as missed'));
 
-                setState(prev => ({ ...prev, status: 'missed' }));
+                  // Reset after showing missed state
+                  setTimeout(() => {
+                    setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
+                  }, 2000);
 
-                // Reset after showing missed state
-                setTimeout(() => {
-                  setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
-                }, 2000);
-              }
+                  return { ...prev, status: 'missed' as const };
+                }
+                return prev;
+              });
             }, 30000);
           }
         });
+
+      // Listen on receiver channel for receiver-ready event
+      receiverChannel
+        .on('broadcast', { event: 'receiver-ready' }, ({ payload }) => {
+          console.log('Receiver is ready, resending offer');
+          // Resend offer to receiver channel
+          sendOffer(receiverChannel);
+        })
+        .on('broadcast', { event: 'answer' }, async ({ payload }) => {
+          console.log('Received answer on receiver channel');
+          stopRingback();
+          if (payload.from !== myId && pc.signalingState !== 'stable') {
+            await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+
+            // Process pending candidates
+            for (const candidate of pendingCandidatesRef.current) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+            pendingCandidatesRef.current = [];
+          }
+        })
+        .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+          if (payload.from !== myId) {
+            console.log('Received ICE candidate on receiver channel');
+            if (pc.remoteDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } else {
+              pendingCandidatesRef.current.push(payload.candidate);
+            }
+          }
+        })
+        .subscribe();
 
     } catch (error) {
       console.error('Error starting call:', error);
@@ -306,11 +398,12 @@ export const useVoiceCall = ({
       cleanup();
       setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
     }
-  }, [chatId, createPeerConnection, getUserMedia, myId, myType, partnerId, partnerName, playRingtone, state.status, stopRingtone, clearMissedCallTimeout, toast]);
+  }, [chatId, createPeerConnection, getUserMedia, myId, myType, partnerId, partnerName, playRingback, stopRingback, stopRingtone, clearMissedCallTimeout, toast]);
 
   // Answer incoming call
-  const answerCall = async (callId: string, offer: RTCSessionDescriptionInit) => {
+  const answerCall = useCallback(async (callId: string, offer: RTCSessionDescriptionInit) => {
     try {
+      console.log('answerCall: Starting to answer call', callId);
       stopRingtone();
       clearMissedCallTimeout();
       setState(prev => ({ ...prev, status: 'ongoing', callId }));
@@ -333,8 +426,8 @@ export const useVoiceCall = ({
         remoteAudioRef.current.autoplay = true;
       }
 
-      // Set up signaling channel
-      const channel = supabase.channel(`call-${callId}`);
+      // Set up signaling channel - use receiver channel for answering
+      const channel = supabase.channel(`call-${callId}-receiver`);
       channelRef.current = channel;
 
       channel
@@ -354,6 +447,7 @@ export const useVoiceCall = ({
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
+            console.log('answerCall: Channel subscribed, setting remote description');
             // Set remote description and create answer
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
             
@@ -366,6 +460,7 @@ export const useVoiceCall = ({
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
+            console.log('answerCall: Sending answer');
             channel.send({
               type: 'broadcast',
               event: 'answer',
@@ -373,6 +468,21 @@ export const useVoiceCall = ({
                 answer: pc.localDescription,
                 from: myId,
               },
+            });
+
+            // Also send to main channel for caller
+            const mainChannel = supabase.channel(`call-${callId}`);
+            mainChannel.subscribe((mainStatus) => {
+              if (mainStatus === 'SUBSCRIBED') {
+                mainChannel.send({
+                  type: 'broadcast',
+                  event: 'answer',
+                  payload: {
+                    answer: pc.localDescription,
+                    from: myId,
+                  },
+                });
+              }
             });
 
             // Update call status in database
@@ -391,13 +501,18 @@ export const useVoiceCall = ({
         variant: "destructive",
       });
       cleanup();
+      setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
     }
-  };
+  }, [createPeerConnection, getUserMedia, myId, stopRingtone, clearMissedCallTimeout, toast]);
 
   // Decline incoming call
-  const declineCall = async () => {
+  const declineCall = useCallback(async () => {
+    console.log('declineCall called, current state:', state);
     stopRingtone();
     clearMissedCallTimeout();
+    
+    // Get the call ID from state or pending offer
+    const currentCallId = state.callId || pendingOfferRef.current?.callId;
     
     if (channelRef.current) {
       channelRef.current.send({
@@ -407,20 +522,23 @@ export const useVoiceCall = ({
       });
     }
 
-    if (state.callId) {
+    if (currentCallId) {
       await supabase
         .from('voice_calls')
         .update({ status: 'declined', ended_at: new Date().toISOString() })
-        .eq('id', state.callId);
+        .eq('id', currentCallId);
     }
 
     cleanup();
+    pendingOfferRef.current = null;
     setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
-  };
+  }, [state.callId, myId, stopRingtone, clearMissedCallTimeout]);
 
   // End ongoing call
-  const endCall = async () => {
+  const endCall = useCallback(async () => {
+    console.log('endCall called');
     stopRingtone();
+    stopRingback();
     clearMissedCallTimeout();
     
     if (channelRef.current) {
@@ -431,36 +549,42 @@ export const useVoiceCall = ({
       });
     }
 
-    if (state.callId && state.status === 'ongoing') {
-      await supabase
-        .from('voice_calls')
-        .update({
-          status: 'ended',
-          ended_at: new Date().toISOString(),
-          duration_seconds: state.duration,
-        })
-        .eq('id', state.callId);
-    } else if (state.callId) {
-      await supabase
-        .from('voice_calls')
-        .update({
-          status: 'ended',
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', state.callId);
-    }
+    // Use functional setState to get latest state
+    setState(prev => {
+      if (prev.callId && prev.status === 'ongoing') {
+        supabase
+          .from('voice_calls')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            duration_seconds: prev.duration,
+          })
+          .eq('id', prev.callId)
+          .then(() => console.log('Call ended and updated in DB'));
+      } else if (prev.callId) {
+        supabase
+          .from('voice_calls')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+          })
+          .eq('id', prev.callId)
+          .then(() => console.log('Call ended and updated in DB'));
+      }
+      return { ...prev, status: 'ended' as const };
+    });
 
     cleanup();
-    setState({ status: 'ended', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
     
     // Reset to idle after showing ended state
     setTimeout(() => {
       setState({ status: 'idle', callId: null, duration: 0, isMuted: false, isSpeaker: false, callerType: null });
     }, 2000);
-  };
+  }, [myId, stopRingtone, stopRingback, clearMissedCallTimeout]);
 
   // Toggle mute
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
+    console.log('toggleMute called');
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -468,10 +592,11 @@ export const useVoiceCall = ({
         setState(prev => ({ ...prev, isMuted: !audioTrack.enabled }));
       }
     }
-  };
+  }, []);
 
   // Toggle speaker
-  const toggleSpeaker = () => {
+  const toggleSpeaker = useCallback(() => {
+    console.log('toggleSpeaker called');
     setState(prev => {
       const newIsSpeaker = !prev.isSpeaker;
       
@@ -484,10 +609,11 @@ export const useVoiceCall = ({
       
       return { ...prev, isSpeaker: newIsSpeaker };
     });
-  };
+  }, []);
 
   // Cleanup
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
+    console.log('cleanup called');
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
       durationIntervalRef.current = null;
@@ -513,7 +639,7 @@ export const useVoiceCall = ({
     }
 
     pendingCandidatesRef.current = [];
-  };
+  }, []);
 
   // Handle incoming call
   const handleIncomingCall = useCallback((callId: string, offer: RTCSessionDescriptionInit, callerName: string, callerType: 'user' | 'delivery_partner') => {
@@ -531,9 +657,8 @@ export const useVoiceCall = ({
       callerType,
     });
 
-    // Store offer for answering
-    (window as any).__pendingCallOffer = offer;
-    (window as any).__pendingCallId = callId;
+    // Store offer using ref instead of window globals
+    pendingOfferRef.current = { offer, callId };
 
     // Send back ringing notification to caller on the SAME channel they're listening on
     const channel = supabase.channel(`call-${callId}`);
@@ -550,26 +675,32 @@ export const useVoiceCall = ({
     });
   }, [state.status, playRingtone, myId]);
 
-  // Wrapper for answerCall that retrieves stored offer
+  // Wrapper for answerCall that retrieves stored offer from ref
   const answerCallWrapper = useCallback(() => {
-    const offer = (window as any).__pendingCallOffer;
-    const callId = (window as any).__pendingCallId;
-    console.log('answerCallWrapper called:', { hasOffer: !!offer, callId });
-    if (offer && callId) {
-      answerCall(callId, offer);
-      delete (window as any).__pendingCallOffer;
-      delete (window as any).__pendingCallId;
+    const pending = pendingOfferRef.current;
+    console.log('answerCallWrapper called:', { hasPending: !!pending });
+    if (pending) {
+      answerCall(pending.callId, pending.offer);
+      pendingOfferRef.current = null;
+    } else {
+      console.error('No pending call offer found');
+      toast({
+        title: "Call Error",
+        description: "Could not answer call. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [answerCall, toast]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanup();
       stopRingtone();
+      stopRingback();
       clearMissedCallTimeout();
     };
-  }, []);
+  }, [cleanup, stopRingtone, stopRingback, clearMissedCallTimeout]);
 
   return {
     state,
