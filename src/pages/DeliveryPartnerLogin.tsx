@@ -94,7 +94,7 @@ const DeliveryPartnerLogin = () => {
         onCapture={(d) => { setFaceOpen(false); handleFaceCapture(d); }}
         title="Face ID Verification"
         mode="verify"
-        requireLiveness={true}
+        
       />
     </div>
   );
