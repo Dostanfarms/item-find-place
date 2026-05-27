@@ -275,7 +275,7 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
           onCapture={(descriptor, img) => { setFaceDescriptor(descriptor); setFacePreview(img); }}
           title="Enroll Delivery Partner Face"
           mode="enroll"
-          requireLiveness={true}
+          
         />
       </DialogContent>
     </Dialog>
