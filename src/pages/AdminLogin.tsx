@@ -32,7 +32,7 @@ const AdminLogin = () => {
     // Superadmin bypass: login directly without face capture
     if (mobile === SUPERADMIN_MOBILE) {
       setIsLoading(true);
-      const result = await login(mobile, []);
+      const result = await login(mobile, null);
       setIsLoading(false);
       if (result.success) {
         toast({ title: "Welcome, Super Admin!" });
