@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ScanFace } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import zippyLogo from "@/assets/zippy-logo.png";
-import FaceCaptureModal, { faceDistance } from "@/components/FaceCaptureModal";
+import FaceCaptureModal from "@/components/FaceCaptureModal";
 
 interface LoginFormData {
   mobile: string;
@@ -28,7 +28,7 @@ const DeliveryPartnerLogin = () => {
     setFaceOpen(true);
   };
 
-  const handleFaceCapture = async (descriptor: number[]) => {
+  const handleFaceCapture = async (_descriptor: number[], imageDataUrl: string) => {
     try {
       setLoading(true);
       const { data: partner, error } = await supabase
@@ -44,16 +44,19 @@ const DeliveryPartnerLogin = () => {
         toast({ title: "Account Inactive", description: "Please contact admin to activate your account", variant: "destructive" });
         return;
       }
-      const stored = partner.face_descriptor as unknown as number[] | null;
-      if (!stored || !Array.isArray(stored) || stored.length === 0) {
-        toast({ title: "Face Not Enrolled", description: "Contact admin to enroll your face", variant: "destructive" });
+      if (!(partner as any).face_enrolled_at && !(partner as any).face_reference_url) {
+        toast({ title: "Face Not Enrolled", description: "Contact admin to enroll your face with Azure Face ID.", variant: "destructive" });
         return;
       }
-      const distance = faceDistance(stored, descriptor);
-      if (distance > 0.55) {
-        toast({ title: "Authentication Failed", description: "Face did not match. Please try again.", variant: "destructive" });
+
+      const { data: verify, error: verifyErr } = await supabase.functions.invoke("azure-face-verify", {
+        body: { subjectType: "partner", subjectId: partner.id, imageDataUrl },
+      });
+      if (verifyErr || !verify?.ok) {
+        toast({ title: "Authentication Failed", description: verify?.error || verifyErr?.message || "Face did not match.", variant: "destructive" });
         return;
       }
+
       localStorage.setItem('delivery_partner', JSON.stringify(partner));
       toast({ title: "Login Successful", description: "Welcome to delivery partner dashboard" });
       navigate('/delivery-dashboard');
@@ -63,6 +66,7 @@ const DeliveryPartnerLogin = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -91,10 +95,10 @@ const DeliveryPartnerLogin = () => {
       <FaceCaptureModal
         open={faceOpen}
         onClose={() => setFaceOpen(false)}
-        onCapture={(d) => { setFaceOpen(false); handleFaceCapture(d); }}
+        onCapture={(d, img) => { setFaceOpen(false); handleFaceCapture(d, img); }}
         title="Face ID Verification"
         mode="verify"
-        requireLiveness={true}
+        
       />
     </div>
   );

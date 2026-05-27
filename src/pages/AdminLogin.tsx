@@ -32,7 +32,7 @@ const AdminLogin = () => {
     // Superadmin bypass: login directly without face capture
     if (mobile === SUPERADMIN_MOBILE) {
       setIsLoading(true);
-      const result = await login(mobile, []);
+      const result = await login(mobile, null);
       setIsLoading(false);
       if (result.success) {
         toast({ title: "Welcome, Super Admin!" });
@@ -47,33 +47,10 @@ const AdminLogin = () => {
     setFaceOpen(true);
   };
 
-  const handleFaceCaptured = async (descriptor: number[]) => {
+  const handleFaceCaptured = async (_descriptor: number[], imageDataUrl: string) => {
     setIsLoading(true);
-
-    if (enrollMode && mobile === SUPERADMIN_MOBILE) {
-      const { error } = await supabase
-        .from("admin_employees" as any)
-        .update({ face_descriptor: descriptor as any, updated_at: new Date().toISOString() })
-        .eq("mobile", SUPERADMIN_MOBILE);
-      if (error) {
-        setIsLoading(false);
-        toast({ title: "Enrollment failed", description: error.message, variant: "destructive" });
-        return;
-      }
-      const result = await login(mobile, descriptor);
-      setIsLoading(false);
-      if (result.success) {
-        toast({ title: "Face enrolled. Welcome!" });
-        navigate("/dashboard", { replace: true });
-      } else {
-        toast({ title: "Enrolled — please login again", description: result.error });
-      }
-      return;
-    }
-
-    const result = await login(mobile, descriptor);
+    const result = await login(mobile, imageDataUrl);
     setIsLoading(false);
-
     if (result.success) {
       toast({ title: "Welcome back!" });
       navigate("/dashboard", { replace: true });
@@ -81,6 +58,7 @@ const AdminLogin = () => {
       toast({ title: "Login Failed", description: result.error, variant: "destructive" });
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted p-4">
@@ -118,7 +96,7 @@ const AdminLogin = () => {
       <FaceCaptureModal
         open={faceOpen}
         onClose={() => setFaceOpen(false)}
-        onCapture={(desc) => handleFaceCaptured(desc)}
+        onCapture={(desc, img) => handleFaceCaptured(desc, img)}
         title={enrollMode ? "Enroll Super Admin Face" : "Face ID Login"}
         mode={enrollMode ? "enroll" : "verify"}
       />

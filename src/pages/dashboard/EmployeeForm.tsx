@@ -182,7 +182,7 @@ const EmployeeForm = () => {
           setFormData({ name: data.name, mobile: data.mobile, email: data.email || "" });
           setExistingPhotoUrl(data.profile_photo_url);
           setPermissions((data as any).permissions || {});
-          setHasExistingFace(!!(data as any).face_descriptor);
+          setHasExistingFace(!!(data as any).face_enrolled_at || !!(data as any).face_descriptor);
         }
         setLoading(false);
       })();
@@ -217,7 +217,7 @@ const EmployeeForm = () => {
       toast({ title: "Invalid mobile number", variant: "destructive" });
       return;
     }
-    if (!isEdit && !faceDescriptor) {
+    if (!isEdit && !facePreview) {
       toast({ title: "Face capture required", description: "Please capture the employee's face before saving.", variant: "destructive" });
       return;
     }
@@ -235,43 +235,55 @@ const EmployeeForm = () => {
       }
     }
 
+    let savedId: string | null = isEdit ? (id as string) : null;
+
     if (isEdit) {
-      const updateData: any = {
+      const { error } = await supabase.from("admin_employees").update({
         name: formData.name,
         mobile: formData.mobile,
         email: formData.email || null,
         profile_photo_url: photoUrl,
         permissions,
         updated_at: new Date().toISOString(),
-      };
-      if (faceDescriptor) {
-        updateData.face_descriptor = faceDescriptor;
-      }
-      const { error } = await supabase.from("admin_employees").update(updateData).eq("id", id);
+      }).eq("id", id);
       if (error) {
+        setSaving(false);
         toast({ title: "Update failed", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Employee updated" });
-        navigate("/dashboard/employees");
+        return;
       }
     } else {
-      const { error } = await supabase.from("admin_employees").insert({
+      const { data: inserted, error } = await supabase.from("admin_employees").insert({
         name: formData.name,
         mobile: formData.mobile,
         email: formData.email || null,
         profile_photo_url: photoUrl,
         permissions: permissions as any,
-        face_descriptor: faceDescriptor as any,
+      }).select("id").single();
+      if (error || !inserted) {
+        setSaving(false);
+        toast({ title: "Failed to add employee", description: error?.message, variant: "destructive" });
+        return;
+      }
+      savedId = inserted.id;
+    }
+
+    // Enroll face with Azure if a new capture was made
+    if (facePreview && savedId) {
+      const { data: enroll, error: enrollErr } = await supabase.functions.invoke("azure-face-enroll", {
+        body: { subjectType: "employee", subjectId: savedId, imageDataUrl: facePreview },
       });
-      if (error) {
-        toast({ title: "Failed to add employee", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Employee added" });
-        navigate("/dashboard/employees");
+      if (enrollErr || !enroll?.ok) {
+        setSaving(false);
+        toast({ title: "Face enrollment failed", description: enroll?.error || enrollErr?.message || "Try again with better lighting.", variant: "destructive" });
+        return;
       }
     }
+
+    toast({ title: isEdit ? "Employee updated" : "Employee added" });
+    navigate("/dashboard/employees");
     setSaving(false);
   };
+
 
   if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
 

@@ -88,71 +88,58 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
   const onSubmit = async (data: FormData) => {
     try {
       setLoading(true);
-      
+
       let profilePhotoUrl = null;
       if (data.profilePhoto && data.profilePhoto[0]) {
         profilePhotoUrl = await uploadProfilePhoto(data.profilePhoto[0]);
         if (!profilePhotoUrl) {
-          toast({
-            title: "Error",
-            description: "Failed to upload profile photo",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Failed to upload profile photo", variant: "destructive" });
           return;
         }
       }
 
       // For a new partner, face capture is mandatory
-      if (!editingPartner && !faceDescriptor) {
-        toast({
-          title: "Face required",
-          description: "Please capture the partner's face to enable Face ID login",
-          variant: "destructive",
-        });
+      if (!editingPartner && !facePreview) {
+        toast({ title: "Face required", description: "Please capture the partner's face to enable Face ID login", variant: "destructive" });
         setLoading(false);
         return;
       }
 
-      let error;
+      let savedId: string | null = editingPartner?.id ?? null;
+      let error: any = null;
+
       if (editingPartner) {
-        const updateData: any = {
-          name: data.name,
-          mobile: data.mobile,
-        };
-        if (profilePhotoUrl) {
-          updateData.profile_photo_url = profilePhotoUrl;
-        }
-        if (faceDescriptor) {
-          updateData.face_descriptor = faceDescriptor as any;
-        }
-        
-        const result = await supabase
-          .from('delivery_partners')
-          .update(updateData)
-          .eq('id', editingPartner.id);
+        const updateData: any = { name: data.name, mobile: data.mobile };
+        if (profilePhotoUrl) updateData.profile_photo_url = profilePhotoUrl;
+        const result = await supabase.from('delivery_partners').update(updateData).eq('id', editingPartner.id);
         error = result.error;
       } else {
-        const result = await supabase
-          .from('delivery_partners')
-          .insert({
-            name: data.name,
-            mobile: data.mobile,
-            face_descriptor: faceDescriptor as any,
-            profile_photo_url: profilePhotoUrl,
-          });
+        const result = await supabase.from('delivery_partners').insert({
+          name: data.name,
+          mobile: data.mobile,
+          profile_photo_url: profilePhotoUrl,
+        }).select('id').single();
         error = result.error;
+        savedId = result.data?.id ?? null;
       }
 
-      if (error) {
+      if (error || !savedId) {
         console.error('Error saving delivery partner:', error);
-        toast({
-          title: "Error",
-          description: `Failed to ${editingPartner ? 'update' : 'create'} delivery partner`,
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: `Failed to ${editingPartner ? 'update' : 'create'} delivery partner`, variant: "destructive" });
         return;
       }
-      
+
+      // Azure face enrollment if a new capture exists
+      if (facePreview) {
+        const { data: enroll, error: enrollErr } = await supabase.functions.invoke("azure-face-enroll", {
+          body: { subjectType: "partner", subjectId: savedId, imageDataUrl: facePreview },
+        });
+        if (enrollErr || !enroll?.ok) {
+          toast({ title: "Face enrollment failed", description: enroll?.error || enrollErr?.message || "Try again with better lighting.", variant: "destructive" });
+          return;
+        }
+      }
+
       reset();
       setFaceDescriptor(null);
       setFacePreview(null);
@@ -160,15 +147,12 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
       onSuccess();
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -275,7 +259,7 @@ const CreateDeliveryPartnerForm = ({ open, onOpenChange, onSuccess, editingPartn
           onCapture={(descriptor, img) => { setFaceDescriptor(descriptor); setFacePreview(img); }}
           title="Enroll Delivery Partner Face"
           mode="enroll"
-          requireLiveness={true}
+          
         />
       </DialogContent>
     </Dialog>

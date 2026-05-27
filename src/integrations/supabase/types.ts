@@ -19,6 +19,8 @@ export type Database = {
           created_at: string
           email: string | null
           face_descriptor: Json | null
+          face_enrolled_at: string | null
+          face_reference_url: string | null
           id: string
           is_active: boolean
           mobile: string
@@ -34,6 +36,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           face_descriptor?: Json | null
+          face_enrolled_at?: string | null
+          face_reference_url?: string | null
           id?: string
           is_active?: boolean
           mobile: string
@@ -49,6 +53,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           face_descriptor?: Json | null
+          face_enrolled_at?: string | null
+          face_reference_url?: string | null
           id?: string
           is_active?: boolean
           mobile?: string
@@ -223,6 +229,8 @@ export type Database = {
         Row: {
           created_at: string
           face_descriptor: Json | null
+          face_enrolled_at: string | null
+          face_reference_url: string | null
           id: string
           is_active: boolean
           is_online: boolean
@@ -237,6 +245,8 @@ export type Database = {
         Insert: {
           created_at?: string
           face_descriptor?: Json | null
+          face_enrolled_at?: string | null
+          face_reference_url?: string | null
           id?: string
           is_active?: boolean
           is_online?: boolean
@@ -251,6 +261,8 @@ export type Database = {
         Update: {
           created_at?: string
           face_descriptor?: Json | null
+          face_enrolled_at?: string | null
+          face_reference_url?: string | null
           id?: string
           is_active?: boolean
           is_online?: boolean
