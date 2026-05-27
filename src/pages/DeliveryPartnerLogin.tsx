@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ScanFace } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import zippyLogo from "@/assets/zippy-logo.png";
-import FaceCaptureModal, { faceDistance } from "@/components/FaceCaptureModal";
+import FaceCaptureModal from "@/components/FaceCaptureModal";
 
 interface LoginFormData {
   mobile: string;
