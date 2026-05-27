@@ -1,0 +1,525 @@
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Seller } from '@/contexts/SellerAuthContext';
+import LocationPicker from './LocationPicker';
+
+interface ServiceModule {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+interface Subcategory {
+  id: string;
+  name: string;
+  category: string;
+}
+
+const editSellerSchema = z.object({
+  owner_name: z.string().min(2, 'Owner name must be at least 2 characters'),
+  seller_name: z.string().min(2, 'Seller name must be at least 2 characters'),
+  mobile: z.string().min(10, 'Mobile number must be at least 10 digits'),
+  account_number: z.string().min(8, 'Account number must be at least 8 digits'),
+  ifsc_code: z.string().min(11, 'IFSC code must be 11 characters').max(11),
+  bank_name: z.string().min(2, 'Bank name is required'),
+  seller_latitude: z.number().optional(),
+  seller_longitude: z.number().optional(),
+  franchise_percentage: z.number().min(0, 'Franchise percentage must be at least 0').max(100, 'Franchise percentage cannot exceed 100'),
+  status: z.enum(['approved', 'pending', 'inactive']),
+  is_online: z.boolean(),
+  categories: z.array(z.string()).min(1, 'At least one category is required'),
+});
+
+type EditSellerFormData = z.infer<typeof editSellerSchema>;
+
+interface EditSellerModalProps {
+  seller: Seller | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+const EditSellerModal = ({ seller, open, onOpenChange, onSuccess }: EditSellerModalProps) => {
+  const [uploading, setUploading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string>('');
+  const [modules, setModules] = useState<ServiceModule[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [onlineOrdersChecked, setOnlineOrdersChecked] = useState(false);
+  const [posChecked, setPosChecked] = useState(false);
+  const { toast } = useToast();
+  
+  const form = useForm<EditSellerFormData>({
+    resolver: zodResolver(editSellerSchema),
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    watch,
+    setValue
+  } = form;
+
+  // Fetch modules and subcategories
+  useEffect(() => {
+    const fetchData = async () => {
+      const [modulesRes, subcategoriesRes] = await Promise.all([
+        supabase.from('service_modules').select('id, title, slug').eq('is_active', true).order('display_order'),
+        supabase.from('subcategories').select('id, name, category').eq('is_active', true).order('display_order')
+      ]);
+      
+      if (modulesRes.data) setModules(modulesRes.data);
+      if (subcategoriesRes.data) setSubcategories(subcategoriesRes.data);
+    };
+    
+    if (open) {
+      fetchData();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (seller && open) {
+      // Parse existing categories
+      const existingCategories = (seller as any).categories;
+      let parsedCategories: string[] = [];
+      if (existingCategories) {
+        parsedCategories = existingCategories.split(',').map((s: string) => s.trim()).filter(Boolean);
+      } else if ((seller as any).category) {
+        parsedCategories = [(seller as any).category];
+      }
+      
+      reset({
+        owner_name: seller.owner_name,
+        seller_name: seller.seller_name,
+        mobile: seller.mobile,
+        account_number: seller.account_number,
+        ifsc_code: seller.ifsc_code,
+        bank_name: seller.bank_name,
+        seller_latitude: seller.seller_latitude || undefined,
+        seller_longitude: seller.seller_longitude || undefined,
+        franchise_percentage: seller.franchise_percentage || 0,
+        status: seller.status as 'approved' | 'pending' | 'inactive',
+        is_online: seller.is_online,
+        categories: parsedCategories,
+      });
+      setProfilePhotoUrl(seller.profile_photo_url || '');
+      setSelectedCategories(parsedCategories);
+      
+      // Set seller type checkboxes
+      const st = (seller as any).seller_type;
+      setOnlineOrdersChecked(st === 'online' || st === 'both');
+      setPosChecked(st === 'pos' || st === 'both');
+      
+      // Parse existing subcategories
+      const existingSubcategories = (seller as any).subcategory;
+      if (existingSubcategories) {
+        const parsed = existingSubcategories.split(',').map((s: string) => s.trim()).filter(Boolean);
+        setSelectedSubcategories(parsed);
+      } else {
+        setSelectedSubcategories([]);
+      }
+    }
+  }, [seller, open, reset]);
+
+  // Filter subcategories based on selected categories
+  const filteredSubcategories = subcategories.filter(
+    sub => selectedCategories.includes(sub.category)
+  );
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `profile-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('seller-profiles')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('seller-profiles')
+        .getPublicUrl(filePath);
+
+      setProfilePhotoUrl(publicUrl);
+      toast({
+        title: "Photo uploaded",
+        description: "Profile photo updated successfully!",
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: "Failed to upload profile photo",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onSubmit = async (data: EditSellerFormData) => {
+    if (!seller) return;
+
+    try {
+      const { error } = await supabase
+        .from('sellers')
+        .update({
+          owner_name: data.owner_name,
+          seller_name: data.seller_name,
+          mobile: data.mobile,
+          account_number: data.account_number,
+          ifsc_code: data.ifsc_code,
+          bank_name: data.bank_name,
+          seller_latitude: data.seller_latitude || null,
+          seller_longitude: data.seller_longitude || null,
+          franchise_percentage: data.franchise_percentage,
+          status: data.status,
+          is_online: data.is_online,
+          profile_photo_url: profilePhotoUrl || null,
+          category: data.categories[0] || 'food_delivery',
+          categories: data.categories.join(','),
+          subcategory: selectedSubcategories.join(', '),
+          seller_type: onlineOrdersChecked && posChecked ? 'both' : onlineOrdersChecked ? 'online' : posChecked ? 'pos' : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', seller.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Seller updated",
+        description: "Seller information has been updated successfully!",
+      });
+
+      onSuccess();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error updating seller:', error);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error.message || "Failed to update seller",
+      });
+    }
+  };
+
+  if (!seller) return null;
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Seller</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile_photo">Profile Photo</Label>
+              <Input
+                id="profile_photo"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+              {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+              {profilePhotoUrl && (
+                <img src={profilePhotoUrl} alt="Preview" className="w-20 h-20 rounded-full object-cover" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="owner_name">Owner Name</Label>
+              <Input
+                id="owner_name"
+                {...register('owner_name')}
+                placeholder="Enter owner name"
+              />
+              {errors.owner_name && (
+                <p className="text-sm text-destructive">{errors.owner_name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seller_name">Seller Name</Label>
+              <Input
+                id="seller_name"
+                {...register('seller_name')}
+                placeholder="Enter seller/business name"
+              />
+              {errors.seller_name && (
+                <p className="text-sm text-destructive">{errors.seller_name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mobile">Mobile Number</Label>
+              <Input
+                id="mobile"
+                {...register('mobile')}
+                placeholder="Enter mobile number"
+              />
+              {errors.mobile && (
+                <p className="text-sm text-destructive">{errors.mobile.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="account_number">Account Number</Label>
+              <Input
+                id="account_number"
+                {...register('account_number')}
+                placeholder="Enter bank account number"
+              />
+              {errors.account_number && (
+                <p className="text-sm text-destructive">{errors.account_number.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ifsc_code">IFSC Code</Label>
+              <Input
+                id="ifsc_code"
+                {...register('ifsc_code')}
+                placeholder="Enter IFSC code"
+                maxLength={11}
+              />
+              {errors.ifsc_code && (
+                <p className="text-sm text-destructive">{errors.ifsc_code.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bank_name">Bank Name</Label>
+              <Input
+                id="bank_name"
+                {...register('bank_name')}
+                placeholder="Enter bank name"
+              />
+              {errors.bank_name && (
+                <p className="text-sm text-destructive">{errors.bank_name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Seller Location</Label>
+              <div className="flex space-x-2">
+                <Input
+                  value={
+                    watch('seller_latitude') && watch('seller_longitude')
+                      ? `${watch('seller_latitude')?.toFixed(6)}, ${watch('seller_longitude')?.toFixed(6)}`
+                      : ''
+                  }
+                  placeholder="Click to select location on map"
+                  readOnly
+                  onClick={() => setShowLocationPicker(true)}
+                  className="cursor-pointer"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLocationPicker(true)}
+                >
+                  Select on Map
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="franchise_percentage">Franchise Percentage (%)</Label>
+              <Input
+                id="franchise_percentage"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                {...register('franchise_percentage', { valueAsNumber: true })}
+                placeholder="Enter franchise percentage"
+              />
+              {errors.franchise_percentage && (
+                <p className="text-sm text-destructive">{errors.franchise_percentage.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={watch('status')}
+                onValueChange={(value) => setValue('status', value as 'approved' | 'pending' | 'inactive')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categories (Select multiple)</Label>
+              <div className="border rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto bg-background">
+                {modules.map((module) => {
+                  const isChecked = selectedCategories.includes(module.slug);
+                  return (
+                    <div key={module.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-category-${module.id}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          let newCategories: string[];
+                          if (checked) {
+                            newCategories = [...selectedCategories, module.slug];
+                          } else {
+                            newCategories = selectedCategories.filter(c => c !== module.slug);
+                            // Also remove subcategories that belong to this category
+                            const subsToKeep = selectedSubcategories.filter(sub => {
+                              const subCat = subcategories.find(s => s.name === sub);
+                              return subCat?.category !== module.slug;
+                            });
+                            setSelectedSubcategories(subsToKeep);
+                          }
+                          setSelectedCategories(newCategories);
+                          setValue('categories', newCategories);
+                        }}
+                      />
+                      <Label 
+                        htmlFor={`edit-category-${module.id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {module.title}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              {selectedCategories.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {selectedCategories.map(c => modules.find(m => m.slug === c)?.title || c).join(', ')}
+                </p>
+              )}
+              {errors.categories && (
+                <p className="text-sm text-destructive">{errors.categories.message}</p>
+              )}
+            </div>
+
+            {filteredSubcategories.length > 0 && (
+              <div className="space-y-2">
+                <Label>Subcategories</Label>
+                <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                  {filteredSubcategories.map((subcategory) => (
+                    <div key={subcategory.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`subcategory-${subcategory.id}`}
+                        checked={selectedSubcategories.includes(subcategory.name)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSubcategories([...selectedSubcategories, subcategory.name]);
+                          } else {
+                            setSelectedSubcategories(selectedSubcategories.filter(s => s !== subcategory.name));
+                          }
+                        }}
+                      />
+                      <Label 
+                        htmlFor={`subcategory-${subcategory.id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {subcategory.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {selectedSubcategories.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {selectedSubcategories.join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
+              <Label className="text-base font-medium">Seller Access Type</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit_online_orders"
+                  checked={onlineOrdersChecked}
+                  onCheckedChange={(checked) => setOnlineOrdersChecked(checked === true)}
+                />
+                <Label htmlFor="edit_online_orders" className="text-sm font-normal cursor-pointer">Online Orders</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit_pos_access"
+                  checked={posChecked}
+                  onCheckedChange={(checked) => setPosChecked(checked === true)}
+                />
+                <Label htmlFor="edit_pos_access" className="text-sm font-normal cursor-pointer">POS</Label>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_online"
+                checked={watch('is_online')}
+                onCheckedChange={(checked) => setValue('is_online', checked)}
+              />
+              <Label htmlFor="is_online">
+                Online Status ({watch('is_online') ? 'Online' : 'Offline'})
+              </Label>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Updating...' : 'Update Seller'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <LocationPicker
+        open={showLocationPicker}
+        onOpenChange={setShowLocationPicker}
+        onLocationSelect={(lat, lng) => {
+          setValue('seller_latitude', lat);
+          setValue('seller_longitude', lng);
+        }}
+        initialLat={watch('seller_latitude') ?? undefined}
+        initialLng={watch('seller_longitude') ?? undefined}
+      />
+    </>
+  );
+};
+
+export default EditSellerModal;

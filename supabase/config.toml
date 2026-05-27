@@ -1,0 +1,46 @@
+project_id = "zgyxybgogjzeuocuoane"
+
+[functions.get-mapbox-token]
+verify_jwt = false
+
+[functions.get-google-maps-key]
+verify_jwt = false
+
+[functions.create-razorpay-order]
+verify_jwt = false
+
+[functions.verify-razorpay-payment]
+verify_jwt = false
+
+[functions.verify-zippy-pass-payment]
+verify_jwt = false
+
+[functions.process-razorpay-refund]
+verify_jwt = false
+
+[functions.send-msg91-otp]
+verify_jwt = false
+
+[functions.verify-bank-account]
+verify_jwt = false
+
+[functions.verify-wallet-topup]
+verify_jwt = false
+
+[functions.refund-rejected-order]
+verify_jwt = false
+
+[functions.get-zego-token]
+verify_jwt = false
+
+[functions.send-2factor-otp]
+verify_jwt = false
+
+[functions.verify-2factor-otp]
+verify_jwt = false
+
+[functions.voice-search-products]
+verify_jwt = false
+
+[functions.exotel-click-to-call]
+verify_jwt = false

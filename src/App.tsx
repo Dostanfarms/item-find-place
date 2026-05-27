@@ -1,0 +1,175 @@
+import { useState, useEffect } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import Restaurants from "./pages/Restaurants";
+import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/Dashboard";
+import Users from "./pages/dashboard/Users";
+import Sellers from "./pages/dashboard/Sellers";
+import DeliveryPartners from "./pages/dashboard/DeliveryPartners";
+import Orders from "./pages/dashboard/Orders";
+import Refunds from "./pages/dashboard/Refunds";
+import Settlements from "./pages/dashboard/Settlements";
+import DashboardHome from "./pages/dashboard/DashboardHome";
+import SellerSalesPage from "./pages/dashboard/SellerSalesPage";
+import Banners from "./pages/dashboard/Banners";
+import Modules from "./pages/dashboard/Modules";
+import Subcategories from "./pages/dashboard/Subcategories";
+import SupportChats from "./pages/dashboard/SupportChats";
+import TermsConditions from "./pages/dashboard/TermsConditions";
+import PrivacyPolicy from "./pages/dashboard/PrivacyPolicy";
+import Revenue from "./pages/dashboard/Revenue";
+import WholesaleInventory from "./pages/dashboard/WholesaleInventory";
+import WholesaleOrders from "./pages/dashboard/WholesaleOrders";
+import ProductionManagement from "./pages/dashboard/ProductionManagement";
+import Employees from "./pages/dashboard/Employees";
+import WholesaleRevenue from "./pages/dashboard/WholesaleRevenue";
+import Roles from "./pages/dashboard/Roles";
+import EmployeeForm from "./pages/dashboard/EmployeeForm";
+import SellerWholesale from "./pages/SellerWholesale";
+import Help from "./pages/Help";
+import SellerLogin from "./pages/SellerLogin";
+import SellerDashboard from "./pages/SellerDashboard";
+import SellerPOS from "./pages/SellerPOS";
+import POSSettings from "./pages/POSSettings";
+import POSTransactions from "./pages/POSTransactions";
+import SellerDirectAccess from "./pages/SellerDirectAccess";
+import SellerWallet from "./pages/SellerWallet";
+import DeliveryPartnerLogin from "./pages/DeliveryPartnerLogin";
+import DeliveryPartnerDashboard from "./pages/DeliveryPartnerDashboard";
+import RestaurantMenu from "./pages/RestaurantMenu";
+import { Checkout } from "./pages/Checkout";
+import { MyOrders } from "./pages/MyOrders";
+import OrderDetails from "./pages/OrderDetails";
+import CartPage from "./pages/CartPage";
+import UserWallet from "./pages/UserWallet";
+import Profile from "./pages/Profile";
+import AdminLogin from "./pages/AdminLogin";
+import SplashScreen from "./components/SplashScreen";
+import TermsAgreementPopup from "./components/TermsAgreementPopup";
+ 
+import { AdminAuthProvider } from "./contexts/AdminAuthContext";
+import { SellerAuthProvider } from "./contexts/SellerAuthContext";
+import { UserAuthProvider } from "./contexts/UserAuthContext";
+import { CartProvider } from "./contexts/CartContext";
+import { OrderTrackingProvider } from "./contexts/OrderTrackingContext";
+import { GoogleMapsProvider } from "./contexts/GoogleMapsContext";
+
+import { useAndroidBackButton } from "./hooks/useAndroidBackButton";
+import { useLocationPermission } from "./hooks/useLocationPermission";
+import { useStatusBar } from "./hooks/useStatusBar";
+import { useInternetConnection } from "./hooks/useInternetConnection";
+
+const queryClient = new QueryClient();
+
+// Wrapper component to use the back button hook inside BrowserRouter
+const AppContent = () => {
+  useAndroidBackButton();
+  useLocationPermission();
+  useStatusBar();
+  useInternetConnection();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/restaurants" element={<Restaurants />} />
+      <Route path="/restaurant/:restaurantId" element={<RestaurantMenu />} />
+      <Route path="/checkout" element={<Checkout />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/order/:orderId" element={<OrderDetails />} />
+      <Route path="/my-wallet" element={<UserWallet />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/help" element={<Help />} />
+       
+      <Route path="/seller-login" element={<SellerLogin />} />
+      <Route path="/seller-direct/:sellerId" element={<SellerDirectAccess />} />
+      <Route path="/seller-dashboard" element={<SellerDashboard />} />
+      <Route path="/seller-wallet" element={<SellerWallet />} />
+      <Route path="/seller-pos" element={<SellerPOS />} />
+      <Route path="/seller-pos/transactions" element={<POSTransactions />} />
+      <Route path="/seller-pos/settings" element={<POSSettings />} />
+      <Route path="/delivery-login" element={<DeliveryPartnerLogin />} />
+      <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/delivery-dashboard" element={<DeliveryPartnerDashboard />} />
+      <Route path="/dashboard" element={<Dashboard />}>
+        <Route index element={<DashboardHome />} />
+        <Route path="revenue" element={<Revenue />} />
+        <Route path="users" element={<Users />} />
+        <Route path="sellers" element={<Sellers />} />
+        <Route path="sellers/:sellerId/sales" element={<SellerSalesPage />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="settlements" element={<Settlements />} />
+        <Route path="refunds" element={<Refunds />} />
+        <Route path="delivery-partners" element={<DeliveryPartners />} />
+        <Route path="banners" element={<Banners />} />
+        <Route path="modules" element={<Modules />} />
+        <Route path="subcategories" element={<Subcategories />} />
+        <Route path="support-chats" element={<SupportChats />} />
+        <Route path="terms-conditions" element={<TermsConditions />} />
+        <Route path="privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="wholesale-inventory" element={<WholesaleInventory />} />
+        <Route path="wholesale-orders" element={<WholesaleOrders />} />
+        <Route path="production" element={<ProductionManagement />} />
+        <Route path="wholesale-revenue" element={<WholesaleRevenue />} />
+        <Route path="employees" element={<Employees />} />
+        <Route path="employees/add" element={<EmployeeForm />} />
+        <Route path="employees/:id/edit" element={<EmployeeForm />} />
+        <Route path="roles" element={<Roles />} />
+      </Route>
+      <Route path="/seller-wholesale" element={<SellerWholesale />} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Check if we should show splash (only on first load)
+    const hasShownSplash = sessionStorage.getItem('splashShown');
+    if (hasShownSplash) {
+      setShowSplash(false);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splashShown', 'true');
+    setShowSplash(false);
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* BrowserRouter must wrap providers that use react-router hooks (e.g., voice-call navigation) */}
+      <BrowserRouter>
+        <GoogleMapsProvider>
+          <AdminAuthProvider>
+            <UserAuthProvider>
+              <SellerAuthProvider>
+                <CartProvider>
+                  <OrderTrackingProvider>
+                      <TooltipProvider>
+                        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+                        <TermsAgreementPopup />
+                        <Toaster />
+                        <Sonner />
+                        <AppContent />
+                      </TooltipProvider>
+                  </OrderTrackingProvider>
+                </CartProvider>
+              </SellerAuthProvider>
+            </UserAuthProvider>
+          </AdminAuthProvider>
+        </GoogleMapsProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
+
+export default App;
