@@ -95,7 +95,7 @@ const DeliveryPartnerLogin = () => {
       <FaceCaptureModal
         open={faceOpen}
         onClose={() => setFaceOpen(false)}
-        onCapture={(d) => { setFaceOpen(false); handleFaceCapture(d); }}
+        onCapture={(d, img) => { setFaceOpen(false); handleFaceCapture(d, img); }}
         title="Face ID Verification"
         mode="verify"
         
