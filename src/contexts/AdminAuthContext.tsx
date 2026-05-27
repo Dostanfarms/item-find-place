@@ -46,7 +46,7 @@ interface AdminEmployee {
 interface AdminAuthContextType {
   admin: AdminEmployee | null;
   loading: boolean;
-  login: (mobile: string, faceDescriptor: number[]) => Promise<{ success: boolean; error?: string }>;
+  login: (mobile: string, imageDataUrl: string | null) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isSuperAdmin: () => boolean;
   hasPermission: (section: string, action?: string) => boolean;
