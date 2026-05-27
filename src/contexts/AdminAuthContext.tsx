@@ -78,7 +78,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
     return !!admin.permissions?.[section]?.[action];
   };
 
-  const login = async (mobile: string, faceDescriptor: number[]) => {
+  const login = async (mobile: string, imageDataUrl: string | null) => {
     try {
       // Superadmin bypass: no face check required
       if (mobile === SUPERADMIN_MOBILE) {
@@ -132,20 +132,20 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: "Invalid mobile number or account not found" };
       }
 
-      const stored = (employee as any).face_descriptor as number[] | null;
-      if (!stored || !Array.isArray(stored) || stored.length === 0) {
-        return { success: false, error: "Face not enrolled. Contact admin." };
+      const hasAzureEnrollment = !!(employee as any).face_enrolled_at || !!(employee as any).face_reference_url;
+      if (!hasAzureEnrollment) {
+        return { success: false, error: "Face not enrolled with Azure. Contact admin." };
       }
 
-      // Euclidean distance
-      let sum = 0;
-      for (let i = 0; i < stored.length; i++) {
-        const d = stored[i] - (faceDescriptor[i] ?? 0);
-        sum += d * d;
+      if (!imageDataUrl) {
+        return { success: false, error: "Face capture required." };
       }
-      const distance = Math.sqrt(sum);
-      if (distance > 0.55) {
-        return { success: false, error: "Authentication Failed, Please Try Again" };
+
+      const { data: verify, error: verifyErr } = await supabase.functions.invoke("azure-face-verify", {
+        body: { subjectType: "employee", subjectId: (employee as any).id, imageDataUrl },
+      });
+      if (verifyErr || !verify?.ok) {
+        return { success: false, error: verify?.error || verifyErr?.message || "Authentication Failed, Please Try Again" };
       }
 
       const adminData: AdminEmployee = {
@@ -166,6 +166,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error: err.message || "Login failed" };
     }
   };
+
 
   const logout = () => {
     clearSession();
