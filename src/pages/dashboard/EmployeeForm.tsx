@@ -182,7 +182,7 @@ const EmployeeForm = () => {
           setFormData({ name: data.name, mobile: data.mobile, email: data.email || "" });
           setExistingPhotoUrl(data.profile_photo_url);
           setPermissions((data as any).permissions || {});
-          setHasExistingFace(!!(data as any).face_descriptor);
+          setHasExistingFace(!!(data as any).face_enrolled_at || !!(data as any).face_descriptor);
         }
         setLoading(false);
       })();
