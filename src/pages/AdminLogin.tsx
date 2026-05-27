@@ -96,7 +96,7 @@ const AdminLogin = () => {
       <FaceCaptureModal
         open={faceOpen}
         onClose={() => setFaceOpen(false)}
-        onCapture={(desc) => handleFaceCaptured(desc)}
+        onCapture={(desc, img) => handleFaceCaptured(desc, img)}
         title={enrollMode ? "Enroll Super Admin Face" : "Face ID Login"}
         mode={enrollMode ? "enroll" : "verify"}
       />
